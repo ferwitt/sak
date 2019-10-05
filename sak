@@ -20,11 +20,9 @@ sys.path.append(SAK_GLOBAL)
 
 def install_sak():
     if not os.path.exists(SAK_GLOBAL):
-
         print('No SAK installed.')
 
-        if raw_input("Woud you like to install it? [Y/N]") in ['Y', 'y', 'yes']:
-
+        if input("Woud you like to install it? [Y/N]") in ['Y', 'y', 'yes']:
             print ('installing')
 
             ret_code = subprocess.call([
@@ -36,13 +34,24 @@ def install_sak():
 
             if ret_code != 0:
                 print('Failed to install! Check if you have Git and internet connection')
-                return -1
+                return ret_code
+            return 0
+        else:
+            return -1
+
+    print('Failed to import sak. Reason: unknown!')
     return 0
 
 try:
     import sak
 except:
-    sys.exit(install_sak())
+    ret_code = install_sak()
+
+    if ret_code != 0:
+        sys.exit(ret_code)
+
+    import sak
+    sys.exit(sak.install())
 
 if __name__ == "__main__":
     sak.run()
