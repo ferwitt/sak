@@ -54,7 +54,6 @@ except:
     import imp
     fp, pathname, description = imp.find_module('saklib')
     saklib = imp.load_module('saklib', fp, pathname, description)
-    #import saklib.sak
     sys.exit(saklib.install())
 
 if __name__ == "__main__":

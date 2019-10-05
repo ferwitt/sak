@@ -53,7 +53,8 @@ def install_python(ask_confirm=True):
 def install():
     install_python(ask_confirm=False)
 
-
 def run():
     install_python()
-
+    sys.exit(subprocess.call([SAK_PYTHON_BIN,
+        os.path.join(SAK_GLOBAL,'saklib', 'sak.py')
+        ] + sys.argv[1:]))
