@@ -11,6 +11,7 @@ __email__ = "ferawitt@gmail.com"
 
 import os
 import sys
+import imp
 import subprocess
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -50,7 +51,9 @@ except:
     if ret_code != 0:
         sys.exit(ret_code)
 
-    import sak
+    import imp
+    fp, pathname, description = imp.find_module('sak')
+    sak = imp.load_module('sak', fp, pathname, description)
     sys.exit(sak.install())
 
 if __name__ == "__main__":
