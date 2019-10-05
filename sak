@@ -44,7 +44,7 @@ def install_sak():
     return 0
 
 try:
-    import sak
+    import saklib
 except:
     ret_code = install_sak()
 
@@ -52,10 +52,10 @@ except:
         sys.exit(ret_code)
 
     import imp
-    fp, pathname, description = imp.find_module('sak')
-    sak = imp.load_module('sak', fp, pathname, description)
-    #import sak
-    sys.exit(sak.install())
+    fp, pathname, description = imp.find_module('saklib')
+    saklib = imp.load_module('saklib', fp, pathname, description)
+    #import saklib.sak
+    sys.exit(saklib.install())
 
 if __name__ == "__main__":
-    sak.run()
+    saklib.run()
