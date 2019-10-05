@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
 __author__ = "Fernando Witt"
@@ -33,7 +32,7 @@ def install_python(ask_confirm=True):
         return
 
     if ask_confirm:
-        if not raw_input("No python found, would like to install? [Y/N]") in ['Y', 'y', 'yes']:
+        if not input("No python found, would like to install? [Y/N]") in ['Y', 'y', 'yes']:
             return
 
     if not os.path.exists(SAK_PYTHON):
