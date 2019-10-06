@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: UTF-8 -*-
 
 __author__ = "Fernando Witt"
@@ -9,27 +10,36 @@ __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
 from sakcmd import SakCmd, SakArg
+from sakplugin import SakPlugin, SakPluginManager
+import os
+import subprocess
 
-def show_version(**vargs):
-    print('Version: %s' % (__version__))
+class Sak(SakPlugin):
+    def __init__(self):
+        super(Sak, self).__init__('Sak')
 
-def sak_cb(**vargs):
-    print('Nothing to do')
+    def show_version(self, **vargs):
+        print('Version: %s' % (__version__))
 
-def s_cb(**vargs):
-    print(vargs)
+    def show_argcomp(self, **vargs):
+        subprocess.call(['register-python-argcomplete', 'sak', '-s', 'bash'])
+
+    def exportCmds(self, base):
+        show = SakCmd('show')
+
+        show.addSubCmd(SakCmd('argcomp', self.show_argcomp))
+        show.addSubCmd(SakCmd('version', self.show_version))
+
+        base.addSubCmd(show)
 
 def main():
-    root = SakCmd('sak', sak_cb)
-    
-    version_cmd = SakCmd('version', show_version)
-    root.addSubCmd(version_cmd)
+    plm = SakPluginManager()
 
-    parser = root.generateArgParse()
-    args = vars(parser.parse_args())
-    callback = args.pop('sak_callback')
-    callback(**args)
+    plm.addPlugin(Sak())
 
+    root = plm.generateCommandsTree()
+
+    root.runArgParser()
 
 
 if __name__ == "__main__":

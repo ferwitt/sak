@@ -10,6 +10,7 @@ __email__ = "ferawitt@gmail.com"
 
 
 import argparse
+import argcomplete
 
 class SakArg(object):
     def __init__(self, name, helpmsg='', short_name=None, positional=False, **vargs):
@@ -32,12 +33,12 @@ class SakArg(object):
         parser.add_argument(*pargs, help=self.helpmsg, **self.vargs)
 
 class SakCmd(object):
-    def __init__(self, name, callback, args=[]):
+    def __init__(self, name, callback=None, args=None):
         super(SakCmd, self).__init__()
         self.name = name
         self.callback = callback
         self.subcmds = []
-        self.args = args
+        self.args = args or []
 
         self.parent = None
 
@@ -52,20 +53,30 @@ class SakCmd(object):
         self.args.append(arg)
 
     def generateArgParse(self, parser=None):
-
         if parser==None:
             parser = argparse.ArgumentParser(prog=self.name)
         else:
-            subparser = parser.add_subparsers(help='ROTO')
-            parser = subparser.add_parser(self.name, help='TODO')
+            parser = parser.add_parser(self.name, help='TODO')
 
         parser.set_defaults(sak_callback=self.callback)
 
         for arg in self.args:
             arg.addToArgParser(parser)
 
-        for subcmd in self.subcmds:
-            subcmd.generateArgParse(parser)
+        if self.subcmds:
+            subparsers = parser.add_subparsers()
+            for subcmd in self.subcmds:
+                subcmd.generateArgParse(subparsers)
 
         return parser
-        
+
+    def runArgParser(self):
+        parser = self.generateArgParse()
+
+        argcomplete.autocomplete(parser)
+
+        args = vars(parser.parse_args())
+        callback = args.pop('sak_callback')
+        if callback:
+            callback(**args)
+

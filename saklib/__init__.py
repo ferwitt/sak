@@ -12,7 +12,6 @@ import os
 import sys
 import subprocess
 
-# TODO: This must be the leader pid, so if it dies it will kill all the subprocesses
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 SAK_GLOBAL = os.path.abspath(os.path.join(os.environ.get('HOME'), '.sak'))
@@ -54,7 +53,17 @@ def install():
     install_python(ask_confirm=False)
 
 def run():
-    install_python()
-    sys.exit(subprocess.call([SAK_PYTHON_BIN,
-        os.path.join(SAK_GLOBAL,'saklib', 'sak.py')
-        ] + sys.argv[1:]))
+    # TODO: This must be the leader pid, so if it dies it will kill all the subprocesses
+    #os.killpg(os.getpgid(pro.pid), signal.SIGTERM) 
+
+    install()
+
+    os.environ['PATH'] = os.path.dirname(SAK_PYTHON_BIN) + ':' + os.environ['PATH']
+
+    ## TODO: Tryied to use subprocess, but argcomplete didnt work
+    cmd = [SAK_PYTHON_BIN, os.path.join(SAK_GLOBAL,'saklib', 'sak.py') ] + sys.argv[1:]
+    sys.exit(os.system(' '.join(['"%s"' % x for x in cmd])))
+
+    #sys.exit(subprocess.call([SAK_PYTHON_BIN,
+    #    os.path.join(SAK_GLOBAL,'saklib', 'sak.py')
+    #    ] + sys.argv[1:]))
