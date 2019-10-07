@@ -48,3 +48,11 @@ $ wget https://raw.githubusercontent.com/ferwitt/sak/master/sak && chmod +x sak
 ```
 
 SAK will ask to install on its first call.
+
+## Bash auto completion
+
+Add the following to your bashrc:
+
+```
+eval "$(sak show argcomp)"
+```
