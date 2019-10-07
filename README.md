@@ -31,5 +31,20 @@ TODO:
 
 # Instalation
 
-TODO:
+Download and place SAK into a folder listed in your path:
 
+```
+$ mkdir $HOME/bin
+```
+
+In .bashrc insert $HOME/bin to the path
+```
+export PATH=$HOME/bin:$PATH
+```
+
+```
+$ cd $HOME/bin
+$ wget https://raw.githubusercontent.com/ferwitt/sak/master/sak && chmod +x sak
+```
+
+SAK will ask to install on its first call.
