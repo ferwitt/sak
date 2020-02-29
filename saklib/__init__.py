@@ -10,6 +10,7 @@ __email__ = "ferawitt@gmail.com"
 
 import os
 import sys
+import platform
 import subprocess
 
 
@@ -56,13 +57,19 @@ def run():
     # TODO: This must be the leader pid, so if it dies it will kill all the subprocesses
     #os.killpg(os.getpgid(pro.pid), signal.SIGTERM) 
 
-    install()
+    if 'x86' in platform.machine():
+        install()
 
-    os.environ['PATH'] = os.path.dirname(SAK_PYTHON_BIN) + ':' + os.environ['PATH']
+        os.environ['PATH'] = os.path.dirname(SAK_PYTHON_BIN) + ':' + os.environ['PATH']
 
-    ## TODO: Tryied to use subprocess, but argcomplete didnt work
-    cmd = [SAK_PYTHON_BIN, os.path.join(SAK_GLOBAL,'saklib', 'sak.py') ] + sys.argv[1:]
-    sys.exit(os.system(' '.join(['"%s"' % x for x in cmd])))
+        ## TODO: Tryied to use subprocess, but argcomplete didnt work
+        cmd = [SAK_PYTHON_BIN, os.path.join(SAK_GLOBAL,'saklib', 'sak.py') ] + sys.argv[1:]
+        sys.exit(os.system(' '.join(['"%s"' % x for x in cmd])))
+    else:
+        sys.path.append(os.path.join(SAK_GLOBAL,'saklib'))
+        import sak
+        sak.main()
+
 
     #sys.exit(subprocess.call([SAK_PYTHON_BIN,
     #    os.path.join(SAK_GLOBAL,'saklib', 'sak.py')
