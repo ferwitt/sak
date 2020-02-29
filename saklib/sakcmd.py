@@ -10,7 +10,12 @@ __email__ = "ferawitt@gmail.com"
 
 
 import argparse
-import argcomplete
+
+hasArgcomplete = True
+try:
+    import argcomplete
+except:
+    hasArgcomplete = False
 
 class SakArg(object):
     def __init__(self, name, helpmsg='', short_name=None, positional=False, **vargs):
@@ -73,7 +78,8 @@ class SakCmd(object):
     def runArgParser(self):
         parser = self.generateArgParse()
 
-        argcomplete.autocomplete(parser)
+        if hasArgcomplete:
+            argcomplete.autocomplete(parser)
 
         args = vars(parser.parse_args())
         callback = args.pop('sak_callback')
