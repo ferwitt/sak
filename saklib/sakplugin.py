@@ -11,10 +11,20 @@ __email__ = "ferawitt@gmail.com"
 from sakcmd import SakCmd
 
 import os
+import sys
 
 from pathlib import Path
 import inspect
-import imp
+
+(PYTHON_VERSION_MAJOR, PYTHON_VERSION_MINOR, _, _, _) = sys.version_info
+
+if PYTHON_VERSION_MAJOR == 3:
+    import importlib
+elif PYTHON_VERSION_MAJOR == 2:
+    import imp
+else:
+    print('Unkown python version %d' % PYTHON_VERSION_MAJOR)
+    sys.exit(-1)
 
 class SakPlugin(object):
     def __init__(self, name):
@@ -74,8 +84,15 @@ class SakPluginManager(object):
                 if os.path.isdir(fname_abs):
                     continue
 
-                # TODO: Make import scheme version independent
-                imported_module = imp.load_source(name, fname_abs)
+                if PYTHON_VERSION_MAJOR == 3:
+                    if PYTHON_VERSION_MINOR >= 5:
+                        spec = importlib.util.spec_from_file_location(name, fname_abs)
+                        imported_module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(imported_module)
+                    else:
+                        imported_module = SourceFileLoader(name, fname_abs).load_module()
+                elif PYTHON_VERSION_MAJOR == 2:
+                    imported_module = imp.load_source(name, fname_abs)
 
                 for i in dir(imported_module):
                     attribute = getattr(imported_module, i)

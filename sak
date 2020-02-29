@@ -51,10 +51,11 @@ except:
     if ret_code != 0:
         sys.exit(ret_code)
 
-    import imp
-    fp, pathname, description = imp.find_module('saklib')
-    saklib = imp.load_module('saklib', fp, pathname, description)
-    sys.exit(saklib.install())
+    try:
+        import saklib
+    except:
+        print('Could not get SAK code!')
+        pass
 
 if __name__ == "__main__":
     saklib.run()

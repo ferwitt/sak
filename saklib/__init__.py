@@ -13,6 +13,8 @@ import sys
 import platform
 import subprocess
 
+(VERSION_MAJOR, VERSION_MINOR, _, _, _) = sys.version_info
+
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 SAK_GLOBAL = os.path.abspath(os.path.join(os.environ.get('HOME'), '.sak'))
@@ -51,13 +53,16 @@ def install_python(ask_confirm=True):
 
 
 def install():
-    install_python(ask_confirm=False)
+    if 'x86' in platform.machine():
+        # Only try to run inside miniconda if is in x86
+        install_python(ask_confirm=False)
 
 def run():
     # TODO: This must be the leader pid, so if it dies it will kill all the subprocesses
     #os.killpg(os.getpgid(pro.pid), signal.SIGTERM) 
 
     if 'x86' in platform.machine():
+        # Only try to run inside miniconda if is in x86
         install()
 
         os.environ['PATH'] = os.path.dirname(SAK_PYTHON_BIN) + ':' + os.environ['PATH']
