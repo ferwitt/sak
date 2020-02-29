@@ -18,13 +18,14 @@ except:
     hasArgcomplete = False
 
 class SakArg(object):
-    def __init__(self, name, helpmsg='', short_name=None, positional=False, **vargs):
+    def __init__(self, name, helpmsg='', short_name=None, positional=False, completercb=None, **vargs):
         super(SakArg, self).__init__()
         self.name = name
         self.helpmsg = helpmsg
         self.short_name = short_name
         self.vargs = vargs
         self.positional = positional
+        self.completercb = completercb
 
     def addToArgParser(self, parser):
         pargs = []
@@ -35,7 +36,10 @@ class SakArg(object):
         else:
             pargs = [self.name]
 
-        parser.add_argument(*pargs, help=self.helpmsg, **self.vargs)
+        aux = parser.add_argument(*pargs, help=self.helpmsg, **self.vargs)
+
+        if self.completercb:
+            aux.completer = self.completercb
 
 class SakCmd(object):
     def __init__(self, name, callback=None, args=None):
