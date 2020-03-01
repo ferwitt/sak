@@ -23,7 +23,7 @@ class Sak(SakPlugin):
         super(Sak, self).__init__('sak')
 
     def show_version(self, **vargs):
-        print('Version: %s' % (__version__))
+        return 'Version: %s' % (__version__)
 
     def show_argcomp(self, **vargs):
         subprocess.call(['register-python-argcomplete', 'sak', '-s', 'bash'])
