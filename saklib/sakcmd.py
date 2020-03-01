@@ -41,6 +41,17 @@ class SakArg(object):
         if self.completercb:
             aux.completer = self.completercb
 
+    def getAsDict(self):
+        ret = {
+                'name': self.name,
+                'help': self.helpmsg,
+                #'short_name': self.short_name,
+                #'completercb': self.completercb
+                }
+        #ret.update(self.vargs)
+        return ret
+
+
 class SakCmd(object):
     def __init__(self, name, callback=None, args=None):
         super(SakCmd, self).__init__()
@@ -50,6 +61,13 @@ class SakCmd(object):
         self.args = args or []
 
         self.parent = None
+
+    def getAsDict(self):
+        ret = { 'name': self.name }
+        #if self.callback: ret['callback'] = self.callback
+        ret['subcmds'] = [x.getAsDict() for x in self.subcmds]
+        ret['args'] = [x.getAsDict() for x in self.args]
+        return ret
 
     def addSubCmd(self, subcmd):
         subcmd.setParent(self)
@@ -88,5 +106,8 @@ class SakCmd(object):
         args = vars(parser.parse_args())
         callback = args.pop('sak_callback')
         if callback:
-            callback(**args)
+            ret = callback(**args)
+            if ret:
+                # TODO: Standardize the output from the plugin endpoints!
+                print(ret)
 

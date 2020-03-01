@@ -55,6 +55,12 @@ class SakPluginManager(object):
 
         context.setPluginManager(self)
 
+    def getPuginByName(self, name):
+        for p in self.plugins:
+            if p.name == name:
+                return p
+        return None
+
     def addPlugin(self, plugin):
         plugin.setContext(self.context)
         self.plugins.append(plugin)
