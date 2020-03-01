@@ -19,7 +19,10 @@ import inspect
 (PYTHON_VERSION_MAJOR, PYTHON_VERSION_MINOR, _, _, _) = sys.version_info
 
 if PYTHON_VERSION_MAJOR == 3:
-    import importlib
+    if PYTHON_VERSION_MINOR >= 6:
+        import importlib.util
+    else:
+        from importlib.machinery import SourceFileLoader
 elif PYTHON_VERSION_MAJOR == 2:
     import imp
 else:
@@ -85,7 +88,7 @@ class SakPluginManager(object):
                     continue
 
                 if PYTHON_VERSION_MAJOR == 3:
-                    if PYTHON_VERSION_MINOR >= 5:
+                    if PYTHON_VERSION_MINOR >= 6:
                         spec = importlib.util.spec_from_file_location(name, fname_abs)
                         imported_module = importlib.util.module_from_spec(spec)
                         spec.loader.exec_module(imported_module)
