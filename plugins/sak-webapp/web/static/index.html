@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Picnic CSS Testing</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="css, library, picnic, picnicss, light">
+    <meta name="description" content="A lightweight CSS library">
+    <link rel="stylesheet" href="/style/fontawesome-free-5.12.1-web/css/all.min.css">
+    <link rel="stylesheet" href="/css/picnic.css">
+    <link rel="icon" href="/img/sak.png" type="image/png">
+    <style>
+        aside a.top {
+            font-size: 0;
+            position: fixed;
+            bottom: 0;
+            font-weight: bold;
+            width: 180px;
+            padding: .6em 0;
+            margin-bottom: 0;
+            border-radius: .3em .3em 0 0;
+            transition: all .3s ease;
+        }
+
+        aside a.top.visible {
+          font-size: 1em;
+        }
+
+        aside .links a.button {
+          text-align: left;
+        }
+
+        @media all and (max-width: 1000px) {
+          aside a.pseudo.top {
+            background: rgba(255, 255, 255, .8);
+            width: 100%;
+            left: 0;
+            text-align: center;
+            z-index: 100;
+          }
+        }
+
+        .mainview article > h2 {
+          margin: -2em 0 .6em;
+          padding: 3em 0 0;
+          line-height: 1;
+        }
+
+        .mainview article > h3 {
+          margin-bottom: .6em;
+        }
+
+        .mainview aside h2 {
+          margin-top: 0;
+          padding: 1.25em 0;
+          line-height: 1;
+        }
+
+        .mainview aside a.pseudo {
+          color: #0074D9;
+          margin: 0;
+        }
+
+        .mainview > section {
+          background: #fff;
+          text-align: left;
+          width: 90%;
+          max-width: 960px;
+          margin: 0 auto;
+          padding: 80px 0 0;
+        }
+
+        .mainview article > h1 {
+          margin: 0;
+          padding: 0.6em 0;
+          font-size: 2em;
+          line-height: 1.5;
+        }
+
+        .mainview aside a.button {
+          display: block;
+        }
+
+        .mainview pre[class*="language-"] {
+          margin-top: 10px;
+          margin-bottom: 40px;
+        }
+
+        .mainview .index pre {
+          margin: 0;
+          font-size: .9em;
+        }
+    </style>
+</head>
+<body ng-app="app">
+    <nav>
+       <a href="/" class="brand">
+          <img src="/img/sak.png" height="25em"/>
+          <span>SAK</span>
+       </a>
+
+        <input id="bmenu" type="checkbox" class="show">
+        <label for="bmenu" class="burger toggle pseudo button">
+            <i class="fa fa-bars"></i>
+            MENU</label>
+        <div class="menu">
+            <a href="" class="pseudo button"><i class="fa fa-fire"></i> Fire</a>
+            <a href="" class="pseudo button"><i class="fa fa-download"></i> Download</a>
+            <a href="" class="button"><i class="fa fa-book"></i> Doc</a>
+        </div>
+    </nav>
+    <main class="mainview" ng-controller="SakApp">
+        <section class="flex one">
+            <h1>SAK WEB APP draft</h1>
+            <div>
+                This is something from the controller: {{message}}
+            </div>
+        </section>
+    </main>
+
+    <script src="js/angular.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
