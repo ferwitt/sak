@@ -43,7 +43,10 @@ class SakArg(object):
 
 
 class SakCmd(object):
-    def __init__(self, name, callback=None, args=None):
+    EXP_CLI = 'cli'
+    EXP_WEB = 'web'
+
+    def __init__(self, name, callback=None, args=None, expose=[]):
         super(SakCmd, self).__init__()
         self.name = name
         self.callback = callback
@@ -51,19 +54,28 @@ class SakCmd(object):
         self.args = args or []
 
         self.parent = None
+        self.expose = expose or [SakCmd.EXP_CLI]
 
     def addSubCmd(self, subcmd):
         subcmd.setParent(self)
         self.subcmds.append(subcmd)
 
+    def addExpose(self, expose=[]):
+        for exp in expose:
+            if exp not in self.expose:
+                self.expose.append(exp)
+        if self.parent:
+            self.parent.addExpose(expose)
+
     def setParent(self, parent):
         self.parent = parent
+        self.addExpose(self.expose)
 
     def addArg(self, arg):
         self.args.append(arg)
 
     def generateArgParse(self, parser=None):
-        if parser==None:
+        if parser == None:
             parser = argparse.ArgumentParser(prog=self.name)
         else:
             parser = parser.add_parser(self.name, help='TODO')
@@ -90,7 +102,7 @@ class SakCmd(object):
         callback = args.pop('sak_callback')
         if callback:
             ret = callback(**args)
-            if ret:
+            if isinstance(ret, str):
                 # TODO: Standardize the output from the plugin endpoints!
                 print(ret)
 
