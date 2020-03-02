@@ -32,7 +32,7 @@ class Sak(SakPlugin):
         show = SakCmd('show')
 
         show.addSubCmd(SakCmd('argcomp', self.show_argcomp))
-        show.addSubCmd(SakCmd('version', self.show_version))
+        show.addSubCmd(SakCmd('version', self.show_version, expose=[SakCmd.EXP_CLI, SakCmd.EXP_WEB]))
 
         base.addSubCmd(show)
 
