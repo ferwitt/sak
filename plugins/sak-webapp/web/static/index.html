@@ -113,6 +113,11 @@
             <div>
                 This is something from the controller: {{message}}
             </div>
+
+            <div ng-repeat="cmd in cmd_root.subcmds">
+              {{ cmd['name'] }}<br>
+            </div>
+
         </section>
     </main>
 
