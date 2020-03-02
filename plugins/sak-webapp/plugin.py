@@ -156,7 +156,8 @@ class SakWebapp(SakPlugin):
                 continue
             extra_files.append(os.path.join(pDir, 'plugin.py'))
 
-        return self.buildFlask().run(debug=True, extra_files=extra_files)
+        # https://www.quora.com/How-is-it-possible-to-make-Flask-web-framework-non-blocking
+        return self.buildFlask().run(debug=True, extra_files=extra_files, threaded=True)
 
 
     def start(self, **vargs):
