@@ -20,8 +20,16 @@ class SakWebCmdArg():
     def __init__(self, arg):
         self.arg = arg
 
+    def getAsDict(self):
+        ret = {
+                'name': self.arg.name.replace('-', '_'),
+                'help': self.arg.helpmsg,
+                }
+        #ret.update(self.vargs)
+        return ret
+
     def getRequestArg(self, request):
-        name = self.arg.name
+        name = self.arg.name.replace('-', '_')
         required = self.arg.vargs.get('required', False)
         action = self.arg.vargs.get('action', '')
         nargs = self.arg.vargs.get('nargs', '')
@@ -29,7 +37,9 @@ class SakWebCmdArg():
         arg_type = self.arg.vargs.get('type', None)
 
         def castIt(val):
-            if arg_type==None:
+            if val == None:
+                return val
+            if arg_type == None:
                 return val
             return arg_type(val)
 
@@ -47,9 +57,10 @@ class SakWebCmdArg():
                 req_arg = [castIt(req_arg)]
             return {name: req_arg}
 
-        if not req_arg:
-            if required or nargs in ['+']:
-                raise('Parameter %s is required' % name)
+        if req_arg == None:
+            if default == None:
+                if required or nargs in ['+']:
+                    raise('Parameter %s is required' % name)
             else:
                 req_arg = default
         req_arg = castIt(req_arg)
@@ -64,7 +75,6 @@ class SakWebCmd():
         self.root = root
 
         self.route = os.path.join(self.root, self.cmd.name)
-
         self.args = []
         for arg in cmd.args:
             self.args.append(SakWebCmdArg(arg))
@@ -74,9 +84,8 @@ class SakWebCmd():
             self.subcmds.append(SakWebCmd(subcmd, self.route))
 
     def __call__(self):
-        ret = {}
-
         if self.cmd.callback:
+            ret = {}
             vargs = {}
             for arg in self.args:
                 vargs.update(arg.getRequestArg(request))
@@ -84,12 +93,16 @@ class SakWebCmd():
             print(vargs)
 
             ret['result'] = self.cmd.callback(**vargs)
+            return jsonify(ret)
+        else:
+            return self.getAsDict()
 
 
-        return jsonify(ret)
 
     def buildFlaskRoutes(self, app):
-        print('register', self.route)
+        if SakCmd.EXP_WEB not in self.cmd.expose:
+            return
+
         app.add_url_rule(
                 self.route,
                 self.route.replace('/', '_'),
@@ -98,6 +111,14 @@ class SakWebCmd():
 
         for subcmd in self.subcmds:
             subcmd.buildFlaskRoutes(app)
+
+    def getAsDict(self):
+        ret = { 'name': self.cmd.name }
+        ret['subcmds'] = [x.getAsDict() for x in self.subcmds if SakCmd.EXP_WEB in x.cmd.expose]
+        ret['args'] = [x.getAsDict() for x in self.args]
+        ret['isCallable'] = self.cmd.callback != None
+        return ret
+
 
 
 class SakWebapp(SakPlugin):
@@ -120,6 +141,10 @@ class SakWebapp(SakPlugin):
 
     def buildFlask(self):
         app = self._getApp()
+        commands_root = '/api/cmd'
+
+        cmdTree = SakWebCmd(self.context.pluginManager.generateCommandsTree(), commands_root)
+        plugins = [x for x in self.context.pluginManager.getPluginList() if x.name not in ['sak', 'plugins']]
 
         @app.route("/")
         def index():
@@ -127,20 +152,11 @@ class SakWebapp(SakPlugin):
 
         @app.route("/api/show/plugins")
         def show_plugins():
-            return jsonify([x.name for x in self.context.pluginManager.getPluginList()])
+            return jsonify([x.name for x in plugins])
 
 
-        @app.route("/api/show/commands")
-        def show_commands():
-            return jsonify(self.context.pluginManager.generateCommandsTree().getAsDict())
 
 
-        commands_root = '/api/commands'
-        @app.route(commands_root)
-        def commands():
-            return show_commands()
-
-        cmdTree = SakWebCmd(self.context.pluginManager.generateCommandsTree(), commands_root)
         cmdTree.buildFlaskRoutes(app)
 
 
