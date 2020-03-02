@@ -28,7 +28,13 @@ class Sak(SakPlugin):
     def show_argcomp(self, **vargs):
         subprocess.call(['register-python-argcomplete', 'sak', '-s', 'bash'])
 
+    def bash(self, **vargs):
+        os.system('bash')
+
     def exportCmds(self, base):
+        bash = SakCmd('bash', self.bash)
+        base.addSubCmd(bash)
+
         show = SakCmd('show')
 
         show.addSubCmd(SakCmd('argcomp', self.show_argcomp))
