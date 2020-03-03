@@ -20,17 +20,23 @@ app.controller("SakApp", function($scope, $http) {
   $scope.activeCmds = [];
   $scope.addCmdToActiveList = function(cmd) {
       time = new Date().getTime();
-      $scope.activeCmds.push({id: time, response:null, cmd: cmd});
+
+      entry = {id: time, response:null, params:{}, cmd: cmd}
+      var arrayLength = entry.cmd.args.length;
+      for (var i = 0; i < arrayLength; i++) {
+        arg = entry.cmd.args[i];
+      }
+      $scope.activeCmds.push(entry);
   };
 
   $scope.getActiveCmdById = function(cmdId) {
-      ret = null;
+      entry = null;
       $scope.activeCmds.forEach(function(cmdEntry){
           if (cmdEntry.id === cmdId) {
-              ret = cmdEntry.cmd;
+              entry = cmdEntry;
           }
       });
-      return ret;
+      return entry;
   };
 
   $scope.removeActiveCmdById = function(cmdId) {
@@ -51,9 +57,18 @@ app.controller("SakApp", function($scope, $http) {
       $scope.activeCmds.forEach(function(cmdEntry){
           if (cmdEntry.id === cmdId) {
               cmdEntry.response = "Running...";
-              $http.get(cmdEntry.cmd.path).then(function(response) {
+              $http.get(
+                cmdEntry.cmd.path,
+                {
+                params: cmdEntry.params
+                }
+              ).then(function(response) {
                   cmdEntry.response = response.data;
-              });
+              },
+                function(response) {
+                  cmdEntry.response = "Failed :(";
+                }
+              );
           }
       });
   };
@@ -63,6 +78,38 @@ app.controller("SakApp", function($scope, $http) {
   }
 
 })
+
+app.directive('sakCmdArg',
+  function ($compile) {
+        return {
+            restrict: "EA",
+        scope: false,
+        template: function(scope, attrs) {
+          ret = `
+          <div class="flex two">
+            <label>{{arg.name}} :</label>
+            <div>
+              <div ng-hide="arg.choices.length">
+                <label ng-hide="arg.type != 'bool'">
+                  <input type="checkbox" ng-model="get().params[arg.name]"/>
+                  <span class="checkable"></span>
+                </label>
+                <input ng-hide="arg.type != 'string'" type="text" ng-model="get().params[arg.name]"/>
+                <input ng-hide="arg.type != 'list'" type="text" ng-model="get().params[arg.name]"/>
+                <input ng-hide="arg.type != 'int'" type="number" ng-model="get().params[arg.name]">
+              </div>
+              <div ng-hide="!arg.choices.length">
+                <select ng-model="get().params[arg.name]" ng-options="choice for choice in arg.choices">
+                </select>
+              </div>
+            </div>
+          </div>
+          `;
+
+          return ret
+        }
+        };
+  });
 
 app.directive("sakCmd", function(){
         return {
@@ -77,22 +124,25 @@ app.directive("sakCmd", function(){
         },
         template: `<article class='card'>
                        <header>
-                          {{ get().name }}
+                          {{ get().cmd.name }}
+                          <div class="flex one three-600 five-1000">
+                          <button ng-repeat="cmd in get().cmd.subcmds" data-tooltip="{{cmd.helpmsg}}" class="tooltip-top" ng-click="pscope().addCmdToActiveList(cmd)">
+                              {{ cmd['name'] }}
+                          </button>
+                          </div>
                           <button class="dangerous" ng-click=close()> close</button>
                        </header>
                        <footer>
-
-                            <div ng-repeat="cmd in get().subcmds">
-                                <button data-tooltip="{{cmd.helpmsg}}" class="tooltip-top" ng-click="pscope().addCmdToActiveList(cmd)">
-                                    {{ cmd['name'] }}
-                                </button>
+                            <div ng-hide="!get().cmd.isCallable">
+                              <form novalidate >
+                                  <div ng-repeat="arg in get().cmd.args">
+                                    <sak-cmd-arg argname="{{arg.name}}" argtype="{{arg.type}}" getcmd="get()"/>
+                                  </div>
+                                  <button class="tooltip-top" ng-click="run()">
+                                      RUN
+                                  </button>
+                               </form>
                             </div>
-                            <div ng-repeat="arg in get().args">
-                                {{arg.name}}
-                            </div>
-                            <button ng-hide="!get().isCallable" class="tooltip-top" ng-click="run()">
-                            RUN
-                            </button>
                             {{ response }}
                        </footer>
                     </article>`

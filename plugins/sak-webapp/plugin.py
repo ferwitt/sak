@@ -21,51 +21,86 @@ class SakWebCmdArg():
         self.arg = arg
 
     def getAsDict(self):
+        action = self.arg.vargs.get('action', '')
+        default = self.arg.vargs.get('default', None)
+        choices = self.arg.vargs.get('choices', None)
+        arg_type = self.arg.vargs.get('type', None)
+        nargs = self.arg.vargs.get('nargs', None)
+
+        if not choices and self.arg.completercb:
+            choices = self.arg.completercb()
+
+        if arg_type is None:
+            if action in ['store_true', 'store_false']:
+                arg_type = bool
+            if action in ['append'] or nargs in ['*', '+']:
+                arg_type = list
+
+        if default is None:
+            if action == 'store_true':
+                default = False
+            elif action == 'store_false':
+                default = True
+
+        type_lut = {
+                bool: 'bool',
+                str: 'string',
+                list: 'list',
+                int: 'int',
+                float: 'float'
+                }
+
         ret = {
                 'name': self.arg.name.replace('-', '_'),
                 'help': self.arg.helpmsg,
+                'type': type_lut.get(arg_type, 'string'),
+                'default': default,
+                'choices': choices,
+                'nargs': nargs,
                 }
         #ret.update(self.vargs)
         return ret
 
     def getRequestArg(self, request):
-        name = self.arg.name.replace('-', '_')
-        required = self.arg.vargs.get('required', False)
-        action = self.arg.vargs.get('action', '')
-        nargs = self.arg.vargs.get('nargs', '')
-        default = self.arg.vargs.get('default', None)
-        arg_type = self.arg.vargs.get('type', None)
 
-        def castIt(val):
-            if val == None:
-                return val
-            if arg_type == None:
-                return val
-            return arg_type(val)
+        type_lut = {
+                'bool': bool,
+                'string': str,
+                'list': list,
+                'int': int,
+                'float': float
+                }
+        cfg = self.getAsDict()
+
+        name = cfg['name']
+        arg_type = type_lut[cfg['type']]
+        default = cfg['default']
 
         req_arg = request.args.get(name, None)
 
-        # TODO: Handle nargs and action append
-        if 'store_true' in action:
-            req_arg = req_arg != None
-            return {name: req_arg}
+        def castIt(val):
+            if val is None:
+                return val
+            if arg_type is None:
+                return val
+            if isinstance(val, arg_type):
+                return val
+            return arg_type(val)
 
-        if action in ['append'] or nargs in ['*']:
-            if req_arg == None:
-                req_arg = []
-            else:
-                req_arg = [castIt(req_arg)]
-            return {name: req_arg}
+        if arg_type == list:
+            if not isinstance(req_arg, list):
+                if req_arg is None:
+                    if default:
+                        req_arg = default
+                    else:
+                        req_arg = []
+                else:
+                    req_arg = [req_arg]
+        else:
+            req_arg = castIt(req_arg)
 
-        if req_arg == None:
-            if default == None:
-                if required or nargs in ['+']:
-                    raise('Parameter %s is required' % name)
-            else:
-                req_arg = default
-        req_arg = castIt(req_arg)
-        if nargs in ['+']:
-            req_arg = [req_arg]
+        if req_arg is None:
+            req_arg = default
 
         return {name: req_arg}
 
@@ -92,7 +127,10 @@ class SakWebCmd():
             print(vargs)
 
             ret['result'] = self.cmd.callback(**vargs)
-            return jsonify(ret)
+            if isinstance(ret['result'], str):
+                return jsonify(ret)
+            else:
+                return 'OK'
         else:
             return self.getAsDict()
 
@@ -158,27 +196,28 @@ class SakWebapp(SakPlugin):
 
         return app
 
-    def appStart(self):
+    def appStart(self, port=5000):
         pluginDirs = [p.path for p in self.context.pluginManager.getPluginList()]
 
         # Add all the plugin files to the watch list to restart server
-        extra_files=[]
+        extra_files = []
         for pDir in pluginDirs:
             if not pDir:
                 continue
             extra_files.append(os.path.join(pDir, 'plugin.py'))
 
         # https://www.quora.com/How-is-it-possible-to-make-Flask-web-framework-non-blocking
-        return self.buildFlask().run(debug=True, extra_files=extra_files, threaded=True)
+        return self.buildFlask().run(debug=True, extra_files=extra_files, threaded=True, port=port)
 
 
     def start(self, **vargs):
-        self.appStart()
+        self.appStart(**vargs)
 
     def exportCmds(self, base):
         webapp = SakCmd('webapp')
 
         start = SakCmd('start', self.start)
+        start.addArg(SakArg('port', short_name='p', type=int, default='2020'))
         webapp.addSubCmd(start)
         
         base.addSubCmd(webapp)
