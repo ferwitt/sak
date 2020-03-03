@@ -85,6 +85,10 @@ class SakWebCmdArg():
                 return val
             if isinstance(val, arg_type):
                 return val
+
+            if arg_type is bool and isinstance(val, str):
+                return val.lower() in ['yes', 'true', '1']
+
             return arg_type(val)
 
         if arg_type == list:
