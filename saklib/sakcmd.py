@@ -53,6 +53,8 @@ class SakCmd(object):
         self.subcmds = []
         self.args = args or []
 
+        self.helpmsg = 'TODO'
+
         self.parent = None
         self.expose = expose or [SakCmd.EXP_CLI]
 
@@ -78,7 +80,7 @@ class SakCmd(object):
         if parser == None:
             parser = argparse.ArgumentParser(prog=self.name)
         else:
-            parser = parser.add_parser(self.name, help='TODO')
+            parser = parser.add_parser(self.name, help=self.helpmsg)
 
         parser.set_defaults(sak_callback=self.callback)
 

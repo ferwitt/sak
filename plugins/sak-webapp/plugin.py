@@ -73,7 +73,6 @@ class SakWebCmd():
     def __init__(self, cmd, root):
         self.cmd = cmd
         self.root = root
-
         self.route = os.path.join(self.root, self.cmd.name)
         self.args = []
         for arg in cmd.args:
@@ -97,8 +96,6 @@ class SakWebCmd():
         else:
             return self.getAsDict()
 
-
-
     def buildFlaskRoutes(self, app):
         if SakCmd.EXP_WEB not in self.cmd.expose:
             return
@@ -113,10 +110,12 @@ class SakWebCmd():
             subcmd.buildFlaskRoutes(app)
 
     def getAsDict(self):
-        ret = { 'name': self.cmd.name }
+        ret = { 'name': self.cmd.name, 'helpmsg': self.cmd.helpmsg}
         ret['subcmds'] = [x.getAsDict() for x in self.subcmds if SakCmd.EXP_WEB in x.cmd.expose]
         ret['args'] = [x.getAsDict() for x in self.args]
         ret['isCallable'] = self.cmd.callback != None
+        ret['path'] = self.route
+        ret['parent_path'] = self.root
         return ret
 
 
@@ -143,22 +142,19 @@ class SakWebapp(SakPlugin):
         app = self._getApp()
         commands_root = '/api/cmd'
 
-        cmdTree = SakWebCmd(self.context.pluginManager.generateCommandsTree(), commands_root)
-        plugins = [x for x in self.context.pluginManager.getPluginList() if x.name not in ['sak', 'plugins']]
-
         @app.route("/")
         def index():
             return redirect("index.html")
+
+        privatePlugins = ['sak', 'plugins']
+        plugins = [x for x in self.context.pluginManager.getPluginList() if x.name not in privatePlugins]
 
         @app.route("/api/show/plugins")
         def show_plugins():
             return jsonify([x.name for x in plugins])
 
-
-
-
+        cmdTree = SakWebCmd(self.context.pluginManager.generateCommandsTree(), commands_root)
         cmdTree.buildFlaskRoutes(app)
-
 
         return app
 

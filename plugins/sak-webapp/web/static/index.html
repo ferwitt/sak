@@ -63,7 +63,7 @@
           background: #fff;
           text-align: left;
           width: 90%;
-          max-width: 960px;
+          max-width: 1280px;
           margin: 0 auto;
           padding: 80px 0 0;
         }
@@ -91,37 +91,71 @@
     </style>
 </head>
 <body ng-app="app">
+<div ng-controller="SakApp">
     <nav>
-       <a href="/" class="brand">
-          <img src="/img/sak.png" height="25em"/>
-          <span>SAK</span>
-       </a>
+        <a href="/" class="brand">
+            <img src="/img/sak.png" height="25em"/>
+            <span>SAK</span>
+        </a>
 
         <input id="bmenu" type="checkbox" class="show">
         <label for="bmenu" class="burger toggle pseudo button">
-            <i class="fa fa-bars"></i>
-            MENU</label>
+            <i class="fa fa-bars"></i> MENU
+        </label>
         <div class="menu">
+            <!--
             <a href="" class="pseudo button"><i class="fa fa-fire"></i> Fire</a>
             <a href="" class="pseudo button"><i class="fa fa-download"></i> Download</a>
-            <a href="" class="button"><i class="fa fa-book"></i> Doc</a>
+            -->
+            <a href="" ng-repeat="cmd in cmd_root.subcmds" class="pseudo button" data-tooltip="{{cmd.helpmsg}}" class="full tooltip-top" ng-click="addCmdToActiveList(cmd)">
+                    {{ cmd['name'] }}
+            </a>
         </div>
     </nav>
-    <main class="mainview" ng-controller="SakApp">
-        <section class="flex one">
-            <h1>SAK WEB APP draft</h1>
-            <div>
-                This is something from the controller: {{message}}
-            </div>
 
-            <div ng-repeat="cmd in cmd_root.subcmds">
-              {{ cmd['name'] }}<br>
-            </div>
+    <main class="mainview" >
 
+        <section class="flex five">
+
+            <aside class="full fifth-1000">
+                <div class="flex one">
+                    <div ng-repeat="cmd in cmd_root.subcmds">
+                        <button   data-tooltip="{{cmd.helpmsg}}" class="full tooltip-top" ng-click="addCmdToActiveList(cmd)">
+                            {{ cmd['name'] }}
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <article class="full four-fifth-1000">
+                <div class="connectedItemsExample">
+                    <div>
+                        <ul ui-sortable="sortableOptions" ng-model="activeCmds" class="list">
+                            <div ng-repeat="cmdEntry in activeCmds">
+                                <sak-cmd
+                                id="{{ cmdEntry.id }}"
+                                response="{{ cmdEntry.response }}"
+                                get='getActiveCmdById(cmdEntry.id)'
+                                run='runActiveCmdById(cmdEntry.id)'
+                                close='removeActiveCmdById(cmdEntry.id)'
+                                pscope='getScope()'
+                                > </sak-cmd>
+
+                            </div>
+                        </ul>
+                    </div>
+                </div>
+            </article>
         </section>
     </main>
+</div>
 
-    <script src="js/angular.min.js"></script>
-    <script src="js/app.js"></script>
+
+<script src="js/jquery.js"></script>
+<script src="js/angular.min.js"></script>
+<script src="js/jquery-ui.js"></script>
+<script src="js/sortable.min.js"></script>
+<script src="js/app.js"></script>
+
 </body>
 </html>
