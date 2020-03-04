@@ -40,12 +40,10 @@ class SakWebCmdArg():
     def getAsDict(self):
         action = self.arg.vargs.get('action', '')
         default = self.arg.vargs.get('default', None)
-        choices = self.arg.vargs.get('choices', None)
+        choices = self.arg.vargs.get('choices', [])
         arg_type = self.arg.vargs.get('type', None)
         nargs = self.arg.vargs.get('nargs', None)
 
-        if not choices and self.arg.completercb:
-            choices = self.arg.completercb()
 
         if arg_type is None:
             if action in ['store_true', 'store_false']:
