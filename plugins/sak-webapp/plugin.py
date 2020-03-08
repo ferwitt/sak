@@ -13,6 +13,9 @@ from sakcmd import SakCmd, SakArg
 from sakplugin import SakPlugin, SakPluginManager
 
 import os
+import json
+import io
+import base64
 
 from flask import Flask, redirect, jsonify, request
 
@@ -20,6 +23,13 @@ has_pandas = False
 try:
     import pandas as pd
     has_pandas = True
+except:
+    pass
+
+has_matplotlib = False
+try:
+    import matplotlib as plt
+    has_matplotlib = True
 except:
     pass
 
@@ -163,8 +173,17 @@ class SakWebCmd():
 
             if not ret['error']:
                 if has_pandas and isinstance(ret['result'], pd.DataFrame):
-                    ret['type'] = 'pd.DataFrame'
-                    ret['result'] = ret['result'].reset_index().to_dict(orient='records')
+                    if 1:
+                        ret['type'] = 'pd.DataFrame'
+                        ret['result'] = json.loads(ret['result'].reset_index().to_json(orient='records', date_format='iso'))
+                    else:
+                        ret['type'] = 'html'
+                        ret['result'] = ret['result'].reset_index().to_html()
+                elif has_matplotlib and isinstance(ret['result'], plt.figure.Figure):
+                    ret['type'] = 'png'
+                    buf = io.BytesIO()
+                    ret['result'].savefig(buf, format='png')
+                    ret['result'] = base64.b64encode(buf.getvalue()).decode()
                 else:
                     ret['type'] = 'string'
                     ret['result'] = str(ret['result'])

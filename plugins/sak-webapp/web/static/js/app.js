@@ -1,4 +1,4 @@
-app = angular.module("app", ['ui.sortable', 'ui.grid']);
+app = angular.module("app", ['ui.sortable', 'ui.grid', 'ngSanitize']);
 
 app.controller("SakApp", function($scope, $http) {
 
@@ -13,7 +13,6 @@ app.controller("SakApp", function($scope, $http) {
         cmd.subcmds.forEach(traverseCmdTree);
       }
     traverseCmdTree($scope.cmd_root);
-    console.log($scope.cmds);
   });
 
 
@@ -89,16 +88,16 @@ app.directive('sakCmdArg',
           <div class="flex two">
             <label>{{arg.name}} :</label>
             <div>
-              <div ng-hide="arg.choices.length">
-                <label ng-hide="arg.type != 'bool'">
+              <div ng-if="!arg.choices.length">
+                <label ng-if="arg.type == 'bool'">
                   <input type="checkbox" ng-model="get().params[arg.name]"/>
                   <span class="checkable"></span>
                 </label>
-                <input ng-hide="arg.type != 'string'" type="text" ng-model="get().params[arg.name]"/>
-                <input ng-hide="arg.type != 'list'" type="text" ng-model="get().params[arg.name]"/>
-                <input ng-hide="arg.type != 'int'" type="number" ng-model="get().params[arg.name]">
+                <input ng-if="arg.type == 'string'" type="text" ng-model="get().params[arg.name]"/>
+                <input ng-if="arg.type == 'list'" type="text" ng-model="get().params[arg.name]"/>
+                <input ng-if="arg.type == 'int'" type="number" ng-model="get().params[arg.name]">
               </div>
-              <div ng-hide="!arg.choices.length">
+              <div ng-if="arg.choices.length">
                 <select ng-model="get().params[arg.name]" ng-options="choice for choice in arg.choices">
                 </select>
               </div>
@@ -118,19 +117,25 @@ app.directive('sakCmdResponse',
         scope: false,
         template: function(scope, attrs) {
           ret = `
-            <div ng-hide="!get().response.processing">
+            <div ng-if="get().response.processing">
                 Processing
             </div>
 
-            <div ng-hide="get().response.error">
-                <div ng-hide="get().response.type != 'pd.DataFrame'">
+            <div ng-if="!get().response.error">
+                <div ng-if="get().response.type == 'pd.DataFrame'">
                      <div ui-grid="{ data: get().response.result }" class="myGrid"></div>
                 </div>
-                <div ng-hide="get().response.type != 'string'">
+                <div ng-if="get().response.type == 'html'">
+                    <div ng-bind-html="get().response.result"></div>
+                </div>
+                <div ng-if="get().response.type == 'png'">
+                  <img src="data:image/png;base64, {{get().response.result}}" alt="It was supposed to be a graph" />
+                </div>
+                <div ng-if="get().response.type == 'string'">
                     {{ get().response.result }}
                 </div>
             </div>
-            <div ng-hide="!get().response.error">
+            <div ng-if="get().response.error">
                 Something fishy happened: {{ get().response['status'] }}
             </div>
           `;
