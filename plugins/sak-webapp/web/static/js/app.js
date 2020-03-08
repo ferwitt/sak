@@ -1,4 +1,4 @@
-app = angular.module("app", ['ui.sortable', 'ui.grid', 'ui.grid.exporter', 'ui.grid.selection', 'ngSanitize']);
+app = angular.module("app", ['ngAnimate', 'ngTouch', 'ui.sortable', 'ui.grid', 'ui.grid.exporter', 'ui.grid.selection', 'ui.grid.resizeColumns', 'ui.grid.grouping', 'ui.grid.moveColumns',  'ngSanitize']);
 
 app.controller("SakApp", function($scope, $http) {
 
@@ -123,7 +123,7 @@ app.directive('sakCmdResponse',
 
             <div ng-if="!get().response.error">
                 <div ng-if="get().response.type == 'pd.DataFrame'">
-                     <div ui-grid="{ data: get().response.result, enableFiltering: true, showGridFooter: true, showColumnFooter: true, enableGridMenu: true}" ui-grid-exporter ui-grid-selection class="full"></div>
+                     <div ui-grid="{ data: get().response.result, enableFiltering: true, showGridFooter: true, showColumnFooter: true, enableGridMenu: true, fastWatch: true, enableColumnResizing: true}" ui-grid-exporter ui-grid-selection ui-grid-resize-columns ui-grid-grouping  ui-grid-move-columns class="full"></div>
                 </div>
                 <div ng-if="get().response.type == 'html'">
                     <div ng-bind-html="get().response.result"></div>
