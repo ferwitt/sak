@@ -16,6 +16,13 @@ import os
 
 from flask import Flask, redirect, jsonify, request
 
+has_pandas = False
+try:
+    import pandas as pd
+    has_pandas = True
+except:
+    pass
+
 class SakWebCmdArg():
     def __init__(self, arg):
         self.arg = arg
@@ -151,7 +158,16 @@ class SakWebCmd():
                 ret['params'] = args
 
                 if callback:
-                    ret['result'] = str(callback(**args))
+                    ret['result'] = callback(**args)
+
+
+            if not ret['error']:
+                if has_pandas and isinstance(ret['result'], pd.DataFrame):
+                    ret['type'] = 'pd.DataFrame'
+                    ret['result'] = ret['result'].reset_index().to_dict(orient='records')
+                else:
+                    ret['type'] = 'string'
+                    ret['result'] = str(ret['result'])
 
             print(ret)
 

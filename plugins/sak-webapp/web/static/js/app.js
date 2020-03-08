@@ -1,4 +1,4 @@
-app = angular.module("app", ['ui.sortable']);
+app = angular.module("app", ['ui.sortable', 'ui.grid']);
 
 app.controller("SakApp", function($scope, $http) {
 
@@ -123,7 +123,12 @@ app.directive('sakCmdResponse',
             </div>
 
             <div ng-hide="get().response.error">
-                {{ get().response.result }}
+                <div ng-hide="get().response.type != 'pd.DataFrame'">
+                     <div ui-grid="{ data: get().response.result }" class="myGrid"></div>
+                </div>
+                <div ng-hide="get().response.type != 'string'">
+                    {{ get().response.result }}
+                </div>
             </div>
             <div ng-hide="!get().response.error">
                 Something fishy happened: {{ get().response['status'] }}
