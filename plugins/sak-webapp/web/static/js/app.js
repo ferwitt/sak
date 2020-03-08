@@ -56,7 +56,7 @@ app.controller("SakApp", function($scope, $http) {
   $scope.runActiveCmdById = function(cmdId) {
       $scope.activeCmds.forEach(function(cmdEntry){
           if (cmdEntry.id === cmdId) {
-              cmdEntry.response = "Running...";
+              cmdEntry.response = {processing: true};
               $http.get(
                 cmdEntry.cmd.path,
                 {
@@ -66,7 +66,7 @@ app.controller("SakApp", function($scope, $http) {
                   cmdEntry.response = response.data;
               },
                 function(response) {
-                  cmdEntry.response = "Failed :(";
+                  cmdEntry.response = {error: true, status: 'Uknown error... :('};
                 }
               );
           }
@@ -111,12 +111,35 @@ app.directive('sakCmdArg',
         };
   });
 
+app.directive('sakCmdResponse',
+  function ($compile) {
+        return {
+            restrict: "EA",
+        scope: false,
+        template: function(scope, attrs) {
+          ret = `
+            <div ng-hide="!get().response.processing">
+                Processing
+            </div>
+
+            <div ng-hide="get().response.error">
+                {{ get().response.result }}
+            </div>
+            <div ng-hide="!get().response.error">
+                Something fishy happened: {{ get().response['status'] }}
+            </div>
+          `;
+
+          return ret
+        }
+        };
+  });
+
 app.directive("sakCmd", function(){
         return {
             restrict: "EA",
         scope: {
             id:'@',
-            response:'@',
             get:'&',
             run:'&',
             close:'&',
@@ -143,7 +166,7 @@ app.directive("sakCmd", function(){
                                   </button>
                                </form>
                             </div>
-                            {{ response }}
+                            <sak-cmd-response/>
                        </footer>
                     </article>`
         };

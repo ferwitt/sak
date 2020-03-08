@@ -73,7 +73,6 @@
                             <div ng-repeat="cmdEntry in activeCmds">
                                 <sak-cmd
                                 id="{{ cmdEntry.id }}"
-                                response="{{ cmdEntry.response }}"
                                 get='getActiveCmdById(cmdEntry.id)'
                                 run='runActiveCmdById(cmdEntry.id)'
                                 close='removeActiveCmdById(cmdEntry.id)'
