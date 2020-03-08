@@ -51,17 +51,18 @@ class SakWebCmdArg():
                 }
 
         ret = {
-                'name': self.arg.name.replace('-', '_'),
+                'name': self.arg.name,
                 'help': self.arg.helpmsg,
                 'type': type_lut.get(arg_type, 'string'),
                 'default': default,
                 'choices': choices,
                 'nargs': nargs,
+                'action': action,
                 }
         #ret.update(self.vargs)
         return ret
 
-    def getRequestArg(self, request):
+    def getRequestArgList(self, request):
 
         type_lut = {
                 'bool': bool,
@@ -73,40 +74,32 @@ class SakWebCmdArg():
         cfg = self.getAsDict()
 
         name = cfg['name']
-        arg_type = type_lut[cfg['type']]
-        default = cfg['default']
+        arg_type = type_lut.get(cfg['type'], 'string')
+        arg_action = cfg['action']
 
         req_arg = request.args.get(name, None)
 
-        def castIt(val):
-            if val is None:
-                return val
-            if arg_type is None:
-                return val
-            if isinstance(val, arg_type):
-                return val
+        ret = []
 
-            if arg_type is bool and isinstance(val, str):
-                return val.lower() in ['yes', 'true', '1']
+        if req_arg is not None:
 
-            return arg_type(val)
+            if arg_type is bool:
+                if 'store_true' == arg_action:
+                    if req_arg not in ['yes', 'true', '1']:
+                        return []
+                if 'store_false' == arg_action:
+                    if req_arg not in ['false', 'no', '0']:
+                        return []
 
-        if arg_type == list:
-            if not isinstance(req_arg, list):
-                if req_arg is None:
-                    if default:
-                        req_arg = default
-                    else:
-                        req_arg = []
+            ret.append('--%s' % name)
+
+            if arg_type is not bool:
+                if isinstance(req_arg, list):
+                    ret += req_arg
                 else:
-                    req_arg = [req_arg]
-        else:
-            req_arg = castIt(req_arg)
+                    ret.append(req_arg)
 
-        if req_arg is None:
-            req_arg = default
-
-        return {name: req_arg}
+        return ret
 
 class SakWebCmd():
     def __init__(self, cmd, root):
@@ -124,17 +117,45 @@ class SakWebCmd():
     def __call__(self):
         if self.cmd.callback:
             ret = {}
-            vargs = {}
+
+            arg_list = []
             for arg in self.args:
-                vargs.update(arg.getRequestArg(request))
+                arg_list += arg.getRequestArgList(request)
 
-            print(vargs)
+            print(arg_list)
 
-            ret['result'] = self.cmd.callback(**vargs)
-            if isinstance(ret['result'], str):
-                return jsonify(ret)
+            p = self.cmd.generateArgParse()
+
+            error_status = {}
+            def exit(p, status=0, message=None):
+                error_status['status'] = status
+                error_status['message'] = message
+            p.exit = exit
+
+            try:
+                args = p.parse_args(arg_list)
+            except:
+                pass
+
+            ret = {'error': False}
+
+            if error_status:
+                ret['error'] = True
+                ret.update(error_status)
             else:
-                return 'OK'
+                args = vars(args)
+                print(args)
+
+                callback = args.pop('sak_callback')
+
+                ret['params'] = args
+
+                if callback:
+                    ret['result'] = str(callback(**args))
+
+            print(ret)
+
+            return jsonify(ret)
         else:
             return self.getAsDict()
 
