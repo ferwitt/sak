@@ -22,6 +22,9 @@ class Sak(SakPlugin):
     def __init__(self):
         super(Sak, self).__init__('sak')
 
+    def getPath(self):
+        return self.context.sak_global
+
     def show_version(self, **vargs):
         return 'Version: %s' % (__version__)
 
@@ -49,7 +52,7 @@ class SakPlugins(SakPlugin):
 
     def show(self, **vargs):
         for plugin in self.context.getPluginManager().getPluginList():
-            print(plugin.name, plugin.path)
+            print(plugin.name, plugin.getPath())
 
     def install(self, url, **vargs):
         subprocess.run(['git', 'clone', url],

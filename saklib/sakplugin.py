@@ -36,25 +36,28 @@ class SakPlugin(object):
         super(SakPlugin, self).__init__()
         self.name = name
         self.pluginManager = None
-        self.path = None
+        self._path = None
         self.context = None
 
     def setPluginPath(self, path):
-        self.path = path
+        self._path = path
+
+    def getPath(self):
+        return self._path
 
     def setContext(self, context):
         self.context = context
 
     def update(self):
-        if self.path:
-            if os.path.exists(os.path.join(self.path, '.git')):
+        if self.getPath():
+            if os.path.exists(os.path.join(self.getPath(), '.git')):
                 print('Updating repository for %s' % self.name)
-                subprocess.run(['git', 'remote', 'update'], check=True, cwd=self.path)
-                subprocess.run(['git', 'pull', 'origin', 'master'], check=True, cwd=self.path)
+                subprocess.run(['git', 'remote', 'update'], check=True, cwd=self.getPath())
+                subprocess.run(['git', 'pull', 'origin', 'master'], check=True, cwd=self.getPath())
 
-            if os.path.exists(os.path.join(self.path, 'requirements.txt')):
+            if os.path.exists(os.path.join(self.getPath(), 'requirements.txt')):
                 print('Updating pip dependencies for %s' % self.name)
-                subprocess.run(['pip', 'install', '-r', 'requirements.txt'], check=True, cwd=self.path)
+                subprocess.run(['pip', 'install', '-r', 'requirements.txt'], check=True, cwd=self.getPath())
 
 
 class SakPluginManager(object):
