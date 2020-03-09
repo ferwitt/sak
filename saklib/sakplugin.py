@@ -127,7 +127,8 @@ class SakPluginManager(object):
                         if input("Woud you like to do this now? [Y/N]") in ['Y', 'y', 'yes']:
                             os.system('pip install -r "%s"' % requirements_path)
                         else:
-                            sys.exit(-1)
+                            print('Skip adding plugin %s' % plugin_path)
+                            continue
 
                 for i in dir(imported_module):
                     attribute = getattr(imported_module, i)
