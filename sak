@@ -45,20 +45,15 @@ def install_sak():
     print('Failed to import sak. Reason: unknown!')
     return 0
 
-try:
-    import saklib
-except:
-    ret_code = install_sak()
-
-    if ret_code != 0:
-        sys.exit(ret_code)
-
-    try:
-        sys.path.append(SAK_GLOBAL)
-        import saklib
-    except:
-        print('Could not get SAK code!')
-        pass
 
 if __name__ == "__main__":
-    saklib.run()
+    try:
+        import saklib
+        saklib.run()
+    except ImportError as _:
+        ret_code = install_sak()
+
+        if ret_code != 0:
+            sys.exit(ret_code)
+
+        print('Execute the sak command again to finish the installation process...')
