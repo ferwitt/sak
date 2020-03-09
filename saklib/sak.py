@@ -51,12 +51,32 @@ class SakPlugins(SakPlugin):
         for plugin in self.context.getPluginManager().getPluginList():
             print(plugin.name, plugin.path)
 
+    def install(self, url, **vargs):
+        subprocess.run(['git', 'clone', url],
+                       check=True,
+                       cwd=os.path.join(self.context.sak_global, 'plugins'))
+
+    def update(self, **vargs):
+        for plugin in self.context.getPluginManager().getPluginList():
+            if plugin == self:
+                continue
+            print(80*'-')
+            print('Updating %s' % plugin.name)
+            plugin.update()
+
     def exportCmds(self, base):
-        show = SakCmd('plugins')
+        plugins = SakCmd('plugins')
 
-        show.addSubCmd(SakCmd('show', self.show))
+        plugins.addSubCmd(SakCmd('show', self.show))
 
-        base.addSubCmd(show)
+        install = SakCmd('install', self.install)
+        install.addArg(SakArg('url', required=True))
+        plugins.addSubCmd(install)
+
+        update = SakCmd('update', self.update)
+        plugins.addSubCmd(update)
+
+        base.addSubCmd(plugins)
 
 
 def main():

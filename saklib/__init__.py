@@ -34,7 +34,7 @@ def install_python(ask_confirm=True):
         return
 
     if ask_confirm:
-        if not input("No python found, would like to install? [Y/N]") in ['Y', 'y', 'yes']:
+        if not input("No local python found in SAK directory, would like to install? [Y/N]") in ['Y', 'y', 'yes']:
             return
 
     if not os.path.exists(SAK_PYTHON):
@@ -51,11 +51,14 @@ def install_python(ask_confirm=True):
     instalation_prefix = os.path.join(SAK_PYTHON, 'miniconda3')
     subprocess.check_call(['/usr/bin/env', 'bash', miniconda_installer, '-b', '-p', instalation_prefix])
 
+    os.environ['PATH'] = os.path.dirname(SAK_PYTHON_BIN) + ':' + os.environ['PATH']
+    subprocess.check_call(['/usr/bin/env', 'pip', 'install', '-r', os.path.join(SAK_GLOBAL, 'requirements.txt')])
+
 
 def install():
     if 'x86' in platform.machine():
         # Only try to run inside miniconda if is in x86
-        install_python(ask_confirm=False)
+        install_python(ask_confirm=True)
 
 def run():
     # TODO: This must be the leader pid, so if it dies it will kill all the subprocesses

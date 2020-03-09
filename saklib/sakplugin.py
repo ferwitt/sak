@@ -12,6 +12,7 @@ from sakcmd import SakCmd
 
 import os
 import sys
+import subprocess
 
 from pathlib import Path
 import inspect
@@ -29,6 +30,7 @@ else:
     print('Unkown python version %d' % PYTHON_VERSION_MAJOR)
     sys.exit(-1)
 
+
 class SakPlugin(object):
     def __init__(self, name):
         super(SakPlugin, self).__init__()
@@ -43,8 +45,16 @@ class SakPlugin(object):
     def setContext(self, context):
         self.context = context
 
-    def exportCmds(self, base):
-        pass
+    def update(self):
+        if self.path:
+            if os.path.exists(os.path.join(self.path, '.git')):
+                print('Updating repository for %s' % self.name)
+                subprocess.run(['git', 'remote', 'update'], check=True, cwd=self.path)
+                subprocess.run(['git', 'pull', 'origin', 'master'], check=True, cwd=self.path)
+
+            if os.path.exists(os.path.join(self.path, 'requirements.txt')):
+                print('Updating pip dependencies for %s' % self.name)
+                subprocess.run(['pip', 'install', '-r', 'requirements.txt'], check=True, cwd=self.path)
 
 
 class SakPluginManager(object):
@@ -93,15 +103,28 @@ class SakPluginManager(object):
                 if os.path.isdir(fname_abs):
                     continue
 
-                if PYTHON_VERSION_MAJOR == 3:
-                    if PYTHON_VERSION_MINOR >= 6:
-                        spec = importlib.util.spec_from_file_location(name, fname_abs)
-                        imported_module = importlib.util.module_from_spec(spec)
-                        spec.loader.exec_module(imported_module)
-                    else:
-                        imported_module = SourceFileLoader(name, fname_abs).load_module()
-                elif PYTHON_VERSION_MAJOR == 2:
-                    imported_module = imp.load_source(name, fname_abs)
+                try:
+                    if PYTHON_VERSION_MAJOR == 3:
+                        if PYTHON_VERSION_MINOR >= 6:
+                            spec = importlib.util.spec_from_file_location(name, fname_abs)
+                            imported_module = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(imported_module)
+                        else:
+                            imported_module = SourceFileLoader(name, fname_abs).load_module()
+                    elif PYTHON_VERSION_MAJOR == 2:
+                        imported_module = imp.load_source(name, fname_abs)
+                except ImportError as error:
+                    print('Missing modules in plugin %s' % plugin_path)
+                    print(str(error))
+                    print('Please, update dependencies!')
+
+                    requirements_path = os.path.join(plugin_path, 'requirements.txt')
+
+                    if os.path.exists(requirements_path):
+                        if input("Woud you like to do this now? [Y/N]") in ['Y', 'y', 'yes']:
+                            os.system('pip install -r "%s"' % requirements_path)
+                        else:
+                            sys.exit(-1)
 
                 for i in dir(imported_module):
                     attribute = getattr(imported_module, i)
