@@ -255,7 +255,7 @@ class SakWebapp(SakPlugin):
         return app
 
     def appStart(self, port=5000):
-        pluginDirs = [p.path for p in self.context.pluginManager.getPluginList()]
+        pluginDirs = [p.getPath() for p in self.context.pluginManager.getPluginList()]
 
         # Add all the plugin files to the watch list to restart server
         extra_files = []
