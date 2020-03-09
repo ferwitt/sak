@@ -19,6 +19,9 @@ SAK_GLOBAL = os.path.abspath(os.path.join(os.environ.get('HOME'), '.sak'))
 sys.path.append(SAK_GLOBAL)
 
 def install_sak():
+    if ' '.join(sys.argv[1:]) == 'show argcomp':
+        return
+
     if not os.path.exists(SAK_GLOBAL):
         print('No SAK installed.')
 
