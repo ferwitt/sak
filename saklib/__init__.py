@@ -30,6 +30,9 @@ def pip_install():
     pass
 
 def install_python(ask_confirm=True):
+    if ' '.join(sys.argv[1:]) == 'show argcomp':
+        return
+
     if check_python():
         return
 

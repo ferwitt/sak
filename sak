@@ -54,6 +54,7 @@ except:
         sys.exit(ret_code)
 
     try:
+        sys.path.append(SAK_GLOBAL)
         import saklib
     except:
         print('Could not get SAK code!')
