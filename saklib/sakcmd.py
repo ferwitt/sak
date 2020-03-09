@@ -104,7 +104,7 @@ class SakCmd(object):
         callback = args.pop('sak_callback')
         if callback:
             ret = callback(**args)
-            if isinstance(ret, str):
+            if ret is not None:
                 # TODO: Standardize the output from the plugin endpoints!
                 print(ret)
 
