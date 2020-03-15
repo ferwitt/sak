@@ -128,17 +128,16 @@ class SakPluginManager(object):
         if not pluginsPath.exists():
             return
 
-        for name in os.listdir(pluginsPath):
-            plugin_path = os.path.join(pluginsPath, name)
-            if not os.path.isdir(plugin_path):
+        for plugin_path in pluginsPath.iterdir():
+            name = str(plugin_path.name)
+            if not plugin_path.is_dir():
                 continue
 
-            for fname in os.listdir(plugin_path):
-
-                fname_abs = os.path.join(plugin_path, fname)
-                if not fname_abs.endswith('.py'):
+            for fname_abs in plugin_path.iterdir():
+                fname = str(fname_abs.name)
+                if not fname.endswith('.py'):
                     continue
-                if os.path.isdir(fname_abs):
+                if fname_abs.is_dir():
                     continue
 
                 try:
@@ -154,17 +153,17 @@ class SakPluginManager(object):
                     elif PYTHON_VERSION_MAJOR == 2:
                         imported_module = imp.load_source(name, fname_abs)
                 except ImportError as error:
-                    print('Missing modules in plugin %s' % plugin_path)
+                    print('Missing modules in plugin %s' % str(plugin_path))
                     print(str(error))
                     print('Please, update dependencies!')
 
-                    requirements_path = os.path.join(plugin_path, 'requirements.txt')
+                    requirements_path = plugin_path / 'requirements.txt'
 
                     if os.path.exists(requirements_path):
                         if input("Woud you like to do this now? [Y/N]") in ['Y', 'y', 'yes']:
                             os.system('pip install -r "%s"' % requirements_path)
                         else:
-                            print('Skip adding plugin %s' % plugin_path)
+                            print('Skip adding plugin %s' % str(plugin_path))
                             continue
 
                 for i in dir(imported_module):
