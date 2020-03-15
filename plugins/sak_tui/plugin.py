@@ -51,6 +51,16 @@ from prompt_toolkit.widgets import (
     TextArea,
 )
 
+has_matplotlib = False
+try:
+    import matplotlib
+    import matplotlib.pyplot as plt
+    import drawilleplot
+    has_matplotlib = True
+except:
+    pass
+
+
 
 class SakTuiCmdArg():
     def __init__(self, arg):
@@ -72,7 +82,19 @@ class SakTuiCmd():
     def __call__(self):
         if self.cmd.callback:
             # TODO: Find a way to pass a command Stdout and other parameters
+            if has_matplotlib:
+                matplotlib.use('module://drawilleplot')
             ret = self.cmd.callback()
+            if has_matplotlib and isinstance(ret, matplotlib.figure.Figure):
+                new_ret = ''
+                for manager in drawilleplot.Gcf.get_all_fig_managers():
+                    canvas = manager.canvas
+                    canvas.draw()
+                    new_ret += canvas.to_txt()
+                    new_ret += '\n\n'
+                plt.close()
+                ret = new_ret
+
             # TODO: The return value should be wrapped in some SAK return objects (Raw text, image, ...)
             self.tui.text_field.text = str(ret)
 

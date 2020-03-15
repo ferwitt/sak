@@ -28,7 +28,8 @@ except:
 
 has_matplotlib = False
 try:
-    import matplotlib as plt
+    import matplotlib
+    import matplotlib.pyplot as plt
     has_matplotlib = True
 except:
     pass
@@ -177,7 +178,7 @@ class SakWebCmd():
                     else:
                         ret['type'] = 'html'
                         ret['result'] = ret['result'].reset_index().to_html()
-                elif has_matplotlib and isinstance(ret['result'], plt.figure.Figure):
+                elif has_matplotlib and isinstance(ret['result'], matplotlib.figure.Figure):
                     ret['type'] = 'png'
                     buf = io.BytesIO()
                     ret['result'].savefig(buf, format='png')
@@ -275,7 +276,7 @@ class SakWebapp(SakPlugin):
         webapp = SakCmd('webapp')
 
         start = SakCmd('start', self.start)
-        start.addArg(SakArg('port', short_name='p', type=int, default='2020'))
+        start.addArg(SakArg('port', short_name='p', type=int, default=2020))
         webapp.addSubCmd(start)
         
         base.addSubCmd(webapp)
