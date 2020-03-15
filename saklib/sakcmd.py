@@ -10,6 +10,7 @@ __email__ = "ferawitt@gmail.com"
 
 
 import argparse
+from argparse import Namespace, ArgumentParser
 from typing import Optional, Callable, Dict, Any, List
 
 hasArgcomplete = True
@@ -18,12 +19,35 @@ try:
 except:
     hasArgcomplete = False
 
+class SakCompleterArg(object):
+    def __init__(self,
+            prefix: str,
+            action: Any, # TODO: Restrict Any
+            parser: Any, # TODO: Restrict Any
+            parsed_args: Namespace
+            ):
+        '''
+        Example of parameters from argcomplete
+        {
+            'prefix': '',
+            'action': IntrospectAction(option_strings=['--account', '-a'], dest='account', nargs=None, const=None, default=None, type=None, choices=None, help='', metavar=None),
+            'parser': MonkeyPatchedIntrospectiveArgumentParser(prog='sak fin total', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True),
+            'parsed_args': Namespace(account=None, currency=None, sak_callback=<bound method SakFin.total of <sak_fin.SakFin object at 0x7fe68bbb8390>>)
+        }
+        '''
+        super(SakCompleterArg, self).__init__()
+        self.prefix = prefix
+        self.action = action
+        self.parser = parser
+        self.parsed_args = parsed_args
+
+
 class SakArg(object):
     def __init__(self,
             name:str,
             helpmsg:str = '',
             short_name:Optional[str] = None,
-            completercb:Optional[Callable[[Any], List[Any]]] = None,
+            completercb:Optional[Callable[[Optional[SakCompleterArg]], List[Any]]] = None,
             **vargs: Any
         ) -> None:
         super(SakArg, self).__init__()
@@ -33,7 +57,7 @@ class SakArg(object):
         self.vargs = vargs
         self.completercb = completercb
 
-    def addToArgParser(self, parser: argparse.ArgumentParser) -> None:
+    def addToArgParser(self, parser: ArgumentParser) -> None:
         pargs = []
         pargs += ['--%s' % self.name]
         if self.short_name:
@@ -41,8 +65,17 @@ class SakArg(object):
 
         aux = parser.add_argument(*pargs, help=self.helpmsg, **self.vargs)
 
-        if self.completercb:
-            aux.completer = self.completercb # type: ignore
+        completercb = self.completercb
+        if hasArgcomplete and (completercb is not None):
+            def completercbWrapper(**vargs: Any) -> List[Any]:
+                arg = SakCompleterArg(
+                        prefix=vargs['prefix'],
+                        action=vargs['action'],
+                        parser=vargs['parser'],
+                        parsed_args=vargs['parsed_args'],
+                       )
+                return completercb(arg) # type: ignore
+            aux.completer = completercbWrapper # type: ignore
 
 
 class SakCmdRet(object):
@@ -101,10 +134,10 @@ class SakCmd(object):
     def addArg(self, arg: SakArg) -> None:
         self.args.append(arg)
 
-    def generateArgParse(self, subparsers: Optional[argparse._SubParsersAction] = None) -> argparse.ArgumentParser:
+    def generateArgParse(self, subparsers: Optional[argparse._SubParsersAction] = None) -> ArgumentParser:
         parser = None
         if subparsers is None:
-            parser = argparse.ArgumentParser(prog=self.name)
+            parser = ArgumentParser(prog=self.name)
         else:
             #import pdb; pdb.set_trace()
             parser = subparsers.add_parser(self.name, help=self.helpmsg)

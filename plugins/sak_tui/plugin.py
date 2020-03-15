@@ -12,7 +12,7 @@ __email__ = "ferawitt@gmail.com"
 from sakcmd import SakCmd, SakArg, SakCmdCtx, SakCmdRet
 from sakplugin import SakPlugin, SakPluginManager
 
-from typing import List
+from typing import List, Any
 
 from asyncio import Future, ensure_future
 
@@ -205,6 +205,7 @@ class SakTui(SakPlugin):
             async def coroutine() -> None:
                 dialog = MessageDialog(title, text)
                 await show_dialog_as_float(dialog)
+                return None
 
             ensure_future(coroutine())
 
@@ -230,7 +231,7 @@ class SakTui(SakPlugin):
 
 
 
-        async def show_dialog_as_float(dialog: MessageDialog):
+        async def show_dialog_as_float(dialog: MessageDialog) -> Any:
             " Coroutine. "
             float_ = Float(content=dialog)
             root_container.floats.insert(0, float_)

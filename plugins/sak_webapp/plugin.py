@@ -21,7 +21,10 @@ from pathlib import Path
 
 from typing import List, Dict, Any, Optional
 
+from argparse import ArgumentParser
+
 from flask import Flask, redirect, jsonify, request
+from flask.wrappers import Request, ResponseBase
 
 has_pandas = False
 try:
@@ -82,8 +85,9 @@ class SakWebCmdArg():
         #ret.update(self.vargs)
         return ret
 
-    def getRequestArgList(self, request) -> List[str]:
+    def getRequestArgList(self, request: Request) -> List[str]:
         # TODO: Type annotate request (flask object)
+        #import pdb; pdb.set_trace()
 
         type_lut = {
                 'bool': bool,
@@ -135,7 +139,7 @@ class SakWebCmd():
         for subcmd in cmd.subcmds:
             self.subcmds.append(SakWebCmd(subcmd, self.route))
 
-    def __call__(self):
+    def __call__(self) -> ResponseBase:
         if self.cmd.callback:
             ret: Dict[str, Any] = {}
 
@@ -149,7 +153,7 @@ class SakWebCmd():
             p = self.cmd.generateArgParse()
 
             error_status = {}
-            def exit(p, status: Optional[str] = None, message: Optional[str] = None) -> None:
+            def exit(p: ArgumentParser, status: Optional[str] = None, message: Optional[str] = None) -> None:
                 error_status['status'] = status
                 error_status['message'] = message
 
@@ -203,11 +207,13 @@ class SakWebCmd():
             # TODO: Remove this print
             print(ret)
 
-            return jsonify(ret)
+            tmpret = jsonify(ret)
+            return tmpret
         else:
-            return jsonify(self.getAsDict())
+            tmpret = jsonify(self.getAsDict())
+            return tmpret
 
-    def buildFlaskRoutes(self, app):
+    def buildFlaskRoutes(self, app: Flask) -> None:
         if SakCmd.EXP_WEB not in self.cmd.expose:
             return
 
@@ -253,14 +259,14 @@ class SakWebapp(SakPlugin):
         commands_root = '/api/cmd'
 
         @app.route("/")
-        def index():
+        def index() -> ResponseBase:
             return redirect("index.html")
 
         privatePlugins = ['sak', 'plugins']
         plugins = [x for x in self.context.pluginManager.getPluginList() if x.name not in privatePlugins]
 
         @app.route("/api/show/plugins")
-        def show_plugins():
+        def show_plugins() -> ResponseBase:
             return jsonify([x.name for x in plugins])
 
         cmdTree = SakWebCmd(self.context.pluginManager.generateCommandsTree(), commands_root)
