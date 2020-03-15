@@ -10,19 +10,21 @@ __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
 from sakcmd import SakCmd, SakArg
-from sakplugin import SakPlugin, SakPluginManager
-from sakcontext import SakContext
+from sakplugin import SakPlugin, SakPluginManager, SakContext
 
 import os
 import sys
 import subprocess
+from pathlib import Path
+
+from typing import Optional
 
 
 class Sak(SakPlugin):
-    def __init__(self):
+    def __init__(self) -> None:
         super(Sak, self).__init__('sak')
 
-    def getPath(self):
+    def getPath(self) -> Optional[Path]:
         return self.context.sak_global
 
     def show_version(self, **vargs):
@@ -47,11 +49,12 @@ class Sak(SakPlugin):
 
 
 class SakPlugins(SakPlugin):
-    def __init__(self):
+    def __init__(self) -> None:
         super(SakPlugins, self).__init__('plugins')
 
     def show(self, **vargs):
         for plugin in self.context.getPluginManager().getPluginList():
+            # TODO: Remove this print
             print(plugin.name, plugin.getPath())
 
     def install(self, url, **vargs):
@@ -82,7 +85,7 @@ class SakPlugins(SakPlugin):
         base.addSubCmd(plugins)
 
 
-def main():
+def main() -> None:
 
     ctx = SakContext()
 
@@ -92,11 +95,11 @@ def main():
     plm.addPlugin(SakPlugins())
 
     if ctx.sak_global:
-        sys.path.append(os.path.join(ctx.sak_global, 'plugins'))
-        plm.loadPlugins(os.path.join(ctx.sak_global, 'plugins'))
+        sys.path.append(ctx.sak_global / 'plugins')
+        plm.loadPlugins(ctx.sak_global / 'plugins')
     if ctx.sak_local and ctx.sak_local != ctx.sak_global:
-        sys.path.append(os.path.join(ctx.sak_local, 'plugins'))
-        plm.loadPlugins(os.path.join(ctx.sak_local, 'plugins'))
+        sys.path.append(ctx.sak_local / 'plugins')
+        plm.loadPlugins(ctx.sak_local / 'plugins')
 
     root = plm.generateCommandsTree()
 

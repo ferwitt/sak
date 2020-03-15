@@ -13,11 +13,10 @@ import sys
 import platform
 import subprocess
 
-(VERSION_MAJOR, VERSION_MINOR, _, _, _) = sys.version_info
 
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
-SAK_GLOBAL = os.path.abspath(os.path.join(os.environ.get('HOME'), '.sak'))
+SAK_GLOBAL = os.path.abspath(os.path.join(os.environ['HOME'], '.sak'))
 
 # SAK will not use the system python, but will download miniconda
 SAK_PYTHON = os.path.join(SAK_GLOBAL, 'python')

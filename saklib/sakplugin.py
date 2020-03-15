@@ -17,7 +17,10 @@ import subprocess
 from pathlib import Path
 import inspect
 
-(PYTHON_VERSION_MAJOR, PYTHON_VERSION_MINOR, _, _, _) = sys.version_info
+from typing import Optional, List
+
+PYTHON_VERSION_MAJOR = sys.version_info.major
+PYTHON_VERSION_MINOR = sys.version_info.minor
 
 if PYTHON_VERSION_MAJOR == 3:
     if PYTHON_VERSION_MINOR >= 6:
@@ -31,66 +34,98 @@ else:
     sys.exit(-1)
 
 
+def find_in_parent(dirname: Path, name: Path) -> Optional[Path]:
+    if (dirname / name).exists():
+        return dirname / name
+    if dirname.parent != Path('/'):
+        return find_in_parent(dirname.parent, name)
+    return None
+
+
+class SakContext(object):
+    def __init__(self) -> None:
+        super(SakContext, self).__init__()
+
+        script_dir = Path(__file__).parent.resolve()
+        current_dir = Path('.').resolve()
+
+        self.sak_global = find_in_parent(script_dir, Path('.sak'))
+        self.sak_local = find_in_parent(current_dir, Path('.sak'))
+
+        self.pluginManager: 'SakPluginManager'
+
+    def setPluginManager(self, pluginManager: 'SakPluginManager') -> None:
+        self.pluginManager = pluginManager
+
+    def getPluginManager(self) -> 'SakPluginManager':
+        return self.pluginManager
+
+
 class SakPlugin(object):
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         super(SakPlugin, self).__init__()
         self.name = name
-        self.pluginManager = None
-        self._path = None
-        self.context = None
+        # self.pluginManager = None
+        self._path: Optional[Path] = None
+        self.context: SakContext
 
-    def setPluginPath(self, path):
+    def setPluginPath(self, path: Path) -> None:
         self._path = path
 
-    def getPath(self):
+    def getPath(self) -> Optional[Path]:
         return self._path
 
-    def setContext(self, context):
+    def setContext(self, context: SakContext) -> None:
         self.context = context
 
-    def update(self):
-        if self.getPath():
-            if os.path.exists(os.path.join(self.getPath(), '.git')):
-                print('Updating repository for %s' % self.name)
-                subprocess.run(['git', 'remote', 'update'], check=True, cwd=self.getPath())
-                subprocess.run(['git', 'pull', 'origin', 'master'], check=True, cwd=self.getPath())
+    def update(self) -> None:
+        path = self.getPath()
 
-            if os.path.exists(os.path.join(self.getPath(), 'requirements.txt')):
+        if path is not None:
+            if (path / '.git').exists():
+                print('Updating repository for %s' % self.name)
+                subprocess.run(['git', 'remote', 'update'], check=True, cwd=path)
+                subprocess.run(['git', 'pull', 'origin', 'master'], check=True, cwd=path)
+
+            if (path / 'requirements.txt').exists():
                 print('Updating pip dependencies for %s' % self.name)
-                subprocess.run(['pip', 'install', '-r', 'requirements.txt'], check=True, cwd=self.getPath())
+                subprocess.run(['pip', 'install', '-r', 'requirements.txt'], check=True, cwd=path)
+
+    def exportCmds(self, base: SakCmd) -> None:
+        pass
 
 
 class SakPluginManager(object):
-    def __init__(self, context):
+    def __init__(self, context: SakContext) -> None:
         super(SakPluginManager, self).__init__()
-        self.plugins = []
+        self.plugins: List[SakPlugin] = []
         self.context = context
 
         context.setPluginManager(self)
 
-    def getPuginByName(self, name):
+    def getPuginByName(self, name: str) -> Optional[SakPlugin]:
         for p in self.plugins:
             if p.name == name:
                 return p
         return None
 
-    def addPlugin(self, plugin):
+    def addPlugin(self, plugin: SakPlugin) -> None:
         plugin.setContext(self.context)
         self.plugins.append(plugin)
 
-    def getPluginList(self):
+    def getPluginList(self) -> List[SakPlugin]:
         return self.plugins
 
-    def generateCommandsTree(self):
+    def generateCommandsTree(self) -> SakCmd:
         root = SakCmd('sak', None)
         for plugin in self.plugins:
             plugin.exportCmds(root)
         return root
 
-    def loadPlugins(self, pluginsPath=None):
-        if not pluginsPath:
+    def loadPlugins(self, pluginsPath: Optional[Path] = None) -> None:
+        if pluginsPath is None:
             return
-        if not os.path.exists(pluginsPath):
+        if not pluginsPath.exists():
             return
 
         for name in os.listdir(pluginsPath):
@@ -111,9 +146,11 @@ class SakPluginManager(object):
                         if PYTHON_VERSION_MINOR >= 6:
                             spec = importlib.util.spec_from_file_location(name, fname_abs)
                             imported_module = importlib.util.module_from_spec(spec)
-                            spec.loader.exec_module(imported_module)
+                            # TODO: Fix this!
+                            spec.loader.exec_module(imported_module) # type: ignore
                         else:
-                            imported_module = SourceFileLoader(name, fname_abs).load_module()
+                            # TODO: Fix this!
+                            imported_module = SourceFileLoader(name, fname_abs).load_module() # type: ignore
                     elif PYTHON_VERSION_MAJOR == 2:
                         imported_module = imp.load_source(name, fname_abs)
                 except ImportError as error:

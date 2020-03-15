@@ -10,6 +10,7 @@ __email__ = "ferawitt@gmail.com"
 
 
 import argparse
+from typing import Optional, Callable, Dict, Any, List
 
 hasArgcomplete = True
 try:
@@ -18,69 +19,78 @@ except:
     hasArgcomplete = False
 
 class SakArg(object):
-    def __init__(self, name, helpmsg='', short_name=None, positional=False, completercb=None, **vargs):
+    def __init__(self,
+            name:str,
+            helpmsg:str = '',
+            short_name:Optional[str] = None,
+            completercb:Optional[Callable[[Dict[Any,Any]], Any]] = None,
+            **vargs: Any
+        ) -> None:
         super(SakArg, self).__init__()
         self.name = name
         self.helpmsg = helpmsg
         self.short_name = short_name
         self.vargs = vargs
-        self.positional = positional
         self.completercb = completercb
 
-    def addToArgParser(self, parser):
+    def addToArgParser(self, parser: argparse.ArgumentParser) -> None:
         pargs = []
-        if not self.positional:
-            pargs += ['--%s' % self.name]
-            if self.short_name:
-                pargs += ['-%s' % self.short_name]
-        else:
-            pargs = [self.name]
+        pargs += ['--%s' % self.name]
+        if self.short_name:
+            pargs += ['-%s' % self.short_name]
 
         aux = parser.add_argument(*pargs, help=self.helpmsg, **self.vargs)
 
         if self.completercb:
-            aux.completer = self.completercb
+            aux.completer = self.completercb # type: ignore
 
 
 class SakCmd(object):
     EXP_CLI = 'cli'
     EXP_WEB = 'web'
 
-    def __init__(self, name, callback=None, args=None, expose=[]):
+    def __init__(self,
+            name:str,
+            callback: Optional[Callable[[Any], Any]]=None,
+            args:List[SakArg]=[],
+            expose:List[str]=[]
+            ) -> None:
         super(SakCmd, self).__init__()
         self.name = name
         self.callback = callback
-        self.subcmds = []
+        self.subcmds: List[SakCmd] = []
         self.args = args or []
 
         self.helpmsg = 'TODO'
 
-        self.parent = None
+        self.parent: Optional[SakCmd] = None
         self.expose = expose or [SakCmd.EXP_CLI]
 
-    def addSubCmd(self, subcmd):
+    def addSubCmd(self, subcmd: 'SakCmd') -> None:
         subcmd.setParent(self)
         self.subcmds.append(subcmd)
 
-    def addExpose(self, expose=[]):
+    def addExpose(self, expose: List[str] = []) -> None:
         for exp in expose:
             if exp not in self.expose:
                 self.expose.append(exp)
         if self.parent:
             self.parent.addExpose(expose)
 
-    def setParent(self, parent):
+    def setParent(self, parent: 'SakCmd') -> None:
         self.parent = parent
         self.addExpose(self.expose)
 
-    def addArg(self, arg):
+    def addArg(self, arg: SakArg) -> None:
         self.args.append(arg)
 
-    def generateArgParse(self, parser=None):
-        if parser == None:
+    def generateArgParse(self, subparsers: Optional[argparse._SubParsersAction] = None) -> argparse.ArgumentParser:
+        parser = None
+        if subparsers is None:
             parser = argparse.ArgumentParser(prog=self.name)
         else:
-            parser = parser.add_parser(self.name, help=self.helpmsg)
+            #import pdb; pdb.set_trace()
+            parser = subparsers.add_parser(self.name, help=self.helpmsg)
 
         parser.set_defaults(sak_callback=self.callback)
 
@@ -94,7 +104,7 @@ class SakCmd(object):
 
         return parser
 
-    def runArgParser(self):
+    def runArgParser(self) -> None:
         parser = self.generateArgParse()
 
         if hasArgcomplete:
