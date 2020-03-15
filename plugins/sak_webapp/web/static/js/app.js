@@ -209,12 +209,14 @@ app.directive('sakCmdResponse',
                           ui-grid-move-columns
                           class="full">
                       </div>
+                      <!--
                       <canvas class="chart chart-line chart-custom-class"
                           chart-labels="get().chart.labels"
                           chart-data="get().chart.data"
                           chart-lengend="true"
                           chart-series="get().chart.series">
                       </canvas>
+                      -->
                 </div>
                 <div ng-if="get().response.type == 'html'">
                     <div ng-bind-html="get().response.result"></div>
