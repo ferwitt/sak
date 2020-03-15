@@ -76,17 +76,18 @@ class SakPlugins(SakPlugin):
         return ctx.get_ret()
 
     def doUpdate(self, ctx: SakCmdCtx) -> SakCmdRet:
+        ret = ctx.get_ret()
 
         for plugin in self.context.getPluginManager().getPluginList():
             if plugin == self:
                 continue
 
             # TODO: Remove print!
-            print(80*'-')
-            print('Updating %s' % plugin.name)
+            ctx.stdout.write(80*'-' + '\n')
+            ctx.stdout.write('Updating %s\n' % plugin.name)
             plugin.update()
 
-        return ctx.get_ret()
+        return ret
 
     def exportCmds(self, base: SakCmd) -> None:
         plugins = SakCmd('plugins')

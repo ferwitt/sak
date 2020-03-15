@@ -86,9 +86,6 @@ class SakWebCmdArg():
         return ret
 
     def getRequestArgList(self, request: Request) -> List[str]:
-        # TODO: Type annotate request (flask object)
-        #import pdb; pdb.set_trace()
-
         type_lut = {
                 'bool': bool,
                 'string': str,
@@ -147,9 +144,6 @@ class SakWebCmd():
             for arg in self.args:
                 arg_list += arg.getRequestArgList(request)
 
-            # TODO: Remove print
-            print(arg_list)
-
             p = self.cmd.generateArgParse()
 
             error_status = {}
@@ -173,9 +167,6 @@ class SakWebCmd():
             else:
                 dargs: Dict[str, Any] = vars(args)
 
-                # TODO: Remove print
-                print(dargs)
-
                 callback = dargs.pop('sak_callback')
 
                 ret['params'] = dargs
@@ -185,7 +176,6 @@ class SakWebCmd():
                     ctx.kwargs = dargs
                     cret: SakCmdRet = callback(ctx)
                     ret['result'] = cret.retValue
-
 
             if not ret['error']:
                 if has_pandas and isinstance(ret['result'], pd.DataFrame):
@@ -203,9 +193,6 @@ class SakWebCmd():
                 else:
                     ret['type'] = 'string'
                     ret['result'] = str(ret['result'])
-
-            # TODO: Remove this print
-            print(ret)
 
             tmpret = jsonify(ret)
             return tmpret

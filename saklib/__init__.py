@@ -63,24 +63,15 @@ def install() -> None:
         install_python(ask_confirm=True)
 
 def run() -> None:
-    # TODO: This must be the leader pid, so if it dies it will kill all the subprocesses
-    #os.killpg(os.getpgid(pro.pid), signal.SIGTERM) 
-
     if 'x86' in platform.machine():
         # Only try to run inside miniconda if is in x86
         install()
 
         os.environ['PATH'] = os.path.dirname(SAK_PYTHON_BIN) + ':' + os.environ['PATH']
 
-        ## TODO: Tryied to use subprocess, but argcomplete didnt work
         cmd = [SAK_PYTHON_BIN, os.path.join(SAK_GLOBAL,'saklib', 'sak.py') ] + sys.argv[1:]
         sys.exit(os.system(' '.join(['"%s"' % x for x in cmd])))
     else:
         sys.path.append(os.path.join(SAK_GLOBAL,'saklib'))
         import sak
         sak.main()
-
-
-    #sys.exit(subprocess.call([SAK_PYTHON_BIN,
-    #    os.path.join(SAK_GLOBAL,'saklib', 'sak.py')
-    #    ] + sys.argv[1:]))

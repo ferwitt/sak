@@ -13,6 +13,11 @@ import argparse
 from argparse import Namespace, ArgumentParser
 from typing import Optional, Callable, Dict, Any, List
 
+try:
+    from StringIO import StringIO ## for Python 2
+except ImportError:
+    from io import StringIO ## for Python 3
+
 hasArgcomplete = True
 try:
     import argcomplete
@@ -85,10 +90,18 @@ class SakCmdRet(object):
         self.retValue: Optional[Any] = None
 
 
+class SakCmdIO(StringIO): # type: ignore
+    def __init__(self) -> None:
+        super(SakCmdIO, self).__init__()
+
+
 class SakCmdCtx(object):
     def __init__(self) -> None:
         super(SakCmdCtx, self).__init__()
         self.kwargs: Dict[str, Any] = {}
+
+        self.stdout = SakCmdIO()
+        self.stderr = SakCmdIO()
 
     def get_ret(self) -> SakCmdRet:
         # TODO: I can fill the return with some context stuff
@@ -165,7 +178,10 @@ class SakCmd(object):
         if callback:
             ctx = SakCmdCtx()
             ctx.kwargs = args
-            ret = ret = callback(ctx)
+            ret = callback(ctx)
+
+            print(ctx.stdout.getvalue())
+
             if ret.retValue is not None:
                 # TODO: Standardize the output from the plugin endpoints!
                 print(ret.retValue)
