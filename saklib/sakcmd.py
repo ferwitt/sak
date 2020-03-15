@@ -23,7 +23,7 @@ class SakArg(object):
             name:str,
             helpmsg:str = '',
             short_name:Optional[str] = None,
-            completercb:Optional[Callable[[Dict[Any,Any]], Any]] = None,
+            completercb:Optional[Callable[[Any], List[Any]]] = None,
             **vargs: Any
         ) -> None:
         super(SakArg, self).__init__()
@@ -45,13 +45,30 @@ class SakArg(object):
             aux.completer = self.completercb # type: ignore
 
 
+class SakCmdRet(object):
+    """docstring for SakCmdRet"""
+    def __init__(self) -> None:
+        super(SakCmdRet, self).__init__()
+        self.retValue: Optional[Any] = None
+
+
+class SakCmdCtx(object):
+    def __init__(self) -> None:
+        super(SakCmdCtx, self).__init__()
+        self.kwargs: Dict[str, Any] = {}
+
+    def get_ret(self) -> SakCmdRet:
+        # TODO: I can fill the return with some context stuff
+        return SakCmdRet()
+
+
 class SakCmd(object):
     EXP_CLI = 'cli'
     EXP_WEB = 'web'
 
     def __init__(self,
             name:str,
-            callback: Optional[Callable[[Any], Any]]=None,
+            callback: Optional[Callable[[SakCmdCtx], SakCmdRet]]=None,
             args:List[SakArg]=[],
             expose:List[str]=[]
             ) -> None:
@@ -111,10 +128,12 @@ class SakCmd(object):
             argcomplete.autocomplete(parser)
 
         args = vars(parser.parse_args())
-        callback = args.pop('sak_callback')
+        callback: Callable[[SakCmdCtx], SakCmdRet] = args.pop('sak_callback')
         if callback:
-            ret = callback(**args)
-            if ret is not None:
+            ctx = SakCmdCtx()
+            ctx.kwargs = args
+            ret = ret = callback(ctx)
+            if ret.retValue is not None:
                 # TODO: Standardize the output from the plugin endpoints!
-                print(ret)
+                print(ret.retValue)
 

@@ -9,13 +9,17 @@ __version__ = "0.0.0"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from sakcmd import SakCmd, SakArg
+from sakcmd import SakCmd, SakArg, SakCmdCtx, SakCmdRet
 from sakplugin import SakPlugin, SakPluginManager
 
 import os
 import json
 import io
 import base64
+
+from pathlib import Path
+
+from typing import List, Dict, Any, Optional
 
 from flask import Flask, redirect, jsonify, request
 
@@ -35,10 +39,10 @@ except:
     pass
 
 class SakWebCmdArg():
-    def __init__(self, arg):
+    def __init__(self, arg: SakArg):
         self.arg = arg
 
-    def getAsDict(self):
+    def getAsDict(self) -> Dict[str, Any]:
         action = self.arg.vargs.get('action', '')
         default = self.arg.vargs.get('default', None)
         choices = self.arg.vargs.get('choices', [])
@@ -66,7 +70,7 @@ class SakWebCmdArg():
                 float: 'float'
                 }
 
-        ret = {
+        ret: Dict[str, Any] = {
                 'name': self.arg.name,
                 'help': self.arg.helpmsg,
                 'type': type_lut.get(arg_type, 'string'),
@@ -78,7 +82,8 @@ class SakWebCmdArg():
         #ret.update(self.vargs)
         return ret
 
-    def getRequestArgList(self, request):
+    def getRequestArgList(self, request) -> List[str]:
+        # TODO: Type annotate request (flask object)
 
         type_lut = {
                 'bool': bool,
@@ -118,56 +123,64 @@ class SakWebCmdArg():
         return ret
 
 class SakWebCmd():
-    def __init__(self, cmd, root):
+    def __init__(self, cmd: SakCmd, root: str) -> None:
         self.cmd = cmd
         self.root = root
         self.route = os.path.join(self.root, self.cmd.name)
-        self.args = []
+        self.args: List[SakWebCmdArg] = []
         for arg in cmd.args:
             self.args.append(SakWebCmdArg(arg))
 
-        self.subcmds = []
+        self.subcmds: List[SakWebCmd] = []
         for subcmd in cmd.subcmds:
             self.subcmds.append(SakWebCmd(subcmd, self.route))
 
     def __call__(self):
         if self.cmd.callback:
-            ret = {}
+            ret: Dict[str, Any] = {}
 
             arg_list = []
             for arg in self.args:
                 arg_list += arg.getRequestArgList(request)
 
+            # TODO: Remove print
             print(arg_list)
 
             p = self.cmd.generateArgParse()
 
             error_status = {}
-            def exit(p, status=0, message=None):
+            def exit(p, status: Optional[str] = None, message: Optional[str] = None) -> None:
                 error_status['status'] = status
                 error_status['message'] = message
-            p.exit = exit
+
+            # TODO: How to legally override the exit method?
+            p.exit = exit # type: ignore
 
             try:
                 args = p.parse_args(arg_list)
             except:
                 pass
 
-            ret = {'error': False}
+            ret.update({'error': False})
 
             if error_status:
                 ret['error'] = True
                 ret.update(error_status)
             else:
-                args = vars(args)
-                print(args)
+                dargs: Dict[str, Any] = vars(args)
 
-                callback = args.pop('sak_callback')
+                # TODO: Remove print
+                print(dargs)
 
-                ret['params'] = args
+                callback = dargs.pop('sak_callback')
+
+                ret['params'] = dargs
 
                 if callback:
-                    ret['result'] = callback(**args)
+                    ctx = SakCmdCtx()
+                    ctx.kwargs = dargs
+                    cret: SakCmdRet = callback(ctx)
+                    ret['result'] = cret.retValue
 
 
             if not ret['error']:
@@ -187,11 +200,12 @@ class SakWebCmd():
                     ret['type'] = 'string'
                     ret['result'] = str(ret['result'])
 
+            # TODO: Remove this print
             print(ret)
 
             return jsonify(ret)
         else:
-            return self.getAsDict()
+            return jsonify(self.getAsDict())
 
     def buildFlaskRoutes(self, app):
         if SakCmd.EXP_WEB not in self.cmd.expose:
@@ -206,8 +220,8 @@ class SakWebCmd():
         for subcmd in self.subcmds:
             subcmd.buildFlaskRoutes(app)
 
-    def getAsDict(self):
-        ret = { 'name': self.cmd.name, 'helpmsg': self.cmd.helpmsg}
+    def getAsDict(self) -> Dict[str, Any]:
+        ret: Dict[str, Any] = { 'name': self.cmd.name, 'helpmsg': self.cmd.helpmsg}
         ret['subcmds'] = [x.getAsDict() for x in self.subcmds if SakCmd.EXP_WEB in x.cmd.expose]
         ret['args'] = [x.getAsDict() for x in self.args]
         ret['isCallable'] = self.cmd.callback != None
@@ -218,24 +232,23 @@ class SakWebCmd():
 
 
 class SakWebapp(SakPlugin):
-    def __init__(self):
+    def __init__(self) -> None:
         super(SakWebapp, self).__init__('webapp')
+        self.app: Optional[Flask] = None
 
-        self.app = None
+    def _getApp(self) -> Flask:
+        thisDir = Path(__file__).resolve().parent
+        staticDir = thisDir / 'web' / 'static'
 
-    def _getApp(self):
-        thisDir = os.path.dirname(os.path.abspath(__file__))
-        staticDir = os.path.join(thisDir, 'web', 'static')
-
-        if not self.app:
+        if self.app is None:
             self.app = Flask('sak',
                     static_url_path='',
-                    static_folder=staticDir
+                    static_folder=str(staticDir)
                     )
         return self.app
 
 
-    def buildFlask(self):
+    def buildFlask(self) -> Flask:
         app = self._getApp()
         commands_root = '/api/cmd'
 
@@ -255,7 +268,7 @@ class SakWebapp(SakPlugin):
 
         return app
 
-    def appStart(self, port=5000):
+    def appStart(self, port:int) -> None:
         pluginDirs = [p.getPath() for p in self.context.pluginManager.getPluginList()]
 
         # Add all the plugin files to the watch list to restart server
@@ -266,13 +279,16 @@ class SakWebapp(SakPlugin):
             extra_files.append(os.path.join(pDir, 'plugin.py'))
 
         # https://www.quora.com/How-is-it-possible-to-make-Flask-web-framework-non-blocking
-        return self.buildFlask().run(debug=True, extra_files=extra_files, threaded=True, port=port)
+        self.buildFlask().run(debug=True, extra_files=extra_files, threaded=True, port=port)
 
 
-    def start(self, **vargs):
-        self.appStart(**vargs)
+    def start(self, ctx: SakCmdCtx) -> SakCmdRet:
+        ret = ctx.get_ret()
+        port = ctx.kwargs['port']
+        self.appStart(port)
+        return ret
 
-    def exportCmds(self, base):
+    def exportCmds(self, base: SakCmd) -> None:
         webapp = SakCmd('webapp')
 
         start = SakCmd('start', self.start)

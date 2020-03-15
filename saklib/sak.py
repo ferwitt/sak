@@ -9,7 +9,7 @@ __version__ = "0.0.0"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from sakcmd import SakCmd, SakArg
+from sakcmd import SakCmd, SakArg, SakCmdCtx, SakCmdRet
 from sakplugin import SakPlugin, SakPluginManager, SakContext
 
 import os
@@ -27,16 +27,22 @@ class Sak(SakPlugin):
     def getPath(self) -> Optional[Path]:
         return self.context.sak_global
 
-    def show_version(self, **vargs):
-        return 'Version: %s' % (__version__)
+    def show_version(self, ctx: SakCmdCtx) -> SakCmdRet:
+        ret = ctx.get_ret()
+        ret.retValue = 'Version: %s' % (__version__)
+        return ret
 
-    def show_argcomp(self, **vargs):
+    def show_argcomp(self, ctx: SakCmdCtx) -> SakCmdRet:
         subprocess.call(['register-python-argcomplete', 'sak', '-s', 'bash'])
+        #TODO: Fix this
+        return ctx.get_ret()
 
-    def bash(self, **vargs):
+    def bash(self, ctx: SakCmdCtx) -> SakCmdRet:
         os.system('bash')
+        #TODO: Fix this!
+        return ctx.get_ret()
 
-    def exportCmds(self, base):
+    def exportCmds(self, base: SakCmd) -> None:
         bash = SakCmd('bash', self.bash)
         base.addSubCmd(bash)
 
@@ -52,26 +58,37 @@ class SakPlugins(SakPlugin):
     def __init__(self) -> None:
         super(SakPlugins, self).__init__('plugins')
 
-    def show(self, **vargs):
+    def show(self, ctx: SakCmdCtx) -> SakCmdRet:
+        ret = ctx.get_ret()
+        ret.retValue = ''
         for plugin in self.context.getPluginManager().getPluginList():
-            # TODO: Remove this print
-            print(plugin.name, plugin.getPath())
+            ret.retValue += 'name: %s\n\tpath: %s\n' % (plugin.name, plugin.getPath())
+        return ret
 
-    def install(self, url, **vargs) -> None:
+    def install(self, ctx: SakCmdCtx) -> SakCmdRet:
         if self.context.sak_global is not None:
+            url = ctx.kwargs['url']
+
             subprocess.run(['git', 'clone', url],
                            check=True,
                            cwd=(self.context.sak_global / 'plugins'))
 
-    def update(self, **vargs):
+        return ctx.get_ret()
+
+    def doUpdate(self, ctx: SakCmdCtx) -> SakCmdRet:
+
         for plugin in self.context.getPluginManager().getPluginList():
             if plugin == self:
                 continue
+
+            # TODO: Remove print!
             print(80*'-')
             print('Updating %s' % plugin.name)
             plugin.update()
 
-    def exportCmds(self, base):
+        return ctx.get_ret()
+
+    def exportCmds(self, base: SakCmd) -> None:
         plugins = SakCmd('plugins')
 
         plugins.addSubCmd(SakCmd('show', self.show))
@@ -80,7 +97,7 @@ class SakPlugins(SakPlugin):
         install.addArg(SakArg('url', required=True))
         plugins.addSubCmd(install)
 
-        update = SakCmd('update', self.update)
+        update = SakCmd('update', self.doUpdate)
         plugins.addSubCmd(update)
 
         base.addSubCmd(plugins)

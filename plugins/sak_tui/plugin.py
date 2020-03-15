@@ -9,9 +9,10 @@ __version__ = "0.0.0"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from sakcmd import SakCmd, SakArg
+from sakcmd import SakCmd, SakArg, SakCmdCtx, SakCmdRet
 from sakplugin import SakPlugin, SakPluginManager
 
+from typing import List
 
 from asyncio import Future, ensure_future
 
@@ -63,29 +64,34 @@ except:
 
 
 class SakTuiCmdArg():
-    def __init__(self, arg):
+    def __init__(self, arg: SakArg) -> None:
         self.arg = arg
 
 class SakTuiCmd():
-    def __init__(self, tui, cmd):
+    def __init__(self, tui: 'SakTui', cmd: SakCmd) -> None:
         self.tui = tui
 
         self.cmd = cmd
-        self.args = []
+        self.args: List[SakTuiCmdArg] = []
         for arg in cmd.args:
             self.args.append(SakTuiCmdArg(arg))
 
-        self.subcmds = []
+        self.subcmds: List[SakTuiCmd] = []
         for subcmd in cmd.subcmds:
             self.subcmds.append(SakTuiCmd(self.tui, subcmd))
 
-    def __call__(self):
+    def __call__(self) -> None:
         if self.cmd.callback:
             # TODO: Find a way to pass a command Stdout and other parameters
             if has_matplotlib:
                 matplotlib.use('module://drawilleplot')
-            ret = self.cmd.callback()
-            if has_matplotlib and isinstance(ret, matplotlib.figure.Figure):
+
+            #TODO: Set better context info
+            ctx = SakCmdCtx()
+
+            ret = self.cmd.callback(ctx)
+
+            if has_matplotlib and isinstance(ret.retValue, matplotlib.figure.Figure):
                 new_ret = ''
                 for manager in drawilleplot.Gcf.get_all_fig_managers():
                     canvas = manager.canvas
@@ -93,12 +99,12 @@ class SakTuiCmd():
                     new_ret += canvas.to_txt()
                     new_ret += '\n\n'
                 plt.close()
-                ret = new_ret
+                ret.retValue = new_ret
 
             # TODO: The return value should be wrapped in some SAK return objects (Raw text, image, ...)
-            self.tui.text_field.text = str(ret)
+            self.tui.text_field.text = str(ret.retValue)
 
-    def asMenuItems(self):
+    def asMenuItems(self) -> MenuItem:
         return MenuItem(self.cmd.name,
                 children = [c.asMenuItems() for c in self.subcmds if SakCmd.EXP_WEB in c.cmd.expose],
                 handler=self
@@ -106,10 +112,10 @@ class SakTuiCmd():
 
 
 class MessageDialog:
-    def __init__(self, title, text):
+    def __init__(self, title: str, text: str) -> None:
         self.future = Future()
 
-        def set_done():
+        def set_done() -> None:
             self.future.set_result(None)
 
         ok_button = Button(text="OK", handler=(lambda: set_done()))
@@ -122,23 +128,23 @@ class MessageDialog:
             modal=True,
         )
 
-    def __pt_container__(self):
+    def __pt_container__(self) -> Dialog:
         return self.dialog
 
 
-class SakTUI(SakPlugin):
-    def __init__(self):
-        super(SakTUI, self).__init__('tui')
+class SakTui(SakPlugin):
+    def __init__(self) -> None:
+        super(SakTui, self).__init__('tui')
         self.show_status_bar = True
 
-    def get_statusbar_text(self):
+    def get_statusbar_text(self) -> str:
         return "(left) Press Ctrl-Q to exit. "
 
-    def get_statusbar_right_text(self):
+    def get_statusbar_right_text(self) -> str:
         return '(right) TODO'
 
 
-    def start(self, **vargs):
+    def start(self, ctx: SakCmdCtx) -> SakCmdRet:
 
         self.text_field = TextArea(
             # lexer=DynamicLexer(
@@ -193,19 +199,16 @@ class SakTUI(SakPlugin):
             ),
         ])
 
-        def fileCallback(**kwargs):
-            print(kwargs)
-
         cmdTree = SakTuiCmd(self, self.context.pluginManager.generateCommandsTree())
 
-        def show_message(title, text):
-            async def coroutine():
+        def show_message(title: str, text: str) -> None:
+            async def coroutine() -> None:
                 dialog = MessageDialog(title, text)
                 await show_dialog_as_float(dialog)
 
             ensure_future(coroutine())
 
-        def do_about():
+        def do_about() -> None:
             show_message("About", "SAK Text User Interface plugin.\nCreated by Fernando Witt.")
         
         root_container = MenuContainer(
@@ -227,7 +230,7 @@ class SakTUI(SakPlugin):
 
 
 
-        async def show_dialog_as_float(dialog):
+        async def show_dialog_as_float(dialog: MessageDialog):
             " Coroutine. "
             float_ = Float(content=dialog)
             root_container.floats.insert(0, float_)
@@ -255,8 +258,9 @@ class SakTUI(SakPlugin):
 
         # Add an additional key binding for toggling this flag.
         @kb.add(Keys.F4)
-        def _(event):
+        def _(event) -> None:
             " Toggle between Emacs and Vi mode. "
+            # TODO: Annotate the event
             cli = event.cli
 
             if cli.editing_mode == EditingMode.VI:
@@ -265,7 +269,8 @@ class SakTUI(SakPlugin):
                 cli.editing_mode = EditingMode.VI
 
         @kb.add('c-q')
-        def exit_(event):
+        def exit_(event) -> None:
+            # TODO: Annotate the event
             """ Pressing Ctrl-Q to exit.  """
             event.app.exit()
 
@@ -280,7 +285,9 @@ class SakTUI(SakPlugin):
                 )
         app.run()
 
-    def exportCmds(self, base):
+        return ctx.get_ret()
+
+    def exportCmds(self, base: SakCmd) -> None:
         tui = SakCmd('tui')
 
         start = SakCmd('start', self.start)

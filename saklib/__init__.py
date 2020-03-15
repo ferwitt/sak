@@ -22,13 +22,13 @@ SAK_GLOBAL = os.path.abspath(os.path.join(os.environ['HOME'], '.sak'))
 SAK_PYTHON = os.path.join(SAK_GLOBAL, 'python')
 SAK_PYTHON_BIN = os.path.join(SAK_PYTHON, 'miniconda3', 'bin', 'python3')
 
-def check_python():
+def check_python() -> bool:
     return os.path.exists(SAK_PYTHON_BIN)
 
-def pip_install():
+def pip_install() -> None:
     pass
 
-def install_python(ask_confirm=True):
+def install_python(ask_confirm:bool = True) -> None:
     if ' '.join(sys.argv[1:]) == 'show argcomp':
         return
 
@@ -57,12 +57,12 @@ def install_python(ask_confirm=True):
     subprocess.check_call(['/usr/bin/env', 'pip', 'install', '-r', os.path.join(SAK_GLOBAL, 'requirements.txt')])
 
 
-def install():
+def install() -> None:
     if 'x86' in platform.machine():
         # Only try to run inside miniconda if is in x86
         install_python(ask_confirm=True)
 
-def run():
+def run() -> None:
     # TODO: This must be the leader pid, so if it dies it will kill all the subprocesses
     #os.killpg(os.getpgid(pro.pid), signal.SIGTERM) 
 
