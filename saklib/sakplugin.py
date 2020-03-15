@@ -151,7 +151,7 @@ class SakPluginManager(object):
                             # TODO: Fix this!
                             imported_module = SourceFileLoader(name, fname_abs).load_module() # type: ignore
                     elif PYTHON_VERSION_MAJOR == 2:
-                        imported_module = imp.load_source(name, fname_abs)
+                        imported_module = imp.load_source(name, str(fname_abs))
                 except ImportError as error:
                     print('Missing modules in plugin %s' % str(plugin_path))
                     print(str(error))

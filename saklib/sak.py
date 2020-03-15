@@ -57,10 +57,11 @@ class SakPlugins(SakPlugin):
             # TODO: Remove this print
             print(plugin.name, plugin.getPath())
 
-    def install(self, url, **vargs):
-        subprocess.run(['git', 'clone', url],
-                       check=True,
-                       cwd=os.path.join(self.context.sak_global, 'plugins'))
+    def install(self, url, **vargs) -> None:
+        if self.context.sak_global is not None:
+            subprocess.run(['git', 'clone', url],
+                           check=True,
+                           cwd=(self.context.sak_global / 'plugins'))
 
     def update(self, **vargs):
         for plugin in self.context.getPluginManager().getPluginList():
@@ -95,10 +96,10 @@ def main() -> None:
     plm.addPlugin(SakPlugins())
 
     if ctx.sak_global:
-        sys.path.append(ctx.sak_global / 'plugins')
+        sys.path.append(str(ctx.sak_global / 'plugins'))
         plm.loadPlugins(ctx.sak_global / 'plugins')
     if ctx.sak_local and ctx.sak_local != ctx.sak_global:
-        sys.path.append(ctx.sak_local / 'plugins')
+        sys.path.append(str(ctx.sak_local / 'plugins'))
         plm.loadPlugins(ctx.sak_local / 'plugins')
 
     root = plm.generateCommandsTree()
