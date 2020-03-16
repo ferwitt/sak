@@ -68,8 +68,8 @@ class SakPlugins(SakPlugin):
     def install(self, ctx: SakCmdCtx) -> SakCmdRet:
         if self.context.sak_global is not None:
             url = ctx.kwargs['url']
-
-            subprocess.run(['git', 'clone', url],
+            name = url.split('/')[-1].replace('.git', '').replace('-', '_')
+            subprocess.run(['git', 'clone', url, name],
                            check=True,
                            cwd=(self.context.sak_global / 'plugins'))
 
