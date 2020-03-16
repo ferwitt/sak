@@ -75,7 +75,10 @@ class SakTuiCmdArg():
         d = self.getAsDict()
         default = d.get('default', None)
         if default is not None:
-            self.text_field.text = str(default)
+            if isinstance(default, list):
+                self.text_field.text = ', '.join(default)
+            else:
+                self.text_field.text = str(default)
 
     def getAsDict(self) -> Dict[str, Any]:
         action = self.arg.vargs.get('action', '')
@@ -84,11 +87,11 @@ class SakTuiCmdArg():
         arg_type = self.arg.vargs.get('type', None)
         nargs = self.arg.vargs.get('nargs', None)
 
-        if arg_type is None:
-            if action in ['store_true', 'store_false']:
-                arg_type = bool
-            if action in ['append'] or nargs in ['*', '+']:
-                arg_type = list
+        #if arg_type is None:
+        if action in ['store_true', 'store_false']:
+            arg_type = bool
+        if action in ['append'] or nargs in ['*', '+']:
+            arg_type = list
 
         if default is None:
             if action == 'store_true':
@@ -132,7 +135,7 @@ class SakTuiCmdArg():
         cfg = self.getAsDict()
 
         name = cfg['name']
-        arg_type = type_lut.get(cfg['type'], 'string')
+        arg_type = type_lut.get(cfg['type'], str)
         arg_action = cfg['action']
 
         req_arg = self.text_field.text.strip()
@@ -154,8 +157,8 @@ class SakTuiCmdArg():
             ret.append('--%s' % name)
 
             if arg_type is not bool:
-                if isinstance(req_arg, list):
-                    ret += req_arg
+                if arg_type is list:
+                    ret += [x.strip() for x in req_arg.split(',')]
                 else:
                     ret.append(req_arg)
 
