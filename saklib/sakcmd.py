@@ -24,6 +24,14 @@ try:
 except:
     hasArgcomplete = False
 
+has_matplotlib = False
+try:
+    import matplotlib
+    import matplotlib.pyplot as plt
+    has_matplotlib = True
+except:
+    pass
+
 class SakCompleterArg(object):
     def __init__(self,
             prefix: str,
@@ -182,7 +190,10 @@ class SakCmd(object):
 
             print(ctx.stdout.getvalue())
 
-            if ret.retValue is not None:
+            if has_matplotlib and isinstance(ret.retValue,
+                                             matplotlib.figure.Figure):
+                plt.show()
+            elif ret.retValue is not None:
                 # TODO: Standardize the output from the plugin endpoints!
                 print(ret.retValue)
 
