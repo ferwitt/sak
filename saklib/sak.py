@@ -126,4 +126,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    if False:
+        main()
+    else:
+        import cProfile
+        cProfile.run('main()', '/tmp/sak.profile')
