@@ -8,7 +8,7 @@ __version__ = "0.0.0"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-import Path
+from pathlib import Path
 from typing import List, Any
 
 class SakConfig(object):
