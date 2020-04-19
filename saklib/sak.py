@@ -21,8 +21,10 @@ from typing import Optional
 
 
 class Sak(SakPlugin):
-    def __init__(self) -> None:
-        super(Sak, self).__init__('sak')
+    namespace = onto
+
+    def __init__(self, name, **kwargs) -> None:
+        super(Sak, self).__init__(name, **kwargs)
 
     def getPath(self) -> Optional[Path]:
         return self.context.sak_global
@@ -55,8 +57,10 @@ class Sak(SakPlugin):
 
 
 class SakPlugins(SakPlugin):
-    def __init__(self) -> None:
-        super(SakPlugins, self).__init__('plugins')
+    namespace = onto
+
+    def __init__(self, name, **kwargs) -> None:
+        super(SakPlugins, self).__init__(name, **kwargs)
 
     def show(self, ctx: SakCmdCtx) -> SakCmdRet:
         ret = ctx.get_ret()
@@ -113,8 +117,8 @@ def main() -> None:
     ctx.has_plugin_manager = plm
     plm.has_context = ctx
 
-    plm.addPlugin(Sak())
-    plm.addPlugin(SakPlugins())
+    plm.addPlugin(Sak('sak'))
+    plm.addPlugin(SakPlugins('plugins'))
 
     if ctx.sak_global:
         sys.path.append(str(ctx.sak_global / 'plugins'))

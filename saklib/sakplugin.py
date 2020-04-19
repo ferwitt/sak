@@ -9,6 +9,7 @@ __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
 from sakcmd import SakCmd
+from sakconfig import SAK_GLOBAL, SAK_LOCAL
 
 import os
 import sys
@@ -21,12 +22,12 @@ from typing import Optional, List
 
 import owlready2 as owl
 
-owl.onto_path.append("/home/fernando/.sak")
-world = owl.World()
-onto = owl.Ontology(world, "http://test.org/onto.owl/")
+owl.onto_path.append(SAK_GLOBAL)
+onto = owl.get_ontology("http://test.org/sak_core.owl#")
 
 PYTHON_VERSION_MAJOR = sys.version_info.major
 PYTHON_VERSION_MINOR = sys.version_info.minor
+
 
 if PYTHON_VERSION_MAJOR == 3:
     if PYTHON_VERSION_MINOR >= 6:
@@ -40,26 +41,13 @@ else:
     sys.exit(-1)
 
 
-def find_in_parent(dirname: Path, name: Path) -> Optional[Path]:
-    if (dirname / name).exists():
-        return dirname / name
-    if dirname.parent != Path('/'):
-        return find_in_parent(dirname.parent, name)
-    return None
-
-
 class SakContext(owl.Thing):
     namespace = onto
 
-    def __init__(self) -> None:
-        super(SakContext, self).__init__()
-
-        script_dir = Path(__file__).parent.resolve()
-        current_dir = Path('.').resolve()
-
-        self.sak_global = find_in_parent(script_dir, Path('.sak'))
-        self.sak_local = find_in_parent(current_dir, Path('.sak'))
-
+    def __init__(self, **kwargs) -> None:
+        super(SakContext, self).__init__('sak_context', **kwargs)
+        self.sak_global = SAK_GLOBAL
+        self.sak_local = SAK_LOCAL
 
     @property
     def pluginManager(self) -> 'SakPluginManager':
@@ -73,6 +61,9 @@ class SakPlugin(owl.Thing):
     namespace = onto
 
     _path: Optional[Path] = None
+
+    def __init__(self, name, **kwargs) -> None:
+        super(SakPlugin, self).__init__(name, **kwargs)
 
     @property
     def context(self) -> SakContext:
@@ -122,9 +113,8 @@ with onto:
 class SakPluginManager(owl.Thing):
     namespace = onto
 
-    def __init__(self) -> None:
-        super(SakPluginManager, self).__init__('sak_plugin_manager')
-
+    def __init__(self, **kwargs) -> None:
+        super(SakPluginManager, self).__init__('sak_plugin_manager', **kwargs)
 
     def getPuginByName(self, name: str) -> Optional[SakPlugin]:
         for p in self.has_plugin:
@@ -134,7 +124,8 @@ class SakPluginManager(owl.Thing):
 
     def addPlugin(self, plugin: SakPlugin) -> None:
         plugin.setContext(self.has_context)
-        self.has_plugin.append(plugin)
+        if plugin not in self.has_plugin:
+            self.has_plugin.append(plugin)
 
     def getPluginList(self) -> List[SakPlugin]:
         return self.has_plugin
@@ -198,7 +189,7 @@ class SakPluginManager(owl.Thing):
                     if not SakPlugin != attribute:
                         continue
 
-                    plugin = attribute()
+                    plugin = attribute(name)
                     plugin.setPluginPath(plugin_path)
                     plugin.setContext(self.has_context)
                     self.addPlugin(plugin)

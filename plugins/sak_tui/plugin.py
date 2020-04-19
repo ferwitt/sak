@@ -21,8 +21,8 @@ PLUGIN_DIR = Path(__file__).resolve().parent
 sys.path.append(str(PLUGIN_DIR))
 
 class SakTui(SakPlugin):
-    def __init__(self) -> None:
-        super(SakTui, self).__init__('tui')
+    def __init__(self, name, **kwargs) -> None:
+        super(SakTui, self).__init__(name, **kwargs)
         self.lazy_import_done = False
 
     def lazy_import(self):

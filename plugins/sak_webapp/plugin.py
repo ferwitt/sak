@@ -23,7 +23,8 @@ sys.path.append(str(PLUGIN_DIR))
 
 
 class SakWebapp(SakPlugin):
-    def __init__(self) -> None:
+    def __init__(self, name, **kwargs) -> None:
+        super(SakWebapp, self).__init__(name, **kwargs)
         super(SakWebapp, self).__init__('webapp')
         self.lazy_import_done = False
 
