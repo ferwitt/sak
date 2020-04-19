@@ -127,7 +127,6 @@ def main() -> None:
         sys.path.append(str(ctx.sak_local / 'plugins'))
         plm.loadPlugins(ctx.sak_local / 'plugins')
 
-    onto.save()
 
     root = plm.generateCommandsTree()
 
