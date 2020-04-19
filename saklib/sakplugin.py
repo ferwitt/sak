@@ -19,6 +19,12 @@ import inspect
 
 from typing import Optional, List
 
+import owlready2 as owl
+
+owl.onto_path.append("/home/fernando/.sak")
+world = owl.World()
+onto = owl.Ontology(world, "http://test.org/onto.owl/")
+
 PYTHON_VERSION_MAJOR = sys.version_info.major
 PYTHON_VERSION_MINOR = sys.version_info.minor
 
@@ -42,7 +48,9 @@ def find_in_parent(dirname: Path, name: Path) -> Optional[Path]:
     return None
 
 
-class SakContext(object):
+class SakContext(owl.Thing):
+    namespace = onto
+
     def __init__(self) -> None:
         super(SakContext, self).__init__()
 
@@ -52,22 +60,23 @@ class SakContext(object):
         self.sak_global = find_in_parent(script_dir, Path('.sak'))
         self.sak_local = find_in_parent(current_dir, Path('.sak'))
 
-        self.pluginManager: 'SakPluginManager'
 
-    def setPluginManager(self, pluginManager: 'SakPluginManager') -> None:
-        self.pluginManager = pluginManager
+    @property
+    def pluginManager(self) -> 'SakPluginManager':
+        return self.has_plugin_manager
 
     def getPluginManager(self) -> 'SakPluginManager':
-        return self.pluginManager
+        return self.has_plugin_manager
 
 
-class SakPlugin(object):
-    def __init__(self, name: str) -> None:
-        super(SakPlugin, self).__init__()
-        self.name = name
-        # self.pluginManager = None
-        self._path: Optional[Path] = None
-        self.context: SakContext
+class SakPlugin(owl.Thing):
+    namespace = onto
+
+    _path: Optional[Path] = None
+
+    @property
+    def context(self) -> SakContext:
+        return self.has_context
 
     def setPluginPath(self, path: Path) -> None:
         self._path = path
@@ -76,7 +85,7 @@ class SakPlugin(object):
         return self._path
 
     def setContext(self, context: SakContext) -> None:
-        self.context = context
+        self.has_context = context
 
     def update(self) -> None:
         path = self.getPath()
@@ -95,30 +104,44 @@ class SakPlugin(object):
         pass
 
 
-class SakPluginManager(object):
-    def __init__(self, context: SakContext) -> None:
-        super(SakPluginManager, self).__init__()
-        self.plugins: List[SakPlugin] = []
-        self.context = context
+class SakPluginManager(owl.Thing):
+    namespace = onto
 
-        context.setPluginManager(self)
+with onto:
+    class has_context((SakPlugin | SakPluginManager) >> SakContext, owl.FunctionalProperty):
+        pass
+
+    class has_plugin_manager(SakContext >> SakPluginManager, owl.FunctionalProperty):
+        pass
+
+    class has_plugin(SakPluginManager >> SakPlugin):
+        pass
+
+    owl.AllDisjoint([SakPlugin, SakPluginManager, SakContext])
+
+class SakPluginManager(owl.Thing):
+    namespace = onto
+
+    def __init__(self) -> None:
+        super(SakPluginManager, self).__init__('sak_plugin_manager')
+
 
     def getPuginByName(self, name: str) -> Optional[SakPlugin]:
-        for p in self.plugins:
+        for p in self.has_plugin:
             if p.name == name:
                 return p
         return None
 
     def addPlugin(self, plugin: SakPlugin) -> None:
-        plugin.setContext(self.context)
-        self.plugins.append(plugin)
+        plugin.setContext(self.has_context)
+        self.has_plugin.append(plugin)
 
     def getPluginList(self) -> List[SakPlugin]:
-        return self.plugins
+        return self.has_plugin
 
     def generateCommandsTree(self) -> SakCmd:
-        root = SakCmd('sak', None, helpmsg='SAK - TODO')
-        for plugin in self.plugins:
+        root = SakCmd('sak', None)
+        for plugin in self.has_plugin:
             plugin.exportCmds(root)
         return root
 
@@ -177,5 +200,5 @@ class SakPluginManager(object):
 
                     plugin = attribute()
                     plugin.setPluginPath(plugin_path)
-                    plugin.setContext(self.context)
+                    plugin.setContext(self.has_context)
                     self.addPlugin(plugin)

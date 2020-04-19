@@ -10,7 +10,7 @@ __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
 from sakcmd import SakCmd, SakArg, SakCmdCtx, SakCmdRet
-from sakplugin import SakPlugin, SakPluginManager, SakContext
+from sakplugin import onto, SakPlugin, SakPluginManager, SakContext
 
 import os
 import sys
@@ -108,7 +108,10 @@ def main() -> None:
 
     ctx = SakContext()
 
-    plm = SakPluginManager(ctx)
+    plm = SakPluginManager()
+
+    ctx.has_plugin_manager = plm
+    plm.has_context = ctx
 
     plm.addPlugin(Sak())
     plm.addPlugin(SakPlugins())
@@ -119,6 +122,8 @@ def main() -> None:
     if ctx.sak_local and ctx.sak_local != ctx.sak_global:
         sys.path.append(str(ctx.sak_local / 'plugins'))
         plm.loadPlugins(ctx.sak_local / 'plugins')
+
+    onto.save()
 
     root = plm.generateCommandsTree()
 
