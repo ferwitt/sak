@@ -65,6 +65,18 @@ class SakPlugin(owl.Thing):
     def __init__(self, name, **kwargs) -> None:
         super(SakPlugin, self).__init__(name, **kwargs)
 
+        self._ontology = None
+
+    @property
+    def ontology(self):
+        if self._ontology is None:
+            self._ontology = owl.get_ontology('http://127.0.0.1:2020/sak/%s.owl#' % self.name)
+            try:
+                self._ontology.load()
+            except:
+                pass
+        return self._ontology
+
     @property
     def context(self) -> SakContext:
         return self.has_context
