@@ -25,7 +25,7 @@ def install_sak():
     if not os.path.exists(SAK_GLOBAL):
         print('No SAK installed.')
 
-        if input("Woud you like to install it? [Y/N]") in ['Y', 'y', 'yes']:
+        if input("Would you like to install it? [y/N]") in ['Y', 'y', 'yes']:
             print ('installing')
 
             ret_code = subprocess.call([

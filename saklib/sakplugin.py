@@ -160,7 +160,7 @@ class SakPluginManager(object):
                     requirements_path = plugin_path / 'requirements.txt'
 
                     if os.path.exists(requirements_path):
-                        if input("Woud you like to do this now? [Y/N]") in ['Y', 'y', 'yes']:
+                        if input("Would you like to do this now? [y/N]") in ['Y', 'y', 'yes']:
                             os.system('pip install -r "%s"' % requirements_path)
                         else:
                             print('Skip adding plugin %s' % str(plugin_path))
