@@ -449,9 +449,9 @@ class SakTui(SakPlugin):
         return ctx.get_ret()
 
     def exportCmds(self, base: SakCmd) -> None:
-        tui = SakCmd('tui')
+        tui = SakCmd('tui', helpmsg='Text User Interface for SAK.')
 
-        start = SakCmd('start', self.start)
+        start = SakCmd('start', self.start, helpmsg='Start the TUI application.')
         tui.addSubCmd(start)
 
         base.addSubCmd(tui)

@@ -117,7 +117,7 @@ class SakPluginManager(object):
         return self.plugins
 
     def generateCommandsTree(self) -> SakCmd:
-        root = SakCmd('sak', None)
+        root = SakCmd('sak', None, helpmsg='SAK - TODO')
         for plugin in self.plugins:
             plugin.exportCmds(root)
         return root

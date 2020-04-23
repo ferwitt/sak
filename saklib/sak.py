@@ -43,13 +43,13 @@ class Sak(SakPlugin):
         return ctx.get_ret()
 
     def exportCmds(self, base: SakCmd) -> None:
-        bash = SakCmd('bash', self.bash)
+        bash = SakCmd('bash', self.bash, helpmsg='Start a bash using the SAK env variables.')
         base.addSubCmd(bash)
 
-        show = SakCmd('show')
+        show = SakCmd('show', helpmsg='General information about SAK.')
 
-        show.addSubCmd(SakCmd('argcomp', self.show_argcomp))
-        show.addSubCmd(SakCmd('version', self.show_version, expose=[SakCmd.EXP_CLI, SakCmd.EXP_WEB]))
+        show.addSubCmd(SakCmd('argcomp', self.show_argcomp, helpmsg='Show the autocomplete string'))
+        show.addSubCmd(SakCmd('version', self.show_version, expose=[SakCmd.EXP_CLI, SakCmd.EXP_WEB], helpmsg='Show SAK version.'))
 
         base.addSubCmd(show)
 
@@ -90,15 +90,15 @@ class SakPlugins(SakPlugin):
         return ret
 
     def exportCmds(self, base: SakCmd) -> None:
-        plugins = SakCmd('plugins')
+        plugins = SakCmd('plugins', helpmsg='Plugin manager.')
 
-        plugins.addSubCmd(SakCmd('show', self.show))
+        plugins.addSubCmd(SakCmd('show', self.show, helpmsg='Show the list of plugins.'))
 
-        install = SakCmd('install', self.install)
-        install.addArg(SakArg('url', required=True))
+        install = SakCmd('install', self.install, helpmsg='Install a new plugin.')
+        install.addArg(SakArg('url', required=True, helpmsg='The plugin git repo URL.'))
         plugins.addSubCmd(install)
 
-        update = SakCmd('update', self.doUpdate)
+        update = SakCmd('update', self.doUpdate, helpmsg='Update SAK and all the plugins.')
         plugins.addSubCmd(update)
 
         base.addSubCmd(plugins)

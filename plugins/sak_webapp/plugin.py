@@ -282,10 +282,10 @@ class SakWebapp(SakPlugin):
         return ret
 
     def exportCmds(self, base: SakCmd) -> None:
-        webapp = SakCmd('webapp')
+        webapp = SakCmd('webapp', helpmsg='Web application for SAK.')
 
-        start = SakCmd('start', self.start)
-        start.addArg(SakArg('port', short_name='p', type=int, default=2020))
+        start = SakCmd('start', self.start, helpmsg='Start webapp')
+        start.addArg(SakArg('port', short_name='p', type=int, default=2020, helpmsg='Server port (default: 2020)'))
         webapp.addSubCmd(start)
         
         base.addSubCmd(webapp)

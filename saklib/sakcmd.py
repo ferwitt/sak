@@ -124,7 +124,8 @@ class SakCmd(object):
             name:str,
             callback: Optional[Callable[[SakCmdCtx], SakCmdRet]]=None,
             args:List[SakArg]=[],
-            expose:List[str]=[]
+            expose:List[str]=[],
+            helpmsg:str = ''
             ) -> None:
         super(SakCmd, self).__init__()
         self.name = name
@@ -132,7 +133,7 @@ class SakCmd(object):
         self.subcmds: List[SakCmd] = []
         self.args = args or []
 
-        self.helpmsg = 'TODO'
+        self.helpmsg = helpmsg
 
         self.parent: Optional[SakCmd] = None
         self.expose = expose or [SakCmd.EXP_CLI]
@@ -158,7 +159,8 @@ class SakCmd(object):
     def generateArgParse(self, subparsers: Optional[argparse._SubParsersAction] = None) -> ArgumentParser:
         parser = None
         if subparsers is None:
-            parser = ArgumentParser(prog=self.name)
+            d = "Group everyday developer's tools in a swiss-army-knife command."
+            parser = ArgumentParser(prog=self.name, description=d)
         else:
             #import pdb; pdb.set_trace()
             parser = subparsers.add_parser(self.name, help=self.helpmsg)
