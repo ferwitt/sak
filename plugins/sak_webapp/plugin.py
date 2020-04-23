@@ -52,6 +52,10 @@ class SakWebCmdArg():
         arg_type = self.arg.vargs.get('type', None)
         nargs = self.arg.vargs.get('nargs', None)
 
+        # Work around for list
+        if nargs is not None:
+            if nargs in ['*', '+']:
+                arg_type = list
 
         if arg_type is None:
             if action in ['store_true', 'store_false']:
@@ -119,7 +123,10 @@ class SakWebCmdArg():
                 if isinstance(req_arg, list):
                     ret += req_arg
                 else:
-                    ret.append(req_arg)
+                    if arg_type is list:
+                        ret += req_arg.split(',')
+                    else:
+                        ret.append(req_arg)
 
         return ret
 
