@@ -135,7 +135,7 @@ class SakPluginManager(object):
 
             for fname_abs in plugin_path.iterdir():
                 fname = str(fname_abs.name)
-                if not fname.endswith('.py'):
+                if not fname.endswith('plugin.py'):
                     continue
                 if fname_abs.is_dir():
                     continue

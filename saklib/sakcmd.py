@@ -18,19 +18,20 @@ try:
 except ImportError:
     from io import StringIO ## for Python 3
 
-hasArgcomplete = True
+hasArgcomplete = False
 try:
     import argcomplete
-except:
-    hasArgcomplete = False
-
-has_matplotlib = False
-try:
-    import matplotlib
-    import matplotlib.pyplot as plt
-    has_matplotlib = True
+    hasArgcomplete = True
 except:
     pass
+
+has_matplotlib = False
+#try:
+#    import matplotlib
+#    import matplotlib.pyplot as plt
+#    has_matplotlib = True
+#except:
+#    pass
 
 class SakCompleterArg(object):
     def __init__(self,
@@ -165,10 +166,12 @@ class SakCmd(object):
             #import pdb; pdb.set_trace()
             parser = subparsers.add_parser(self.name, help=self.helpmsg)
 
+
         parser.set_defaults(sak_callback=self.callback)
 
         for arg in self.args:
             arg.addToArgParser(parser)
+
 
         if self.subcmds:
             subparsers = parser.add_subparsers()
