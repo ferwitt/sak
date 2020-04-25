@@ -125,9 +125,6 @@ class SakCmdCtx(object):
         # TODO: I can fill the return with some context stuff
         return SakCmdRet()
 
-
-
-
 class SakCmd(SakDecorator):
     EXP_CLI = 'cli'
     EXP_WEB = 'web'
@@ -171,51 +168,38 @@ class SakCmd(SakDecorator):
     def addArg(self, arg: SakArg) -> None:
         self.args.append(arg)
 
-    def generateArgParse(self, subparsers: Optional[argparse._SubParsersAction] = None) -> ArgumentParser:
-        parser = None
-        if subparsers is None:
-            d = "Group everyday developer's tools in a swiss-army-knife command."
-            parser = ArgumentParser(prog=self.name, description=d)
-        else:
-            parser = subparsers.add_parser(self.name, help=self.helpmsg)
-
-        parser.set_defaults(sak_callback=self.callback)
-
-        for arg in self.args:
-            arg.addToArgParser(parser)
-
-        if self.subcmds:
-            subparsers = parser.add_subparsers()
-            for subcmd in self.subcmds:
-                subcmd.generateArgParse(subparsers)
-
-        return parser
-
     def runArgParser(self, args=None, subparsers=None, root_parser=None, level=1, show_help=False) -> None:
         args = args or []
-
-        if level<0:
-            return
-
-        if '-h' or '--help' in args:
+        if ('-h' in args) or ('--help' in args):
             show_help = True
             args = [x for x in args if x != '-h' and x != '--help']
-
 
         # Register command
         parser = None
         if subparsers is None:
+
+            error_status = {}
+            def exit(p: ArgumentParser,
+                     status: Optional[str] = None,
+                     message: Optional[str] = None) -> None:
+                error_status['status'] = status
+                error_status['message'] = message
+
             d = "Group everyday developer's tools in a swiss-army-knife command."
             parser = ArgumentParser(prog=self.name, description=d)
+            #parser.exit = exit
         else:
             parser = subparsers.add_parser(self.name, help=self.helpmsg)
-        parser.set_defaults(sak_callback=self.callback, sak_cmd=self)
+        parser.set_defaults(sak_callback=self.callback, sak_cmd=self, sak_parser=parser)
 
-        if root_parser==None:
+        if root_parser is None:
             root_parser = parser
 
         for arg in self.args:
             arg.addToArgParser(parser)
+
+        if level <= 0:
+            return
 
         # Check if its auto completion
         is_in_completion = False
@@ -228,35 +212,32 @@ class SakCmd(SakDecorator):
             if not args:
                 args = comp_words[1:]
 
+        # Register only the next level of the subcommands
         if self.subcmds:
-            tmp_action = parser.add_argument('command', choices=[i.name for i in self.subcmds])
+            subparsers = parser.add_subparsers()
+            for i in self.subcmds:
+                #print('register first level ', i.name)
+                i.runArgParser([], subparsers, root_parser, 0, show_help)
 
         nm = None
         try:
-            print('----------------------------------')
-            print(args)
             nm, rargs = parser.parse_known_args(args)
             nm = vars(nm)
-            print(args, nm, rargs)
             nm['args'] = rargs
         except:
             pass
 
         if nm is not None:
-            if self.subcmds:
-                parser._remove_action(tmp_action)
-                if nm['command']:
-                    subparsers = parser.add_subparsers()
-                    for i in self.subcmds:
-                        print('register: ', i.name)
-                        if i.name == nm['command']:
-                            sys.stderr.write('run sub cmd for: %s\n' % (i.name))
-                            i.runArgParser(rargs, subparsers, root_parser, 1)
-                            return
-
+            if self.subcmds and nm['sak_cmd'] != self:
+                # Step into the commands tree
+                nm['sak_cmd'].runArgParser(rargs, subparsers, root_parser, 1, show_help)
+                return
 
         if hasArgcomplete:
             argcomplete.autocomplete(root_parser)
+
+        if nm and (nm['sak_callback'] is None):
+            show_help = True
 
         if show_help:
             parser.print_help()
@@ -264,39 +245,21 @@ class SakCmd(SakDecorator):
 
         # Only run leaf if not auto completion
         if nm:
-            print('rargs', self.name)
             if not rargs:
-                print('Here! it is a leaf')
-                return True
+                # TODO: I should call the callback here
+                callback: Callable[[SakCmdCtx], SakCmdRet] = nm.pop('sak_callback')
+                if callback:
+                    ctx = SakCmdCtx()
+                    ctx.kwargs = nm
+                    ret = callback(ctx)
+                    if has_matplotlib and isinstance(ret.retValue,
+                                                     matplotlib.figure.Figure):
+                        plt.show()
+                    elif ret.retValue is not None:
+                        # TODO: Standardize the output from the plugin endpoints!
+                        print(ret.retValue)
+                return
 
-            #aux = parser.add_argument('command', help=self.helpmsg, **self.vargs)
-            msg = _('unrecognized arguments: %s')
-            parser.error(msg % ' '.join(argv))
-            return
-
-
+        msg = 'unrecognized arguments: %s'
+        parser.error(msg % ' '.join(args))
         return
-        parser = self.generateArgParse()
-
-        if hasArgcomplete:
-            argcomplete.autocomplete(parser)
-
-        args = vars(parser.parse_args())
-
-
-        callback: Callable[[SakCmdCtx], SakCmdRet] = args.pop('sak_callback')
-        if callback:
-            ctx = SakCmdCtx()
-            ctx.kwargs = args
-            ret = callback(ctx)
-
-            print(ctx.stdout.getvalue())
-
-            if 'matplotlib.figure.Figure' in str(type(ret.retValue)):
-                import pylab as plt
-                plt.show()
-
-            elif ret.retValue is not None:
-                # TODO: Standardize the output from the plugin endpoints!
-                print(ret.retValue)
-
