@@ -10,7 +10,13 @@ __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
 from sakcmd import SakCmd, SakArg, SakCmdCtx, SakCmdRet
-from sakplugin import SakPlugin, SakPluginManager
+import sakplugin
+from sakplugin import SakPlugin, SakPluginManager, owl
+
+import os
+import json
+import io
+import base64
 
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -25,8 +31,6 @@ sys.path.append(str(PLUGIN_DIR))
 class SakWebapp(SakPlugin):
     def __init__(self, name, **kwargs) -> None:
         super(SakWebapp, self).__init__(name, **kwargs)
-        super(SakWebapp, self).__init__('webapp')
-        self.lazy_import_done = False
 
     def lazy_import(self):
         if not self.lazy_import_done:

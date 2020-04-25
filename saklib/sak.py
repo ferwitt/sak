@@ -130,7 +130,7 @@ def main() -> None:
 
     root = plm.generateCommandsTree()
 
-    root.runArgParser()
+    root.runArgParser(sys.argv[1:])
 
 
 if __name__ == "__main__":

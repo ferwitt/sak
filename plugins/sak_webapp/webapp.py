@@ -16,6 +16,7 @@ import os
 import json
 import io
 import base64
+import inspect
 
 from pathlib import Path
 
@@ -265,6 +266,124 @@ class SakWebappImpl(object):
 
         cmdTree = SakWebCmd(self.plugin.context.pluginManager.generateCommandsTree(), commands_root)
         cmdTree.buildFlaskRoutes(app)
+
+
+        # class SakWebOnto(Resource):
+        #     def get(self, **kwargs):
+        #         return jsonify(kwargs)
+        # api = Api(app)
+        @app.route(api_root + '/onto')
+        @app.route(api_root + '/onto/<path:path>')
+        def onto(path=''):
+
+            def process(state, path_list, env):
+                env_type = type(env)
+                # TODO: Sanityze the penv
+                def sanitize(d):
+                    if not isinstance(d, dict):
+                        #if isinstance(d, list) or inspect.isgenerator(d):
+                        if isinstance(d, tuple):
+                            nenv = {}
+                            for idx, v in enumerate(d):
+                                k = str(idx)
+                                nenv[k] = v
+                            d = nenv
+                        elif isinstance(d, Iterable):
+                            nenv = {}
+                            for idx, v in enumerate(d):
+                                #TODO: If it is a thing, I can put the name in the index
+                                k = str(idx)
+                                try:
+                                    k = v.name
+                                except:
+                                    pass
+                                k  = k.replace('/', '__')
+                                nenv[k] = v
+                            d = nenv
+                        elif isinstance(d, str):
+                            d = d
+                        elif inspect.ismethod(d):
+                            d = sanitize(d())
+                        else:
+
+                            export_lut = {
+                                    owl.Ontology: ['name', 'individuals', 'classes'],
+                                    owl.ThingClass: ['name', 'get_properties', 'get_inverse_properties']
+                                    }
+
+                            obj = d
+
+                            d = {}
+                            for classType, exporlist in export_lut.items():
+                                if isinstance(obj, classType):
+                                    for k in dir(obj):
+                                        if k not in exporlist:
+                                            continue
+                                        if k.startswith('_'):
+                                            continue
+                                        dd = getattr(obj, k)
+                                        k = k.replace('/', '__')
+                                        d[k] = dd
+                                    break
+                    return d
+
+                env = sanitize(env)
+
+                if not path_list or not path_list[0]:
+                    def norm_dict(d, depth=-1):
+                        nd = {}
+                        if depth==0:
+                            return str(d)
+                        if isinstance(d, dict):
+                            for k, v in d.items():
+                                k = k.replace('/', '__')
+                                nd[k] = norm_dict(v, depth-1)
+                        #elif isinstance(d, list) or inspect.isgenerator(d):
+                        elif isinstance(d, tuple):
+                            for idx, v in enumerate(d):
+                                k = str(idx)
+                                nd[k] = norm_dict(v, depth-1)
+                        elif isinstance(d, Iterable):
+                            for idx, v in enumerate(d):
+                                k = str(idx)
+                                k = k.replace('/', '__')
+                                nd[k] = norm_dict(v, depth-1)
+                        elif isinstance(d, str):
+                            return d
+                        elif inspect.ismethod(d):
+                            # TODO: I can put the documentation here maybe
+                            nd = repr(d)
+                            #try:
+                            #    nd = norm_dict( d(), depth - 1)
+                            #except:
+                            #    nd = repr(d)
+                        else:
+                            try:
+                                jsonify(d)
+                                nd = d
+                            except:
+                                nd = repr(d)
+                        return nd
+
+                    nenv = norm_dict(env, 1)
+
+                    ret = {
+                            'type': str(env_type),
+                            'value': nenv
+                            }
+                    return jsonify(ret)
+
+                if not path_list[0] in env:
+                    return jsonify('[ERROR] no %s in env' % path_list[0])
+                else:
+                    el = env[path_list[0]]
+                    return process(state, path_list[1:], el)
+
+            ontologies = {'sak': sakplugin.onto}
+            for p in plugins:
+                ontologies[p.ontology.name] = p.ontology
+            return process('foo', path.split('/'), ontologies)
+            #return process('foo', path.split('/'), self)
 
         return app
 

@@ -35,10 +35,18 @@ class SakTui(SakPlugin):
         self.lazy_import()
         return self.saktui.start(ctx)
 
+    def shell(self, ctx: SakCmdCtx) -> SakCmdRet:
+        answer = prompt('Give me some input: ')
+        print('You said: %s' % answer)
+        return ctx.get_ret()
+
     def exportCmds(self, base: SakCmd) -> None:
         tui = SakCmd('tui', helpmsg='Text User Interface for SAK.')
 
         start = SakCmd('start', self.start, helpmsg='Start the TUI application.')
         tui.addSubCmd(start)
+
+        shell = SakCmd('shell', self.shell)
+        tui.addSubCmd(shell)
 
         base.addSubCmd(tui)

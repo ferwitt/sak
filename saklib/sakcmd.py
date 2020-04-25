@@ -8,9 +8,10 @@ __version__ = "0.0.0"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-
+import sys, os
 import argparse
-from argparse import Namespace, ArgumentParser
+from argparse import Namespace, ArgumentParser, REMAINDER
+import functools
 from typing import Optional, Callable, Dict, Any, List
 
 try:
@@ -49,7 +50,22 @@ class SakCompleterArg(object):
         self.parsed_args = parsed_args
 
 
-class SakArg(object):
+class SakDecorator:        
+    def __init__(self, *args, **vargs):
+        self.args = args
+        self.vargs = vargs
+        self.func = None
+    def __call__(self, func):
+        self.func = func
+        @functools.wraps(func)
+        def wrapper(*args, **vargs):
+            return self.func(*args, **vargs)
+        wrapper._sak_dec_chain = self        
+        return wrapper
+
+
+
+class SakArg(SakDecorator):
     def __init__(self,
             name:str,
             helpmsg:str = '',
@@ -110,18 +126,22 @@ class SakCmdCtx(object):
         return SakCmdRet()
 
 
-class SakCmd(object):
+
+
+class SakCmd(SakDecorator):
     EXP_CLI = 'cli'
     EXP_WEB = 'web'
 
     def __init__(self,
             name:str,
+            # Deprecated
             callback: Optional[Callable[[SakCmdCtx], SakCmdRet]]=None,
             args:List[SakArg]=[],
             expose:List[str]=[],
             helpmsg:str = ''
             ) -> None:
         super(SakCmd, self).__init__()
+
         self.name = name
         self.callback = callback
         self.subcmds: List[SakCmd] = []
@@ -132,6 +152,7 @@ class SakCmd(object):
         self.parent: Optional[SakCmd] = None
         self.expose = expose or [SakCmd.EXP_CLI]
 
+    # Deprecated
     def addSubCmd(self, subcmd: 'SakCmd') -> None:
         subcmd.setParent(self)
         self.subcmds.append(subcmd)
@@ -156,15 +177,12 @@ class SakCmd(object):
             d = "Group everyday developer's tools in a swiss-army-knife command."
             parser = ArgumentParser(prog=self.name, description=d)
         else:
-            #import pdb; pdb.set_trace()
             parser = subparsers.add_parser(self.name, help=self.helpmsg)
-
 
         parser.set_defaults(sak_callback=self.callback)
 
         for arg in self.args:
             arg.addToArgParser(parser)
-
 
         if self.subcmds:
             subparsers = parser.add_subparsers()
@@ -173,13 +191,99 @@ class SakCmd(object):
 
         return parser
 
-    def runArgParser(self) -> None:
+    def runArgParser(self, args=None, subparsers=None, root_parser=None, level=1, show_help=False) -> None:
+        args = args or []
+
+        if level<0:
+            return
+
+        if '-h' or '--help' in args:
+            show_help = True
+            args = [x for x in args if x != '-h' and x != '--help']
+
+
+        # Register command
+        parser = None
+        if subparsers is None:
+            d = "Group everyday developer's tools in a swiss-army-knife command."
+            parser = ArgumentParser(prog=self.name, description=d)
+        else:
+            parser = subparsers.add_parser(self.name, help=self.helpmsg)
+        parser.set_defaults(sak_callback=self.callback, sak_cmd=self)
+
+        if root_parser==None:
+            root_parser = parser
+
+        for arg in self.args:
+            arg.addToArgParser(parser)
+
+        # Check if its auto completion
+        is_in_completion = False
+        comp_line = os.environ.get("COMP_LINE", None)
+        if comp_line is not None:
+            # What is this COMP_POINT?
+            comp_point = int(os.environ.get("COMP_POINT", 0))
+            is_in_completion = True
+            _, _, _, comp_words, _ = argcomplete.split_line(comp_line, comp_point)
+            if not args:
+                args = comp_words[1:]
+
+        if self.subcmds:
+            tmp_action = parser.add_argument('command', choices=[i.name for i in self.subcmds])
+
+        nm = None
+        try:
+            print('----------------------------------')
+            print(args)
+            nm, rargs = parser.parse_known_args(args)
+            nm = vars(nm)
+            print(args, nm, rargs)
+            nm['args'] = rargs
+        except:
+            pass
+
+        if nm is not None:
+            if self.subcmds:
+                parser._remove_action(tmp_action)
+                if nm['command']:
+                    subparsers = parser.add_subparsers()
+                    for i in self.subcmds:
+                        print('register: ', i.name)
+                        if i.name == nm['command']:
+                            sys.stderr.write('run sub cmd for: %s\n' % (i.name))
+                            i.runArgParser(rargs, subparsers, root_parser, 1)
+                            return
+
+
+        if hasArgcomplete:
+            argcomplete.autocomplete(root_parser)
+
+        if show_help:
+            parser.print_help()
+            return
+
+        # Only run leaf if not auto completion
+        if nm:
+            print('rargs', self.name)
+            if not rargs:
+                print('Here! it is a leaf')
+                return True
+
+            #aux = parser.add_argument('command', help=self.helpmsg, **self.vargs)
+            msg = _('unrecognized arguments: %s')
+            parser.error(msg % ' '.join(argv))
+            return
+
+
+        return
         parser = self.generateArgParse()
 
         if hasArgcomplete:
             argcomplete.autocomplete(parser)
 
         args = vars(parser.parse_args())
+
+
         callback: Callable[[SakCmdCtx], SakCmdRet] = args.pop('sak_callback')
         if callback:
             ctx = SakCmdCtx()
