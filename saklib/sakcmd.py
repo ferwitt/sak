@@ -28,6 +28,108 @@ except:
     pass
 
 
+
+def sak_arg_parser(base_cmd, args=None) -> None:
+    # Check if its auto completion
+    is_in_completion = False
+    comp_line = os.environ.get("COMP_LINE", None)
+    if comp_line is not None:
+        # What is this COMP_POINT?
+        comp_point = int(os.environ.get("COMP_POINT", 0))
+        is_in_completion = True
+        _, _, _, comp_words, _ = argcomplete.split_line(comp_line, comp_point)
+        if not args:
+            args = comp_words[1:]
+
+    # Remove the help flag from args and set show_help
+    args = args or []
+    sak_show_help = False
+    if ('-h' in args) or ('--help' in args):
+        sak_show_help = True
+        args = [x for x in args if x != '-h' and x != '--help']
+
+    # The root parser
+    description = base_cmd.description or base_cmd.helpmsg
+    root_parser = ArgumentParser(prog=base_cmd.name, description=description)
+
+    # Prepare the variables for the tree decend
+    cmd = base_cmd
+    parser = root_parser
+    nm = Namespace(sak_callback=base_cmd.callback, sak_cmd=base_cmd, sak_parser=parser)
+
+    while True:
+        # Register all the arguments
+        for arg in cmd.args:
+            arg.addToArgParser(parser)
+
+        # Register only the next level of the subcommands
+        if cmd.subcmds:
+            subparsers = parser.add_subparsers()
+            for subcmd in cmd.subcmds:
+                description = subcmd.description or subcmd.helpmsg
+                sub_parser = subparsers.add_parser(subcmd.name, help=subcmd.helpmsg, description=description)
+                sub_parser.set_defaults(sak_callback=subcmd.callback, sak_cmd=subcmd, sak_parser=sub_parser)
+
+        rargs = []
+        success = False
+        try:
+            f = StringIO()
+            with redirect_stderr(f):
+                nm, rargs = parser.parse_known_args(args, namespace=nm)
+
+            # Go a level doen in the tree
+            if (nm.sak_parser != parser) and (cmd.subcmds):
+                args = rargs
+                parser = nm.sak_parser
+                cmd = nm.sak_cmd
+                continue
+
+            success = True
+        except:
+            # Parse failed, show error message only if it is not help command
+            if not sak_show_help:
+                sys.stderr.write(f.getvalue())
+
+        # Here we have consumed all the arguments and completly built the parser
+        # Register auto completion
+        if hasArgcomplete:
+            argcomplete.autocomplete(root_parser)
+
+        # We reached the leaf in the tree, but only want to get the help
+        if nm.sak_callback is None:
+            sak_show_help = True
+        if sak_show_help:
+            parser.print_help()
+            return True
+
+        # The parsing failed, so we just abort
+        if not success:
+            return False
+
+        if rargs:
+            f = StringIO()
+            with redirect_stdout(f):
+                # There are remaining unparsed arguments, report error
+                msg = 'unrecognized arguments: %s'
+                parser.error(msg % ' '.join(rargs))
+            sys.stderr.write(f.getvalue())
+            return False
+
+        # Parse success and not arguments left.
+        nm = vars(nm)
+        callback: Callable[[SakCmdCtx], SakCmdRet] = nm.pop('sak_callback')
+        if callback:
+            ctx = SakCmdCtx()
+            ctx.kwargs = nm
+            ret = callback(ctx)
+            if has_matplotlib and isinstance(ret.retValue,
+                                             matplotlib.figure.Figure):
+                plt.show()
+            elif ret.retValue is not None:
+                # TODO: Standardize the output from the plugin endpoints!
+                print(ret.retValue)
+        return True
+
 class SakCompleterArg(object):
     def __init__(self,
             prefix: str,
@@ -170,107 +272,3 @@ class SakCmd(SakDecorator):
     def addArg(self, arg: SakArg) -> None:
         self.args.append(arg)
 
-    def runArgParser(self, args=None) -> None:
-        # Check if its auto completion
-        is_in_completion = False
-        comp_line = os.environ.get("COMP_LINE", None)
-        if comp_line is not None:
-            # What is this COMP_POINT?
-            comp_point = int(os.environ.get("COMP_POINT", 0))
-            is_in_completion = True
-            _, _, _, comp_words, _ = argcomplete.split_line(comp_line, comp_point)
-            if not args:
-                args = comp_words[1:]
-
-        # Remove the help flag from args and set show_help
-        args = args or []
-        sak_show_help = False
-        if ('-h' in args) or ('--help' in args):
-            sak_show_help = True
-            args = [x for x in args if x != '-h' and x != '--help']
-
-        # The root parser
-        description = self.description or self.helpmsg
-        root_parser = ArgumentParser(prog=self.name, description=description)
-
-        # Prepare the variables for the tree decend
-        cmd = self
-        parser = root_parser
-        nm = Namespace(sak_callback=self.callback, sak_cmd=self, sak_parser=parser)
-
-        while True:
-            # Register all the arguments
-            for arg in cmd.args:
-                arg.addToArgParser(parser)
-
-            # Register only the next level of the subcommands
-            if cmd.subcmds:
-                subparsers = parser.add_subparsers()
-                for subcmd in cmd.subcmds:
-                    description = subcmd.description or subcmd.helpmsg
-                    sub_parser = subparsers.add_parser(subcmd.name, help=subcmd.helpmsg, description=description)
-                    sub_parser.set_defaults(sak_callback=subcmd.callback, sak_cmd=subcmd, sak_parser=sub_parser)
-
-            rargs = []
-            success = False
-            try:
-                f = StringIO()
-                with redirect_stderr(f):
-                    nm, rargs = parser.parse_known_args(args, namespace=nm)
-
-                # Go a level doen in the tree
-                if (nm.sak_parser != parser) and (cmd.subcmds):
-                    args = rargs
-                    parser = nm.sak_parser
-                    cmd = nm.sak_cmd
-                    continue
-
-                success = True
-            except:
-                # Parse failed, show error message only if it is not help command
-                if not sak_show_help:
-                    sys.stderr.write(f.getvalue())
-                #import traceback
-                #traceback.print_exc(file=sys.stdout)
-                #return False
-
-            # Here we have consumed all the arguments and completly built the parser
-
-            # Register auto completion
-            if hasArgcomplete:
-                argcomplete.autocomplete(root_parser)
-
-            # We reached the leaf in the tree, but only want to get the help
-            if nm.sak_callback is None:
-                sak_show_help = True
-            if sak_show_help:
-                parser.print_help()
-                return
-
-            # The parsing failed, so we just abort
-            if not success:
-                return
-
-            if rargs:
-                f = StringIO()
-                with redirect_stdout(f):
-                    # There are remaining unparsed arguments, report error
-                    msg = 'unrecognized arguments: %s'
-                    parser.error(msg % ' '.join(rargs))
-                sys.stderr.write(f.getvalue())
-                return
-
-            # Parse success and not arguments left.
-            nm = vars(nm)
-            callback: Callable[[SakCmdCtx], SakCmdRet] = nm.pop('sak_callback')
-            if callback:
-                ctx = SakCmdCtx()
-                ctx.kwargs = nm
-                ret = callback(ctx)
-                if has_matplotlib and isinstance(ret.retValue,
-                                                 matplotlib.figure.Figure):
-                    plt.show()
-                elif ret.retValue is not None:
-                    # TODO: Standardize the output from the plugin endpoints!
-                    print(ret.retValue)
-            return

@@ -9,7 +9,7 @@ __version__ = "0.0.0"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from sakcmd import SakCmd, SakArg, SakCmdCtx, SakCmdRet
+from sakcmd import SakCmd, SakArg, SakCmdCtx, SakCmdRet, sak_arg_parser
 from sakplugin import SakPlugin, SakPluginManager
 
 from typing import List, Any, Dict, Optional
@@ -226,7 +226,7 @@ class SakTuiCmd():
 
 
             self.tui.log('Args: %s' % str(arg_list))
-            self.cmd.runArgParser(arg_list)
+            sak_arg_parser(self.cmd, arg_list)
             return 
 
             p = self.cmd.generateArgParse()

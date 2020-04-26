@@ -9,7 +9,7 @@ __version__ = "0.0.0"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from sakcmd import SakCmd, SakArg, SakCmdCtx, SakCmdRet
+from sakcmd import SakCmd, SakArg, SakCmdCtx, SakCmdRet, sak_arg_parser
 from sakplugin import onto, SakPlugin, SakPluginManager, SakContext
 
 import os
@@ -130,11 +130,11 @@ def main() -> None:
 
     root = plm.generateCommandsTree()
 
-    root.runArgParser(sys.argv[1:])
+    sak_arg_parser(root, sys.argv[1:])
 
 
 if __name__ == "__main__":
-    if True:
+    if False:
         main()
     else:
         import cProfile
