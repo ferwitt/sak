@@ -168,7 +168,12 @@ class SakCmd(SakDecorator):
     def addArg(self, arg: SakArg) -> None:
         self.args.append(arg)
 
-    def runArgParser(self, args=None, subparsers=None, root_parser=None, level=1, show_help=False) -> None:
+    def runArgParser(self, args=None, subparsers=None, root_parser=None, level=1, show_help=False, nm=None) -> None:
+
+        # _nm = {}
+        # _nm.update(nm or {})
+        # nm = _nm
+
         args = args or []
         if ('-h' in args) or ('--help' in args):
             show_help = True
@@ -198,6 +203,7 @@ class SakCmd(SakDecorator):
         for arg in self.args:
             arg.addToArgParser(parser)
 
+
         if level <= 0:
             return
 
@@ -217,49 +223,71 @@ class SakCmd(SakDecorator):
             subparsers = parser.add_subparsers()
             for i in self.subcmds:
                 #print('register first level ', i.name)
-                i.runArgParser([], subparsers, root_parser, 0, show_help)
+                i.runArgParser([], subparsers, root_parser, 0, show_help, nm)
 
-        nm = None
+        all_satisfied = False
+        rargs = []
         try:
-            nm, rargs = parser.parse_known_args(args)
-            nm = vars(nm)
-            nm['args'] = rargs
+            #if 'sak_callback' in nm:
+            #    nm.pop('sak_callback')
+            #if 'sak_cmd' in nm:
+            #    nm.pop('sak_cmd')
+            #if 'sak_parser' in nm:
+            #    nm.pop('sak_parser')
+
+            nm, rargs = parser.parse_known_args(args, namespace=nm)
+
+            #nm.update(_nm)
+            all_satisfied = True
+            #nm['args'] = rargs
         except:
+            import traceback
+            traceback.print_exc(file=sys.stdout)
+            print('Failed')
+            return False
             pass
 
-        if nm is not None:
-            if self.subcmds and nm['sak_cmd'] != self:
-                # Step into the commands tree
-                nm['sak_cmd'].runArgParser(rargs, subparsers, root_parser, 1, show_help)
-                return
+        print(80*'-')
+        print(rargs, nm)
 
+        # I have consumed all the arguments, stop the tree search
+        if all_satisfied:
+            if self.subcmds and nm.sak_cmd and (nm.sak_cmd != self):
+                # Step into the commands tree
+                if nm.sak_cmd.runArgParser(rargs, subparsers, root_parser, 1, show_help, nm):
+                    return True
+
+        # Auto completion
         if hasArgcomplete:
             argcomplete.autocomplete(root_parser)
 
-        if nm and (nm['sak_callback'] is None):
-            show_help = True
+        # Reached as LEAF!
 
+        nm = vars(nm)
+
+        if ('sak_callback' not in nm) or (nm['sak_callback'] is None):
+            show_help = True
         if show_help:
             parser.print_help()
+            return True
+
+        if rargs:
+            # There are remaining unparsed arguments, report error
+            msg = 'unrecognized arguments: %s'
+            parser.error(msg % ' '.join(args))
             return
 
-        # Only run leaf if not auto completion
-        if nm:
-            if not rargs:
-                # TODO: I should call the callback here
-                callback: Callable[[SakCmdCtx], SakCmdRet] = nm.pop('sak_callback')
-                if callback:
-                    ctx = SakCmdCtx()
-                    ctx.kwargs = nm
-                    ret = callback(ctx)
-                    if has_matplotlib and isinstance(ret.retValue,
-                                                     matplotlib.figure.Figure):
-                        plt.show()
-                    elif ret.retValue is not None:
-                        # TODO: Standardize the output from the plugin endpoints!
-                        print(ret.retValue)
-                return
+        # All the arguments must have been consumed!
+        callback: Callable[[SakCmdCtx], SakCmdRet] = nm.pop('sak_callback')
+        if callback:
+            ctx = SakCmdCtx()
+            ctx.kwargs = nm
+            ret = callback(ctx)
+            if has_matplotlib and isinstance(ret.retValue,
+                                             matplotlib.figure.Figure):
+                plt.show()
+            elif ret.retValue is not None:
+                # TODO: Standardize the output from the plugin endpoints!
+                print(ret.retValue)
 
-        msg = 'unrecognized arguments: %s'
-        parser.error(msg % ' '.join(args))
-        return
+        return True
