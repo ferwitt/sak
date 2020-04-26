@@ -145,6 +145,7 @@ class SakCmd(SakDecorator):
         self.args = args or []
 
         self.helpmsg = helpmsg
+        self.description = None
 
         self.parent: Optional[SakCmd] = None
         self.expose = expose or [SakCmd.EXP_CLI]
@@ -168,12 +169,8 @@ class SakCmd(SakDecorator):
     def addArg(self, arg: SakArg) -> None:
         self.args.append(arg)
 
-    def runArgParser(self, args=None, subparsers=None, root_parser=None, level=1, show_help=False, nm=None) -> None:
-
-        # _nm = {}
-        # _nm.update(nm or {})
-        # nm = _nm
-
+    def runArgParser(self, args=None, subparsers=None, root_parser=None, recursive=True, show_help=False, nm=None) -> None:
+        # Remove the help flag from args and set show_help
         args = args or []
         if ('-h' in args) or ('--help' in args):
             show_help = True
@@ -182,38 +179,46 @@ class SakCmd(SakDecorator):
         # Register command
         parser = None
         if subparsers is None:
+            # Register ROOT parser
 
-            error_status = {}
-            def exit(p: ArgumentParser,
-                     status: Optional[str] = None,
-                     message: Optional[str] = None) -> None:
-                error_status['status'] = status
-                error_status['message'] = message
+            #error_status = {}
+            #def exit(p: ArgumentParser,
+            #         status: Optional[str] = None,
+            #         message: Optional[str] = None) -> None:
+            #    error_status['status'] = status
+            #    error_status['message'] = message
 
-            d = "Group everyday developer's tools in a swiss-army-knife command."
-            parser = ArgumentParser(prog=self.name, description=d)
+            description = self.description or self.helpmsg
+            parser = ArgumentParser(prog=self.name, description=description)
             #parser.exit = exit
         else:
-            parser = subparsers.add_parser(self.name, help=self.helpmsg)
+            # Register subparser
+            description = self.description or self.helpmsg
+            parser = subparsers.add_parser(self.name, help=self.helpmsg, description=description)
         parser.set_defaults(sak_callback=self.callback, sak_cmd=self, sak_parser=parser)
 
+        if nm is None:
+            nm = Namespace(sak_callback=self.callback, sak_cmd=self, sak_parser=parser)
+
+        # Store the root parser
         if root_parser is None:
             root_parser = parser
 
+        # Register all the arguments
         for arg in self.args:
             arg.addToArgParser(parser)
 
-
-        if level <= 0:
-            return
+        # If not recursive stop here
+        if not recursive:
+            return False
 
         # Check if its auto completion
-        is_in_completion = False
+        #is_in_completion = False
         comp_line = os.environ.get("COMP_LINE", None)
         if comp_line is not None:
             # What is this COMP_POINT?
             comp_point = int(os.environ.get("COMP_POINT", 0))
-            is_in_completion = True
+            #is_in_completion = True
             _, _, _, comp_words, _ = argcomplete.split_line(comp_line, comp_point)
             if not args:
                 args = comp_words[1:]
@@ -222,50 +227,29 @@ class SakCmd(SakDecorator):
         if self.subcmds:
             subparsers = parser.add_subparsers()
             for i in self.subcmds:
-                #print('register first level ', i.name)
-                i.runArgParser([], subparsers, root_parser, 0, show_help, nm)
+                i.runArgParser([], subparsers, root_parser, False, show_help, nm)
 
-        all_satisfied = False
         rargs = []
         try:
-            #if 'sak_callback' in nm:
-            #    nm.pop('sak_callback')
-            #if 'sak_cmd' in nm:
-            #    nm.pop('sak_cmd')
-            #if 'sak_parser' in nm:
-            #    nm.pop('sak_parser')
-
             nm, rargs = parser.parse_known_args(args, namespace=nm)
 
-            #nm.update(_nm)
-            all_satisfied = True
-            #nm['args'] = rargs
-        except:
-            import traceback
-            traceback.print_exc(file=sys.stdout)
-            print('Failed')
-            return False
-            pass
-
-        print(80*'-')
-        print(rargs, nm)
-
-        # I have consumed all the arguments, stop the tree search
-        if all_satisfied:
-            if self.subcmds and nm.sak_cmd and (nm.sak_cmd != self):
+            if self.subcmds and (nm.sak_cmd != self):
                 # Step into the commands tree
-                if nm.sak_cmd.runArgParser(rargs, subparsers, root_parser, 1, show_help, nm):
+                try:
+                    if nm.sak_cmd.runArgParser(rargs, subparsers, root_parser, True, show_help, nm):
+                        return True
+                except:
+                    # Return true to avoid showing multiple usage errors
                     return True
+        except:
+            return False
 
         # Auto completion
         if hasArgcomplete:
             argcomplete.autocomplete(root_parser)
 
         # Reached as LEAF!
-
-        nm = vars(nm)
-
-        if ('sak_callback' not in nm) or (nm['sak_callback'] is None):
+        if nm.sak_callback is None:
             show_help = True
         if show_help:
             parser.print_help()
@@ -274,10 +258,11 @@ class SakCmd(SakDecorator):
         if rargs:
             # There are remaining unparsed arguments, report error
             msg = 'unrecognized arguments: %s'
-            parser.error(msg % ' '.join(args))
-            return
+            parser.error(msg % ' '.join(rargs))
+            return True
 
         # All the arguments must have been consumed!
+        nm = vars(nm)
         callback: Callable[[SakCmdCtx], SakCmdRet] = nm.pop('sak_callback')
         if callback:
             ctx = SakCmdCtx()

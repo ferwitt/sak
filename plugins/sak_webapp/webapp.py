@@ -152,7 +152,9 @@ class SakWebCmd():
             for arg in self.args:
                 arg_list += arg.getRequestArgList(request)
 
-            p = self.cmd.generateArgParse()
+            self.cmd.runArgParser(arg_list)
+            return jsonify({'TODO': 'TODO'})
+            #p = self.cmd.generateArgParse()
 
             error_status = {}
             def exit(p: ArgumentParser, status: Optional[str] = None, message: Optional[str] = None) -> None:
@@ -160,7 +162,8 @@ class SakWebCmd():
                 error_status['message'] = message
 
             # TODO: How to legally override the exit method?
-            p.exit = exit # type: ignore
+            #p.exit = exit # type: ignore
+
 
             try:
                 args = p.parse_args(arg_list)

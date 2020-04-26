@@ -224,6 +224,11 @@ class SakTuiCmd():
             for arg in self.args:
                 arg_list += arg.getRequestArgList()
 
+
+            self.tui.log('Args: %s' % str(arg_list))
+            self.cmd.runArgParser(arg_list)
+            return 
+
             p = self.cmd.generateArgParse()
 
             error_status = {}

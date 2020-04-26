@@ -143,7 +143,7 @@ class SakPluginManager(owl.Thing):
         return self.has_plugin
 
     def generateCommandsTree(self) -> SakCmd:
-        root = SakCmd('sak', None)
+        root = SakCmd('sak', helpmsg="Group everyday developer's tools in a swiss-army-knife command.")
         for plugin in self.has_plugin:
             plugin.exportCmds(root)
         return root
