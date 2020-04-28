@@ -20,48 +20,47 @@ from pathlib import Path
 from typing import Optional
 
 
-class Sak(SakPlugin):
+class SakShow(SakPlugin):
+    '''General information about SAK.'''
     namespace = onto
 
     def __init__(self, name, **kwargs) -> None:
-        super(Sak, self).__init__(name, **kwargs)
+        super(SakShow, self).__init__(name, **kwargs)
 
     def getPath(self) -> Optional[Path]:
         return self.context.sak_global
 
+    @SakCmd('version', expose=[SakCmd.EXP_CLI, SakCmd.EXP_WEB], helpmsg='Show SAK version.')
     def show_version(self, ctx: SakCmdCtx) -> SakCmdRet:
         ret = ctx.get_ret()
         ret.retValue = 'Version: %s' % (__version__)
         return ret
 
+    @SakCmd('argcomp', helpmsg='Show the autocomplete string')
     def show_argcomp(self, ctx: SakCmdCtx) -> SakCmdRet:
         subprocess.call(['register-python-argcomplete', 'sak', '-s', 'bash'])
         #TODO: Fix this
         return ctx.get_ret()
 
+    @SakCmd()
     def bash(self, ctx: SakCmdCtx) -> SakCmdRet:
         os.system('bash')
         #TODO: Fix this!
         return ctx.get_ret()
 
-    def exportCmds(self, base: SakCmd) -> None:
-        bash = SakCmd('bash', self.bash, helpmsg='Start a bash using the SAK env variables.')
-        base.addSubCmd(bash)
-
-        show = SakCmd('show', helpmsg='General information about SAK.')
-
-        show.addSubCmd(SakCmd('argcomp', self.show_argcomp, helpmsg='Show the autocomplete string'))
-        show.addSubCmd(SakCmd('version', self.show_version, expose=[SakCmd.EXP_CLI, SakCmd.EXP_WEB], helpmsg='Show SAK version.'))
-
-        base.addSubCmd(show)
+    #def exportCmds(self, base: SakCmd) -> None:
+    #    bash = SakCmd('bash', self.bash, helpmsg='Start a bash using the SAK env variables.')
+    #    base.addSubCmd(bash)
 
 
 class SakPlugins(SakPlugin):
-    namespace = onto
+    '''Plugin manager.'''
 
+    namespace = onto
     def __init__(self, name, **kwargs) -> None:
         super(SakPlugins, self).__init__(name, **kwargs)
 
+    @SakCmd('show', helpmsg='Show the list of plugins.')
     def show(self, ctx: SakCmdCtx) -> SakCmdRet:
         ret = ctx.get_ret()
         ret.retValue = ''
@@ -69,6 +68,8 @@ class SakPlugins(SakPlugin):
             ret.retValue += 'name: %s\n\tpath: %s\n' % (plugin.name, plugin.getPath())
         return ret
 
+    @SakCmd('install', helpmsg='Install a new plugin.')
+    @SakArg('url', required=True, helpmsg='The plugin git repo URL.')
     def install(self, ctx: SakCmdCtx) -> SakCmdRet:
         if self.context.sak_global is not None:
             url = ctx.kwargs['url']
@@ -79,6 +80,7 @@ class SakPlugins(SakPlugin):
 
         return ctx.get_ret()
 
+    @SakCmd('update', helpmsg='Update SAK and all the plugins.')
     def doUpdate(self, ctx: SakCmdCtx) -> SakCmdRet:
         ret = ctx.get_ret()
 
@@ -93,21 +95,6 @@ class SakPlugins(SakPlugin):
 
         return ret
 
-    def exportCmds(self, base: SakCmd) -> None:
-        plugins = SakCmd('plugins', helpmsg='Plugin manager.')
-
-        plugins.addSubCmd(SakCmd('show', self.show, helpmsg='Show the list of plugins.'))
-
-        install = SakCmd('install', self.install, helpmsg='Install a new plugin.')
-        install.addArg(SakArg('url', required=True, helpmsg='The plugin git repo URL.'))
-        plugins.addSubCmd(install)
-
-        update = SakCmd('update', self.doUpdate, helpmsg='Update SAK and all the plugins.')
-        plugins.addSubCmd(update)
-
-        base.addSubCmd(plugins)
-
-
 def main() -> None:
 
     ctx = SakContext()
@@ -117,7 +104,7 @@ def main() -> None:
     ctx.has_plugin_manager = plm
     plm.has_context = ctx
 
-    plm.addPlugin(Sak('sak'))
+    plm.addPlugin(SakShow('show'))
     plm.addPlugin(SakPlugins('plugins'))
 
     if ctx.sak_global:

@@ -15,6 +15,10 @@ import functools
 from typing import Optional, Callable, Dict, Any, List
 from contextlib import redirect_stderr, redirect_stdout
 
+from collections.abc import Iterable 
+import inspect
+import owlready2 as owl
+
 try:
     from StringIO import StringIO ## for Python 2
 except ImportError:
@@ -29,7 +33,119 @@ except:
 
 
 
+# TODO: Sanityze the penv
+def object_to_dict(d):
+    if not isinstance(d, dict):
+        #if isinstance(d, list) or inspect.isgenerator(d):
+        if isinstance(d, str) or isinstance(d, int) or isinstance(d, float):
+            _ret_str = d
+            def _sak_ret_value_(ctx: 'SakCmdCtx') -> 'SakCmdRet':
+                ret = ctx.get_ret()
+                ret.retValue = _ret_str
+                return ret
+            d = {'_sak_cmd_callback': _sak_ret_value_, '_sak_cmd':None, '_sak_cmd_args':[]}
+        #elif isinstance(d, tuple):
+        #    nenv = {}
+        #    for idx, v in enumerate(d):
+        #        k = str(idx)
+        #        nenv[k] = v
+        #    d = nenv
+        elif isinstance(d, Iterable):
+            nenv = {}
+            for idx, v in enumerate(d):
+                #TODO: If it is a thing, I can put the name in the index
+                k = str(idx)
+                if hasattr(v, '_sak_dec_chain'):
+                    k = v.__name__
+                try:
+                    k = v.name
+                except:
+                    pass
+                k  = k.replace('/', '__')
+                nenv[k] = v
+            d = nenv
+        elif inspect.ismethod(d) or inspect.isfunction(d):
+            if hasattr(d, '_sak_dec_chain'):
+                chain = d._sak_dec_chain
+                cb = d
+
+                d = {'_sak_cmd_callback': cb, '_sak_cmd':None, '_sak_cmd_args':[]}
+                while chain is not None:
+                    if isinstance(chain, SakProperty):
+                        d['_sak_cmd_callback'] = None
+                        d.update(object_to_dict(cb()))
+                        break
+                    elif isinstance(chain, SakCmd):
+                        d['_sak_cmd'] = chain
+                    elif isinstance(chain, SakArg):
+                        d['_sak_cmd_args'].append(chain)
+
+                    if hasattr(chain.func, '_sak_dec_chain'):
+                        chain = chain.func._sak_dec_chain
+                    else:
+                        chain = None
+            else:
+                # TODO: Remove this
+                cb = d
+                d = { '_sak_cmd_callback': lambda **x: cb(), '_sak_cmd':None, '_sak_cmd_args':[] }
+        else:
+            obj = d
+            d = None
+            if isinstance(obj, owl.Thing) or isinstance(obj, owl.Ontology):
+
+                d = {'_sak_cmd_callback': None, '_sak_cmd':None, '_sak_cmd_args':[]}
+
+                if callable(obj):
+                    if hasattr(obj.__call__, '_sak_dec_chain'):
+                        d['_sak_cmd_callback'] = obj
+                        chain = obj.__call__._sak_dec_chain
+                        while chain is not None:
+                            if isinstance(chain, SakCmd):
+                                d['_sak_cmd'] = chain
+                            elif isinstance(chain, SakArg):
+                                d['_sak_cmd_args'].append(chain)
+                            if hasattr(chain.func, '_sak_dec_chain'):
+                                chain = chain.func._sak_dec_chain
+                            else:
+                                chain = None
+
+                if not d['_sak_cmd']:
+                    d['_sak_cmd'] = SakCmd()
+
+                if not d['_sak_cmd'].helpmsg:
+                    docstring = inspect.getdoc(obj)
+                    if docstring:
+                        d['_sak_cmd'].helpmsg = inspect.cleandoc(docstring)
+
+                for k in dir(obj):
+                    if k.startswith('_'): continue
+
+                    dd = getattr(obj, k)
+
+                    #print(k, type(dd), repr(dd))
+
+                    if not hasattr(dd, '_sak_dec_chain'):
+                        if (not isinstance(dd, owl.Thing)) and (not isinstance(dd, owl.prop.IndividualValueList)):
+                            #continue
+                            pass
+
+                    k = k.replace('/', '__')
+                    if inspect.ismethod(dd) or inspect.isfunction(dd):
+                        dd = object_to_dict(dd)
+
+                    if dd is None:
+                        continue
+
+                    d[k] = dd
+    return d
+
+
 def sak_arg_parser(base_cmd, args=None) -> None:
+
+    #env_type = type(base_cmd)
+    #base_cmd = object_to_dict(base_cmd)
+
+
     # Check if its auto completion
     is_in_completion = False
     comp_line = os.environ.get("COMP_LINE", None)
@@ -49,26 +165,50 @@ def sak_arg_parser(base_cmd, args=None) -> None:
         args = [x for x in args if x != '-h' and x != '--help']
 
     # The root parser
-    description = base_cmd.description or base_cmd.helpmsg
-    root_parser = ArgumentParser(prog=base_cmd.name, description=description)
+    description = "TODO!" # base_cmd.description or base_cmd.helpmsg
+    name = "sak" # TODO I can get some introspection? # base_cmd.name
+    root_parser = ArgumentParser(prog=name, description=description)
 
     # Prepare the variables for the tree decend
     cmd = base_cmd
     parser = root_parser
-    nm = Namespace(sak_callback=base_cmd.callback, sak_cmd=base_cmd, sak_parser=parser)
+    base_cmd_callback = None # base_cmd.callback
+    nm = Namespace(sak_callback=base_cmd_callback, sak_cmd=base_cmd, sak_parser=parser)
 
     while True:
-        # Register all the arguments
-        for arg in cmd.args:
-            arg.addToArgParser(parser)
+        cmd = object_to_dict(cmd)
+
+        if '_sak_cmd_args' in cmd:
+            for arg in cmd['_sak_cmd_args']:
+                arg.addToArgParser(parser)
 
         # Register only the next level of the subcommands
-        if cmd.subcmds:
-            subparsers = parser.add_subparsers()
-            for subcmd in cmd.subcmds:
-                description = subcmd.description or subcmd.helpmsg
-                sub_parser = subparsers.add_parser(subcmd.name, help=subcmd.helpmsg, description=description)
-                sub_parser.set_defaults(sak_callback=subcmd.callback, sak_cmd=subcmd, sak_parser=sub_parser)
+        subparsers = None
+        for subcmdname, subcmd in cmd.items():
+            if subcmd is None:
+                continue
+            if subcmdname.startswith('_sak'):
+                continue
+
+            subcmd = object_to_dict(subcmd)
+            if subcmd is None:
+                continue
+
+            if subparsers is None:
+                subparsers = parser.add_subparsers()
+
+            description = "" # subcmd.description or subcmd.helpmsg
+            helpmsg = "" # subcmd.helpmsg
+            _subcmd = subcmd.get('_sak_cmd', None)
+            if _subcmd:
+                description = _subcmd.description or _subcmd.helpmsg
+                helpmsg = _subcmd.helpmsg
+                subcmdname = _subcmd.name or subcmdname
+
+            subcmd_callback = subcmd.get('_sak_cmd_callback', None) # subcmd.callback
+
+            sub_parser = subparsers.add_parser(subcmdname, help=helpmsg, description=description)
+            sub_parser.set_defaults(sak_callback=subcmd_callback, sak_cmd=subcmd, sak_parser=sub_parser)
 
         rargs = []
         success = False
@@ -78,7 +218,7 @@ def sak_arg_parser(base_cmd, args=None) -> None:
                 nm, rargs = parser.parse_known_args(args, namespace=nm)
 
             # Go a level doen in the tree
-            if (nm.sak_parser != parser) and (cmd.subcmds):
+            if (nm.sak_parser != parser) and (cmd.keys()):
                 args = rargs
                 parser = nm.sak_parser
                 cmd = nm.sak_cmd
@@ -94,6 +234,8 @@ def sak_arg_parser(base_cmd, args=None) -> None:
         # Register auto completion
         if hasArgcomplete:
             argcomplete.autocomplete(root_parser)
+
+        #print(nm)
 
         # We reached the leaf in the tree, but only want to get the help
         if nm.sak_callback is None:
@@ -117,7 +259,9 @@ def sak_arg_parser(base_cmd, args=None) -> None:
 
         # Parse success and not arguments left.
         nm = vars(nm)
-        callback: Callable[[SakCmdCtx], SakCmdRet] = nm.pop('sak_callback')
+        sak_cmd = nm.pop('sak_cmd')
+        sak_parser = nm.pop('sak_parser')
+        callback = nm.pop('sak_callback')
         if callback:
             ctx = SakCmdCtx()
             ctx.kwargs = nm
@@ -162,10 +306,13 @@ class SakDecorator:
         self.func = func
         @functools.wraps(func)
         def wrapper(*args, **vargs):
+            #print(args, vargs)
             return self.func(*args, **vargs)
         wrapper._sak_dec_chain = self        
         return wrapper
 
+class SakProperty(SakDecorator):
+    pass
 
 
 class SakArg(SakDecorator):
@@ -233,7 +380,7 @@ class SakCmd(SakDecorator):
     EXP_WEB = 'web'
 
     def __init__(self,
-            name:str,
+            name:str='', 
             # Deprecated
             callback: Optional[Callable[[SakCmdCtx], SakCmdRet]]=None,
             args:List[SakArg]=[],
@@ -253,22 +400,22 @@ class SakCmd(SakDecorator):
         self.parent: Optional[SakCmd] = None
         self.expose = expose or [SakCmd.EXP_CLI]
 
-    # Deprecated
-    def addSubCmd(self, subcmd: 'SakCmd') -> None:
-        subcmd.setParent(self)
-        self.subcmds.append(subcmd)
+    # # Deprecated
+    # def addSubCmd(self, subcmd: 'SakCmd') -> None:
+    #     subcmd.setParent(self)
+    #     self.subcmds.append(subcmd)
 
-    def addExpose(self, expose: List[str] = []) -> None:
-        for exp in expose:
-            if exp not in self.expose:
-                self.expose.append(exp)
-        if self.parent:
-            self.parent.addExpose(expose)
+    # def addExpose(self, expose: List[str] = []) -> None:
+    #     for exp in expose:
+    #         if exp not in self.expose:
+    #             self.expose.append(exp)
+    #     if self.parent:
+    #         self.parent.addExpose(expose)
 
-    def setParent(self, parent: 'SakCmd') -> None:
-        self.parent = parent
-        self.addExpose(self.expose)
+    # def setParent(self, parent: 'SakCmd') -> None:
+    #     self.parent = parent
+    #     self.addExpose(self.expose)
 
-    def addArg(self, arg: SakArg) -> None:
-        self.args.append(arg)
+    # def addArg(self, arg: SakArg) -> None:
+    #     self.args.append(arg)
 

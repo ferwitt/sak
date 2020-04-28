@@ -29,8 +29,11 @@ sys.path.append(str(PLUGIN_DIR))
 
 
 class SakWebapp(SakPlugin):
+    '''Web application for SAK.'''
+
     def __init__(self, name, **kwargs) -> None:
         super(SakWebapp, self).__init__(name, **kwargs)
+        self.lazy_import_done = False
 
     def lazy_import(self):
         if not self.lazy_import_done:
@@ -38,15 +41,8 @@ class SakWebapp(SakPlugin):
             self.sakwebapp = SakWebappImpl(self)
             self.lazy_import_done = True
 
+    @SakCmd('start', helpmsg='Start webapp')
+    @SakArg('port', short_name='p', type=int, default=2020, helpmsg='Server port (default: 2020)')
     def start(self, ctx: SakCmdCtx) -> SakCmdRet:
         self.lazy_import()
         return self.sakwebapp.start(ctx)
-
-    def exportCmds(self, base: SakCmd) -> None:
-        webapp = SakCmd('webapp', helpmsg='Web application for SAK.')
-
-        start = SakCmd('start', self.start, helpmsg='Start webapp')
-        start.addArg(SakArg('port', short_name='p', type=int, default=2020, helpmsg='Server port (default: 2020)'))
-        webapp.addSubCmd(start)
-        
-        base.addSubCmd(webapp)

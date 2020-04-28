@@ -21,6 +21,8 @@ PLUGIN_DIR = Path(__file__).resolve().parent
 sys.path.append(str(PLUGIN_DIR))
 
 class SakTui(SakPlugin):
+    '''Text User Interface for SAK.'''
+
     def __init__(self, name, **kwargs) -> None:
         super(SakTui, self).__init__(name, **kwargs)
         self.lazy_import_done = False
@@ -31,22 +33,14 @@ class SakTui(SakPlugin):
             self.saktui = SakTuiImpl(self)
             self.lazy_import_done = True
 
+    @SakCmd(helpmsg='Start the TUI application.')
     def start(self, ctx: SakCmdCtx) -> SakCmdRet:
         self.lazy_import()
         return self.saktui.start(ctx)
 
+    @SakCmd('shell')
     def shell(self, ctx: SakCmdCtx) -> SakCmdRet:
         answer = prompt('Give me some input: ')
         print('You said: %s' % answer)
         return ctx.get_ret()
 
-    def exportCmds(self, base: SakCmd) -> None:
-        tui = SakCmd('tui', helpmsg='Text User Interface for SAK.')
-
-        start = SakCmd('start', self.start, helpmsg='Start the TUI application.')
-        tui.addSubCmd(start)
-
-        shell = SakCmd('shell', self.shell)
-        tui.addSubCmd(shell)
-
-        base.addSubCmd(tui)

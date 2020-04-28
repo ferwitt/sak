@@ -18,7 +18,7 @@ import subprocess
 from pathlib import Path
 import inspect
 
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 import owlready2 as owl
 
@@ -51,10 +51,10 @@ class SakContext(owl.Thing):
 
     @property
     def pluginManager(self) -> 'SakPluginManager':
-        return self.has_plugin_manager
+        return self.plugin_manager
 
     def getPluginManager(self) -> 'SakPluginManager':
-        return self.has_plugin_manager
+        return self.plugin_manager
 
 
 class SakPlugin(owl.Thing):
@@ -77,9 +77,9 @@ class SakPlugin(owl.Thing):
                 pass
         return self._ontology
 
-    @property
-    def context(self) -> SakContext:
-        return self.has_context
+    #@property
+    #def context(self) -> SakContext:
+    #    return self.context
 
     def setPluginPath(self, path: Path) -> None:
         self._path = path
@@ -88,7 +88,7 @@ class SakPlugin(owl.Thing):
         return self._path
 
     def setContext(self, context: SakContext) -> None:
-        self.has_context = context
+        self.context = context
 
     def update(self) -> None:
         path = self.getPath()
@@ -112,12 +112,15 @@ class SakPluginManager(owl.Thing):
 
 with onto:
     class has_context((SakPlugin | SakPluginManager) >> SakContext, owl.FunctionalProperty):
+        python_name = "context"
         pass
 
     class has_plugin_manager(SakContext >> SakPluginManager, owl.FunctionalProperty):
+        python_name = "plugin_manager"
         pass
 
     class has_plugin(SakPluginManager >> SakPlugin):
+        python_name = "plugins"
         pass
 
     owl.AllDisjoint([SakPlugin, SakPluginManager, SakContext])
@@ -129,24 +132,29 @@ class SakPluginManager(owl.Thing):
         super(SakPluginManager, self).__init__('sak_plugin_manager', **kwargs)
 
     def getPuginByName(self, name: str) -> Optional[SakPlugin]:
-        for p in self.has_plugin:
+        for p in self.plugins:
             if p.name == name:
                 return p
         return None
 
     def addPlugin(self, plugin: SakPlugin) -> None:
-        plugin.setContext(self.has_context)
-        if plugin not in self.has_plugin:
-            self.has_plugin.append(plugin)
+        plugin.setContext(self.context)
+        if plugin not in self.plugins:
+            self.plugins.append(plugin)
 
     def getPluginList(self) -> List[SakPlugin]:
-        return self.has_plugin
+        return self.plugins
 
-    def generateCommandsTree(self) -> SakCmd:
-        root = SakCmd('sak', helpmsg="Group everyday developer's tools in a swiss-army-knife command.")
-        for plugin in self.has_plugin:
-            plugin.exportCmds(root)
-        return root
+    # TODO: Instead of generating command tree, I want to return an object that containts things... the sak_arg_parser should be able to run things and the commands should be used only as decorators...
+    def generateCommandsTree(self) -> Dict:
+        ret = {}
+        for plugin in self.plugins:
+            ret[plugin.name] = plugin
+        return ret
+        #root = SakCmd('sak', helpmsg="Group everyday developer's tools in a swiss-army-knife command.")
+        #for plugin in self.plugins:
+        #    plugin.exportCmds(root)
+        #return root
 
     def loadPlugins(self, pluginsPath: Optional[Path] = None) -> None:
         if pluginsPath is None:
@@ -201,7 +209,9 @@ class SakPluginManager(owl.Thing):
                     if not SakPlugin != attribute:
                         continue
 
+                    if name.startswith('sak_'):
+                        name = name.replace('sak_', '')
                     plugin = attribute(name)
                     plugin.setPluginPath(plugin_path)
-                    plugin.setContext(self.has_context)
+                    plugin.setContext(self.context)
                     self.addPlugin(plugin)
