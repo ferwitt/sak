@@ -25,13 +25,6 @@ try:
 except:
     pass
 
-has_matplotlib = False
-#try:
-#    import matplotlib
-#    import matplotlib.pyplot as plt
-#    has_matplotlib = True
-#except:
-#    pass
 
 class SakCompleterArg(object):
     def __init__(self,
@@ -195,9 +188,10 @@ class SakCmd(object):
 
             print(ctx.stdout.getvalue())
 
-            if has_matplotlib and isinstance(ret.retValue,
-                                             matplotlib.figure.Figure):
+            if 'matplotlib.figure.Figure' in str(type(ret.retValue)):
+                import pylab as plt
                 plt.show()
+
             elif ret.retValue is not None:
                 # TODO: Standardize the output from the plugin endpoints!
                 print(ret.retValue)
