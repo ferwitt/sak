@@ -48,7 +48,7 @@ class SakWebCmdArg():
     def getAsDict(self) -> Dict[str, Any]:
         action = self.arg.vargs.get('action', '')
         default = self.arg.vargs.get('default', None)
-        choices = self.arg.vargs.get('choices', [])
+        choices = list(self.arg.vargs.get('choices', []))
         arg_type = self.arg.vargs.get('type', None)
         nargs = self.arg.vargs.get('nargs', None)
 
