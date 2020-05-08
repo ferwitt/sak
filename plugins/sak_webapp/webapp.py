@@ -9,7 +9,7 @@ __version__ = "0.0.0"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from sakcmd import SakCmd, SakArg, SakCmdCtx, SakCmdRet, sak_arg_parser
+from sakcmd import SakCmd, SakArg, sak_arg_parser
 from sakplugin import SakPlugin, SakPluginManager
 
 import os
@@ -183,9 +183,7 @@ class SakWebCmd():
                 ret['params'] = dargs
 
                 if callback:
-                    ctx = SakCmdCtx()
-                    ctx.kwargs = dargs
-                    cret: SakCmdRet = callback(ctx)
+                    cret: SakCmdRet = callback(**dargs)
                     ret['result'] = cret.retValue
 
             if not ret['error']:
@@ -404,8 +402,5 @@ class SakWebappImpl(object):
         self.buildFlask().run(debug=True, extra_files=extra_files, threaded=True, port=port)
 
 
-    def start(self, ctx: SakCmdCtx) -> SakCmdRet:
-        ret = ctx.get_ret()
-        port = ctx.kwargs['port']
+    def start(self, port:int) -> None:
         self.appStart(port)
-        return ret

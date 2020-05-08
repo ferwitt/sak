@@ -9,7 +9,7 @@ __version__ = "0.0.0"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from sakcmd import SakCmd, SakArg, SakCmdCtx, SakCmdRet
+from sakcmd import SakCmd, SakArg
 from sakplugin import SakPlugin, SakPluginManager
 
 from typing import List, Any, Dict, Optional
@@ -34,12 +34,12 @@ class SakTui(SakPlugin):
             self.lazy_import_done = True
 
     @SakCmd(helpmsg='Start the TUI application.')
-    def start(self, ctx: SakCmdCtx) -> SakCmdRet:
+    def start(self):
         self.lazy_import()
-        return self.saktui.start(ctx)
+        return self.saktui.start()
 
     @SakCmd('shell')
-    def shell(self, ctx: SakCmdCtx) -> SakCmdRet:
+    def shell(self):
         answer = prompt('Give me some input: ')
         print('You said: %s' % answer)
         return ctx.get_ret()

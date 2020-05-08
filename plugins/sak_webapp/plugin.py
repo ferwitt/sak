@@ -9,7 +9,7 @@ __version__ = "0.0.0"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from sakcmd import SakCmd, SakArg, SakCmdCtx, SakCmdRet
+from sakcmd import SakCmd, SakArg
 import sakplugin
 from sakplugin import SakPlugin, SakPluginManager, owl
 
@@ -43,6 +43,6 @@ class SakWebapp(SakPlugin):
 
     @SakCmd('start', helpmsg='Start webapp')
     @SakArg('port', short_name='p', type=int, default=2020, helpmsg='Server port (default: 2020)')
-    def start(self, ctx: SakCmdCtx) -> SakCmdRet:
+    def start(self, **vargs):
         self.lazy_import()
-        return self.sakwebapp.start(ctx)
+        return self.sakwebapp.start(**vargs)

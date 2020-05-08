@@ -32,17 +32,14 @@ except:
     pass
 
 
-
 # TODO: Sanityze the penv
 def object_to_dict(d):
     if not isinstance(d, dict):
         #if isinstance(d, list) or inspect.isgenerator(d):
         if isinstance(d, str) or isinstance(d, int) or isinstance(d, float):
             _ret_str = d
-            def _sak_ret_value_(ctx: 'SakCmdCtx') -> 'SakCmdRet':
-                ret = ctx.get_ret()
-                ret.retValue = _ret_str
-                return ret
+            def _sak_ret_value_():
+                return _ret_str
             d = {'_sak_cmd_callback': _sak_ret_value_, '_sak_cmd':None, '_sak_cmd_args':[]}
         #elif isinstance(d, tuple):
         #    nenv = {}
@@ -91,7 +88,7 @@ def object_to_dict(d):
         else:
             obj = d
             d = None
-            if isinstance(obj, owl.Thing) or isinstance(obj, owl.Ontology):
+            if isinstance(obj, owl.Thing) or isinstance(obj, owl.Ontology) or isinstance(obj, owl.ThingClass):
 
                 d = {'_sak_cmd_callback': None, '_sak_cmd':None, '_sak_cmd_args':[]}
 
@@ -263,15 +260,9 @@ def sak_arg_parser(base_cmd, args=None) -> None:
         sak_parser = nm.pop('sak_parser')
         callback = nm.pop('sak_callback')
         if callback:
-            ctx = SakCmdCtx()
-            ctx.kwargs = nm
-            ret = callback(ctx)
-            if has_matplotlib and isinstance(ret.retValue,
-                                             matplotlib.figure.Figure):
-                plt.show()
-            elif ret.retValue is not None:
-                # TODO: Standardize the output from the plugin endpoints!
-                print(ret.retValue)
+            ret = callback(**nm)
+            if ret is not None:
+                print(ret)
         return True
 
 class SakCompleterArg(object):
@@ -358,22 +349,20 @@ class SakCmdRet(object):
         self.retValue: Optional[Any] = None
 
 
-class SakCmdIO(StringIO): # type: ignore
-    def __init__(self) -> None:
-        super(SakCmdIO, self).__init__()
-
-
-class SakCmdCtx(object):
-    def __init__(self) -> None:
-        super(SakCmdCtx, self).__init__()
-        self.kwargs: Dict[str, Any] = {}
-
-        self.stdout = SakCmdIO()
-        self.stderr = SakCmdIO()
-
-    def get_ret(self) -> SakCmdRet:
-        # TODO: I can fill the return with some context stuff
-        return SakCmdRet()
+# class SakCmdIO(StringIO): # type: ignore
+#     def __init__(self) -> None:
+#         super(SakCmdIO, self).__init__()
+# class SakCmdCtx(object):
+#     def __init__(self) -> None:
+#         super(SakCmdCtx, self).__init__()
+#         self.kwargs: Dict[str, Any] = {}
+# 
+#         self.stdout = SakCmdIO()
+#         self.stderr = SakCmdIO()
+# 
+#     def get_ret(self) -> SakCmdRet:
+#         # TODO: I can fill the return with some context stuff
+#         return SakCmdRet()
 
 class SakCmd(SakDecorator):
     EXP_CLI = 'cli'
@@ -382,7 +371,7 @@ class SakCmd(SakDecorator):
     def __init__(self,
             name:str='', 
             # Deprecated
-            callback: Optional[Callable[[SakCmdCtx], SakCmdRet]]=None,
+            #callback: Optional[Callable]=None,
             args:List[SakArg]=[],
             expose:List[str]=[],
             helpmsg:str = ''
@@ -390,7 +379,7 @@ class SakCmd(SakDecorator):
         super(SakCmd, self).__init__()
 
         self.name = name
-        self.callback = callback
+        #self.callback = None
         self.subcmds: List[SakCmd] = []
         self.args = args or []
 

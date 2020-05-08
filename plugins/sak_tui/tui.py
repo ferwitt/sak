@@ -9,7 +9,7 @@ __version__ = "0.0.0"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from sakcmd import SakCmd, SakArg, SakCmdCtx, SakCmdRet, sak_arg_parser
+from sakcmd import SakCmd, SakArg, sak_arg_parser
 from sakplugin import SakPlugin, SakPluginManager
 
 from typing import List, Any, Dict, Optional
@@ -256,9 +256,7 @@ class SakTuiCmd():
             #TODO: Set better context info
             dargs: Dict[str, Any] = vars(args)
 
-            ctx = SakCmdCtx()
-            ctx.kwargs = dargs
-            ret = self.cmd.callback(ctx)
+            ret = self.cmd.callback(**dargs)
 
             if has_matplotlib and isinstance(ret.retValue,
                                              matplotlib.figure.Figure):
@@ -328,7 +326,7 @@ class SakTuiImpl(object):
     def get_statusbar_right_text(self) -> str:
         return '(right) TODO'
 
-    def start(self, ctx: SakCmdCtx) -> SakCmdRet:
+    def start(self):
         self.widgetsList: List[Any] = []
         cmdTree = SakTuiCmd(self, self.plugin.context.pluginManager.generateCommandsTree())
 
@@ -452,5 +450,5 @@ class SakTuiImpl(object):
         )
         app.run()
 
-        return ctx.get_ret()
+        return None
 
