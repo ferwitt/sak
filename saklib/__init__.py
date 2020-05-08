@@ -36,7 +36,7 @@ def install_python(ask_confirm:bool = True) -> None:
         return
 
     if ask_confirm:
-        if not input("No local python found in SAK directory, would like to install? [Y/N]") in ['Y', 'y', 'yes']:
+        if not input("No local python found in SAK directory, would like to install? [y/N]") in ['Y', 'y', 'yes']:
             sys.exit(-1)
 
     if not os.path.exists(SAK_PYTHON):

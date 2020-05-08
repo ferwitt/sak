@@ -17,7 +17,8 @@ from contextlib import redirect_stderr, redirect_stdout
 
 from collections.abc import Iterable 
 import inspect
-import owlready2 as owl
+
+from sakconfig import install_core_requirements
 
 try:
     from StringIO import StringIO ## for Python 2
@@ -30,6 +31,15 @@ try:
     hasArgcomplete = True
 except:
     pass
+
+try:
+    # Try to import owlready2 and redirect stderr to string IO
+    f = StringIO()
+    with redirect_stderr(f):
+        import owlready2 as owl
+except ImportError:
+    # If import fails, then ask if the user wants to try to update the requirements
+    install_core_requirements()
 
 
 # TODO: Sanityze the penv

@@ -1,2 +1,3 @@
 mypy
 argcomplete
+owlready2
