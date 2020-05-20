@@ -271,7 +271,10 @@ def sak_arg_parser(base_cmd, args=None) -> None:
         callback = nm.pop('sak_callback')
         if callback:
             ret = callback(**nm)
-            if ret is not None:
+            if 'matplotlib.figure.Figure' in str(type(ret)):
+                import pylab as pl
+                pl.show()
+            elif ret is not None:
                 print(ret)
         return True
 
