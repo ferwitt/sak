@@ -20,14 +20,15 @@ import inspect
 
 from sakconfig import install_core_requirements
 
-try:
-    from StringIO import StringIO ## for Python 2
-except ImportError:
-    from io import StringIO ## for Python 3
+#try:
+#    from StringIO import StringIO ## for Python 2
+#except ImportError:
+#    from io import StringIO ## for Python 3
+from io import StringIO ## for Python 3
 
 hasArgcomplete = False
 try:
-    import argcomplete
+    import argcomplete #type: ignore
     hasArgcomplete = True
 except:
     pass
@@ -36,7 +37,7 @@ try:
     # Try to import owlready2 and redirect stderr to string IO
     f = StringIO()
     with redirect_stderr(f):
-        import owlready2 as owl
+        import owlready2 as owl #type: ignore
 except ImportError:
     # If import fails, then ask if the user wants to try to update the requirements
     install_core_requirements()
@@ -217,7 +218,7 @@ def sak_arg_parser(base_cmd, args=None) -> None:
             sub_parser = subparsers.add_parser(subcmdname, help=helpmsg, description=description)
             sub_parser.set_defaults(sak_callback=subcmd_callback, sak_cmd=subcmd, sak_parser=sub_parser)
 
-        rargs = []
+        rargs: List[str] = []
         success = False
         try:
             f = StringIO()
@@ -249,11 +250,13 @@ def sak_arg_parser(base_cmd, args=None) -> None:
             sak_show_help = True
         if sak_show_help:
             parser.print_help()
-            return True
+            # TODO(witt): There should be no return
+            return #True
 
         # The parsing failed, so we just abort
         if not success:
-            return False
+            # TODO(witt): There should be no return
+            return #False
 
         if rargs:
             f = StringIO()
@@ -265,18 +268,19 @@ def sak_arg_parser(base_cmd, args=None) -> None:
             return False
 
         # Parse success and not arguments left.
-        nm = vars(nm)
-        sak_cmd = nm.pop('sak_cmd')
-        sak_parser = nm.pop('sak_parser')
-        callback = nm.pop('sak_callback')
+        nm_dict: Dict[str, Any] = vars(nm)
+        sak_cmd = nm_dict.pop('sak_cmd')
+        sak_parser = nm_dict.pop('sak_parser')
+        callback = nm_dict.pop('sak_callback')
         if callback:
-            ret = callback(**nm)
+            ret = callback(**nm_dict)
             if 'matplotlib.figure.Figure' in str(type(ret)):
-                import pylab as pl
+                import pylab as pl #type: ignore
                 pl.show()
             elif ret is not None:
                 print(ret)
-        return True
+        # TODO(witt): There should be no return
+        return #True
 
 class SakCompleterArg(object):
     def __init__(self,

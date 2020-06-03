@@ -31,7 +31,7 @@ class SakShow(SakPlugin):
         return self.context.sak_global
 
     @SakCmd('version', expose=[SakCmd.EXP_CLI, SakCmd.EXP_WEB], helpmsg='Show SAK version.')
-    def show_version(self) -> None:
+    def show_version(self) -> str:
         return 'Version: %s' % (__version__)
 
     @SakCmd('argcomp', helpmsg='Show the autocomplete string')
@@ -43,11 +43,7 @@ class SakShow(SakPlugin):
     def bash(self):
         os.system('bash')
         #TODO: Fix this!
-        return ctx.get_ret()
-
-    def exportCmds(self, base: SakCmd) -> None:
-        bash = SakCmd('bash', self.bash, helpmsg='Start a bash using the SAK env variables.')
-        base.addSubCmd(bash)
+        return None
 
 
 class SakPlugins(SakPlugin):

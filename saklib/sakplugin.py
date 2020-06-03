@@ -20,7 +20,7 @@ import inspect
 
 from typing import Optional, List, Dict
 
-import owlready2 as owl
+import owlready2 as owl #type: ignore
 
 owl.onto_path.append(SAK_GLOBAL)
 onto = owl.get_ontology("http://test.org/sak_core.owl#")
@@ -106,24 +106,6 @@ class SakPlugin(owl.Thing):
     def exportCmds(self, base: SakCmd) -> None:
         pass
 
-
-class SakPluginManager(owl.Thing):
-    namespace = onto
-
-with onto:
-    class has_context((SakPlugin | SakPluginManager) >> SakContext, owl.FunctionalProperty):
-        python_name = "context"
-        pass
-
-    class has_plugin_manager(SakContext >> SakPluginManager, owl.FunctionalProperty):
-        python_name = "plugin_manager"
-        pass
-
-    class has_plugin(SakPluginManager >> SakPlugin):
-        python_name = "plugins"
-        pass
-
-    owl.AllDisjoint([SakPlugin, SakPluginManager, SakContext])
 
 class SakPluginManager(owl.Thing):
     namespace = onto
@@ -215,3 +197,16 @@ class SakPluginManager(owl.Thing):
                     plugin.setPluginPath(plugin_path)
                     plugin.setContext(self.context)
                     self.addPlugin(plugin)
+
+
+with onto:
+    class has_context((SakPlugin | SakPluginManager) >> SakContext, owl.FunctionalProperty): #type: ignore
+        python_name = "context"
+
+    class has_plugin_manager(SakContext >> SakPluginManager, owl.FunctionalProperty): #type: ignore
+        python_name = "plugin_manager"
+
+    class has_plugin(SakPluginManager >> SakPlugin): #type: ignore
+        python_name = "plugins"
+
+    owl.AllDisjoint([SakPlugin, SakPluginManager, SakContext])
