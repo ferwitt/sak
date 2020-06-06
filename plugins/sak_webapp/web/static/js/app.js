@@ -17,7 +17,7 @@ app = angular.module("app", ['chart.js',
 app.controller("SakApp", function($scope, $http, uiGridConstants) {
 
 
-$scope.vm = {};
+    $scope.vm = {};
     $scope.vm.chartData = [[1, 4, 2, 4, 0, 3], [1, 0, 3, 0, 4, 1]];
     $scope.vm.chartLabels = ['a', 'b', 'c', 'd', 'e', 'f'];
     $scope.vm.chartSeries = ['line1', 'line2'];
@@ -38,14 +38,25 @@ $scope.vm = {};
 
   $scope.activeCmds = [];
   $scope.addCmdToActiveList = function(cmd) {
+
+    $http.get(cmd.path)
+    .then(function(response) {
+      function traverseCmdTree(cmd) {
+          $scope.cmds[cmd.path] = cmd;
+          cmd.subcmds.forEach(traverseCmdTree);
+        }
+      traverseCmdTree(response.data);
+
       time = new Date().getTime();
 
+      cmd = response.data;
       entry = {id: time, response:null, params:{}, cmd: cmd}
       var arrayLength = entry.cmd.args.length;
       for (var i = 0; i < arrayLength; i++) {
         arg = entry.cmd.args[i];
       }
       $scope.activeCmds.push(entry);
+    });
   };
 
   $scope.getActiveCmdById = function(cmdId) {
@@ -76,11 +87,9 @@ $scope.vm = {};
       $scope.activeCmds.forEach(function(cmdEntry){
           if (cmdEntry.id === cmdId) {
               cmdEntry.response = {processing: true};
-              $http.get(
+              $http.post(
                 cmdEntry.cmd.path,
-                {
-                params: cmdEntry.params
-                }
+                cmdEntry.params
               ).then(function(response) {
                   cmdEntry.response = response.data;
 

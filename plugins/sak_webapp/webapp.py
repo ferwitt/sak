@@ -9,7 +9,7 @@ __version__ = "0.0.0"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from sakcmd import SakCmd, SakArg, sak_arg_parser
+from sakcmd import SakCmd, SakArg, sak_arg_parser, SakCmdWrapper
 from sakplugin import SakPlugin, SakPluginManager, onto
 
 import os
@@ -72,13 +72,12 @@ class SakWebCmdArg():
                 default = True
 
         type_lut = {
-                bool: 'bool',
-                str: 'string',
-                list: 'list',
-                int: 'int',
-                float: 'float'
-                }
-
+            bool: 'bool',
+            str: 'string',
+            list: 'list',
+            int: 'int',
+            float: 'float'
+        }
 
         #TODO(witt): Should I override the default or give another value?
         request_default = None
@@ -86,25 +85,25 @@ class SakWebCmdArg():
             request_default = request.json.get(self.arg.name, None)
 
         ret: Dict[str, Any] = {
-                'name': self.arg.name,
-                'help': self.arg.helpmsg,
-                'type': type_lut.get(arg_type, 'string'),
-                'default': request_default or default,
-                'choices': choices,
-                'nargs': nargs,
-                'action': action,
-                }
+            'name': self.arg.name,
+            'help': self.arg.helpmsg,
+            'type': type_lut.get(arg_type, 'string'),
+            'default': request_default or default,
+            'choices': choices,
+            'nargs': nargs,
+            'action': action,
+        }
         #ret.update(self.vargs)
         return ret
 
     def getRequestArgList(self, request: Request) -> List[str]:
         type_lut = {
-                'bool': bool,
-                'string': str,
-                'list': list,
-                'int': int,
-                'float': float
-                }
+            'bool': bool,
+            'string': str,
+            'list': list,
+            'int': int,
+            'float': float
+        }
         cfg = self.getAsDict()
 
         name = cfg['name']
@@ -138,106 +137,6 @@ class SakWebCmdArg():
 
         return ret
 
-#class SakWebCmd():
-#    def __init__(self, cmd: SakCmd, root: str) -> None:
-#        self.cmd = cmd
-#        self.root = root
-#        self.route = os.path.join(self.root, self.cmd.name)
-#        self.args: List[SakWebCmdArg] = []
-#        for arg in cmd.args:
-#            self.args.append(SakWebCmdArg(arg))
-#
-#        self.subcmds: List[SakWebCmd] = []
-#        for subcmd in cmd.subcmds:
-#            self.subcmds.append(SakWebCmd(subcmd, self.route))
-#
-#    def __call__(self) -> ResponseBase:
-#        if self.cmd.callback:
-#            ret: Dict[str, Any] = {}
-#
-#            arg_list = []
-#            for arg in self.args:
-#                arg_list += arg.getRequestArgList(request)
-#
-#            sak_arg_parser(self.cmd, arg_list)
-#            return jsonify({'TODO': 'TODO'})
-#            #p = self.cmd.generateArgParse()
-#
-#            error_status = {}
-#            def exit(p: ArgumentParser, status: Optional[str] = None, message: Optional[str] = None) -> None:
-#                error_status['status'] = status
-#                error_status['message'] = message
-#
-#            # TODO: How to legally override the exit method?
-#            #p.exit = exit # type: ignore
-#
-#
-#            try:
-#                args = p.parse_args(arg_list)
-#            except:
-#                pass
-#
-#            ret.update({'error': False})
-#
-#            if error_status:
-#                ret['error'] = True
-#                ret.update(error_status)
-#            else:
-#                dargs: Dict[str, Any] = vars(args)
-#
-#                callback = dargs.pop('sak_callback')
-#
-#                ret['params'] = dargs
-#
-#                if callback:
-#                    cret: SakCmdRet = callback(**dargs)
-#                    ret['result'] = cret.retValue
-#
-#            if not ret['error']:
-#                if has_pandas and isinstance(ret['result'], pd.DataFrame):
-#                    if 1:
-#                        ret['type'] = 'pd.DataFrame'
-#                        ret['result'] = json.loads(ret['result'].reset_index().to_json(orient='records', date_format='iso'))
-#                    else:
-#                        ret['type'] = 'html'
-#                        ret['result'] = ret['result'].reset_index().to_html()
-#                elif has_matplotlib and isinstance(ret['result'], matplotlib.figure.Figure):
-#                    ret['type'] = 'png'
-#                    buf = io.BytesIO()
-#                    ret['result'].savefig(buf, format='png')
-#                    ret['result'] = base64.b64encode(buf.getvalue()).decode()
-#                else:
-#                    ret['type'] = 'string'
-#                    ret['result'] = str(ret['result'])
-#
-#            tmpret = jsonify(ret)
-#            return tmpret
-#        else:
-#            tmpret = jsonify(self.getAsDict())
-#            return tmpret
-#
-#    def buildFlaskRoutes(self, app: Flask) -> None:
-#        if SakCmd.EXP_WEB not in self.cmd.expose:
-#            return
-#
-#        app.add_url_rule(
-#                self.route,
-#                self.route.replace('/', '_'),
-#                self
-#                )
-#
-#        for subcmd in self.subcmds:
-#            subcmd.buildFlaskRoutes(app)
-#
-#    def getAsDict(self) -> Dict[str, Any]:
-#        ret: Dict[str, Any] = { 'name': self.cmd.name, 'helpmsg': self.cmd.helpmsg}
-#        ret['subcmds'] = [x.getAsDict() for x in self.subcmds if SakCmd.EXP_WEB in x.cmd.expose]
-#        ret['args'] = [x.getAsDict() for x in self.args]
-#        ret['isCallable'] = self.cmd.callback != None
-#        ret['path'] = self.route
-#        ret['parent_path'] = self.root
-#        return ret
-
 
 class SakWebappImpl(object):
     def __init__(self, plugin) -> None:
@@ -250,86 +149,88 @@ class SakWebappImpl(object):
         staticDir = thisDir / 'web' / 'static'
 
         if self.app is None:
-            self.app = Flask('sak', static_url_path='', static_folder=str(staticDir))
+            self.app = Flask('sak',
+                             static_url_path='',
+                             static_folder=str(staticDir))
         return self.app
-
 
     def buildFlask(self) -> Flask:
         app = self._getApp()
-        commands_root = '/api/cmd'
 
         @app.route("/")
         def index() -> ResponseBase:
             return redirect("index.html")
 
-        # privatePlugins = ['sak', 'plugins']
-        # plugins = [x for x in self.plugin.context.pluginManager.getPluginList() if x.name not in privatePlugins]
-
-        # @app.route("/api/show/plugins")
-        # def show_plugins() -> ResponseBase:
-        #     return jsonify([x.name for x in plugins])
-
-        #cmdTree = SakWebCmd(self.plugin.context.pluginManager.generateCommandsTree(), commands_root)
-        #cmdTree.buildFlaskRoutes(app)
-
-        root_cmd = self.plugin.context.plugin_manager.generateCommandsTree()
+        root_cmd = self.plugin.context.plugin_manager.root_cmd()
 
         api_root = '/api/sak'
+
         @app.route(api_root)
         @app.route(api_root + '/')
-        @app.route(api_root + '/<path:path>', methods=['GET', 'POST'
-            #,'DELETE', 'PATCH'
-            ])
-        def foobar(path=''):
+        @app.route(api_root + '/<path:path>', methods=['GET', 'POST'])
+        def cmd_api(path=''):
             web_ret = {}
 
             args = path.split('/')
 
+            # Filter empty fields
+            args = [x for x in args if x]
+
             # Get only the metadata.
             ret = sak_arg_parser(root_cmd, args + ['-h'])
 
+            if args:
+                if args[-1] != ret['cmd'].name:
+                    web_ret['error'] = True
+                    web_ret[
+                        'error_message'] = 'Could not find the path for %s' % (
+                            api_root + '/' + path)
+                    return jsonify(web_ret), 500
+
             cmd = ret['cmd']
             webArgs = []
-            if '_sak_cmd_args' in cmd:
-                for arg in cmd['_sak_cmd_args']:
-                    webArgs.append(SakWebCmdArg(arg))
+            for arg in cmd.args:
+                webArgs.append(SakWebCmdArg(arg))
 
+            web_ret['name'] = cmd.name
+            web_ret['helpmsg'] = cmd.helpmsg
 
-            if '_sak_cmd' in cmd:
-                web_ret['name'] = cmd['_sak_cmd'].name
-                web_ret['helpmsg'] = cmd['_sak_cmd'].helpmsg
-
+            web_ret['error'] = False
             if 'error' in ret['argparse']:
-                web_ret['error'] = ret['error']
+                web_ret['error'] = True
+                web_ret['error_message'] = ret['error']
                 return jsonify(web_ret), 500
 
             web_ret['subcmds'] = []
-            for subcmd in ret.get('subcmds', []):
+            for subcmd in cmd.subcmds:
+                subcmd = SakCmdWrapper(subcmd)
+
                 if not subcmd.name:
                     continue
                 web_ret['subcmds'].append({
-                    'name': subcmd.name,
-                    'helpmsg': subcmd.helpmsg,
-                    })
+                    'name':
+                    subcmd.name,
+                    'helpmsg':
+                    subcmd.helpmsg,
+                    'path':
+                    os.path.join(api_root, path, subcmd.name),
+                    'parent_path':
+                    os.path.join(api_root, path),
+                    'subcmds': [],
+                })
 
-            web_ret['isCallable'] = cmd.get('_sak_cmd_callback', None) is not None
+            web_ret['isCallable'] = cmd.callback is not None
 
-            web_ret['path'] = api_root + '/' + path
+            web_ret['path'] = os.path.join(api_root, path)
             web_ret['parent_path'] = os.path.dirname(web_ret['path'])
             web_ret['args'] = []
             for arg in webArgs:
                 web_ret['args'].append(arg.getAsDict())
 
-            print(request.method)
-
             if request.method == 'GET':
                 return jsonify(web_ret)
 
             if request.method == 'POST':
-                #TODO(witt): Get the json info
-
-                print(request.json)
-
                 web_ret['args'] = []
                 for arg in webArgs:
                     web_ret['args'].append(arg.getAsDict(request))
@@ -340,146 +241,50 @@ class SakWebappImpl(object):
 
                 post_ret = sak_arg_parser(root_cmd, args + param_args)
 
-
+                web_ret['error'] = False
                 if 'error' in post_ret['argparse']:
-                    web_ret['error'] = post_ret['argparse']['error']
+                    web_ret['error'] = True
+                    web_ret['error_message'] = post_ret['error']
                     return jsonify(web_ret), 500
 
+                web_ret['result'] = post_ret['value']
 
-                web_ret['value'] = post_ret['value']
+                if not web_ret['error']:
+                    if has_pandas and isinstance(web_ret['result'],
+                                                 pd.DataFrame):
+                        if 1:
+                            web_ret['type'] = 'pd.DataFrame'
+                            web_ret['result'] = json.loads(
+                                web_ret['result'].reset_index().to_json(
+                                    orient='records', date_format='iso'))
+                        else:
+                            web_ret['type'] = 'html'
+                            web_ret['result'] = web_ret['result'].reset_index(
+                            ).to_html()
+                    elif has_matplotlib and isinstance(
+                            web_ret['result'], matplotlib.figure.Figure):
+                        web_ret['type'] = 'png'
+                        buf = io.BytesIO()
+                        web_ret['result'].savefig(buf, format='png')
+                        web_ret['result'] = base64.b64encode(
+                            buf.getvalue()).decode()
+                    else:
+                        web_ret['type'] = 'string'
+                        web_ret['result'] = str(web_ret['result'])
 
                 return jsonify(web_ret)
 
-            #if request.method == 'DELETE':
-            #    #TODO(witt): Get the json info
-            #    return jsonify(web_ret)
-
-            return jsonify(isError= True, message= "Method not allowed", statusCode= 405), 405
-
-
-        #api_root = '/api'
-
-        ## class SakWebOnto(Resource):
-        ##     def get(self, **kwargs):
-        ##         return jsonify(kwargs)
-        ## api = Api(app)
-        #@app.route(api_root + '/onto')
-        #@app.route(api_root + '/onto/<path:path>')
-        #def onto(path=''):
-
-        #    def process(state, path_list, env):
-        #        env_type = type(env)
-        #        # TODO: Sanityze the penv
-        #        def sanitize(d):
-        #            if not isinstance(d, dict):
-        #                #if isinstance(d, list) or inspect.isgenerator(d):
-        #                if isinstance(d, tuple):
-        #                    nenv = {}
-        #                    for idx, v in enumerate(d):
-        #                        k = str(idx)
-        #                        nenv[k] = v
-        #                    d = nenv
-        #                elif isinstance(d, Iterable):
-        #                    nenv = {}
-        #                    for idx, v in enumerate(d):
-        #                        #TODO: If it is a thing, I can put the name in the index
-        #                        k = str(idx)
-        #                        try:
-        #                            k = v.name
-        #                        except:
-        #                            pass
-        #                        k  = k.replace('/', '__')
-        #                        nenv[k] = v
-        #                    d = nenv
-        #                elif isinstance(d, str):
-        #                    d = d
-        #                elif inspect.ismethod(d):
-        #                    d = sanitize(d())
-        #                else:
-
-        #                    export_lut = {
-        #                            owl.Ontology: ['name', 'individuals', 'classes'],
-        #                            owl.ThingClass: ['name', 'get_properties', 'get_inverse_properties']
-        #                            }
-
-        #                    obj = d
-
-        #                    d = {}
-        #                    for classType, exporlist in export_lut.items():
-        #                        if isinstance(obj, classType):
-        #                            for k in dir(obj):
-        #                                if k not in exporlist:
-        #                                    continue
-        #                                if k.startswith('_'):
-        #                                    continue
-        #                                dd = getattr(obj, k)
-        #                                k = k.replace('/', '__')
-        #                                d[k] = dd
-        #                            break
-        #            return d
-
-        #        env = sanitize(env)
-
-        #        if not path_list or not path_list[0]:
-        #            def norm_dict(d, depth=-1):
-        #                nd = {}
-        #                if depth==0:
-        #                    return str(d)
-        #                if isinstance(d, dict):
-        #                    for k, v in d.items():
-        #                        k = k.replace('/', '__')
-        #                        nd[k] = norm_dict(v, depth-1)
-        #                #elif isinstance(d, list) or inspect.isgenerator(d):
-        #                elif isinstance(d, tuple):
-        #                    for idx, v in enumerate(d):
-        #                        k = str(idx)
-        #                        nd[k] = norm_dict(v, depth-1)
-        #                elif isinstance(d, Iterable):
-        #                    for idx, v in enumerate(d):
-        #                        k = str(idx)
-        #                        k = k.replace('/', '__')
-        #                        nd[k] = norm_dict(v, depth-1)
-        #                elif isinstance(d, str):
-        #                    return d
-        #                elif inspect.ismethod(d):
-        #                    # TODO: I can put the documentation here maybe
-        #                    nd = repr(d)
-        #                    #try:
-        #                    #    nd = norm_dict( d(), depth - 1)
-        #                    #except:
-        #                    #    nd = repr(d)
-        #                else:
-        #                    try:
-        #                        jsonify(d)
-        #                        nd = d
-        #                    except:
-        #                        nd = repr(d)
-        #                return nd
-
-        #            nenv = norm_dict(env, 1)
-
-        #            ret = {
-        #                    'type': str(env_type),
-        #                    'value': nenv
-        #                    }
-        #            return jsonify(ret)
-
-        #        if not path_list[0] in env:
-        #            return jsonify('[ERROR] no %s in env' % path_list[0])
-        #        else:
-        #            el = env[path_list[0]]
-        #            return process(state, path_list[1:], el)
-
-        #    ontologies = {'sak': onto}
-        #    for p in plugins:
-        #        ontologies[p.ontology.name] = p.ontology
-        #    return process('foo', path.split('/'), ontologies)
-        #    #return process('foo', path.split('/'), self)
+            return jsonify(isError=True,
+                           message="Method not allowed",
+                           statusCode=405), 405
 
         return app
 
-    def appStart(self, port:int) -> None:
-        pluginDirs = [p.getPath() for p in self.plugin.context.pluginManager.getPluginList()]
+    def appStart(self, port: int) -> None:
+        pluginDirs = [
+            p.getPath()
+            for p in self.plugin.context.pluginManager.getPluginList()
+        ]
 
         ## Add all the plugin files to the watch list to restart server
         extra_files = []
@@ -488,17 +293,12 @@ class SakWebappImpl(object):
                 continue
             extra_files.append(os.path.join(pDir))
         extra_files = list(set(extra_files))
-        print(extra_files)
 
         # https://www.quora.com/How-is-it-possible-to-make-Flask-web-framework-non-blocking
-        self.buildFlask().run(
-                debug=True,
-                extra_files=extra_files,
-                #threaded=True,
-                port=port
-                )
+        self.buildFlask().run(debug=True,
+                              extra_files=extra_files,
+                              threaded=True,
+                              port=port)
 
-
-    def start(self, port:int) -> None:
+    def start(self, port: int) -> None:
         self.appStart(port)
-

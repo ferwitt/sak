@@ -99,9 +99,7 @@ def main() -> None:
         sys.path.append(str(ctx.sak_local / 'plugins'))
         plm.loadPlugins(ctx.sak_local / 'plugins')
 
-
-    root = plm.generateCommandsTree()
-
+    root = plm.root_cmd()
 
     args = sys.argv[1:]
     ret = sak_arg_parser(root, args)
@@ -120,8 +118,6 @@ def main() -> None:
             pl.show()
         else:
             print(ret['value'])
-
-
 
 
 if __name__ == "__main__":

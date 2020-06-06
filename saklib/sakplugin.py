@@ -20,14 +20,13 @@ import inspect
 
 from typing import Optional, List, Dict
 
-import owlready2 as owl #type: ignore
+import owlready2 as owl  #type: ignore
 
 owl.onto_path.append(SAK_GLOBAL)
 onto = owl.get_ontology("http://test.org/sak_core.owl#")
 
 PYTHON_VERSION_MAJOR = sys.version_info.major
 PYTHON_VERSION_MINOR = sys.version_info.minor
-
 
 if PYTHON_VERSION_MAJOR == 3:
     if PYTHON_VERSION_MINOR >= 6:
@@ -67,10 +66,13 @@ class SakPlugin(owl.Thing):
 
         self._ontology = None
 
-    @property
-    def ontology(self):
+    def get_ontology(self):
+        #TODO(witt): This was a property before, but then the arg_parse was
+        #            trying to evaluate it, which caused the system to halt, due to some
+        #            deadlock in: /owlready2/triplelite.py
         if self._ontology is None:
-            self._ontology = owl.get_ontology('http://127.0.0.1:2020/sak/%s.owl#' % self.name)
+            self._ontology = owl.get_ontology('http://sak.org/sak/%s.owl#' %
+                                              self.name)
             try:
                 self._ontology.load()
             except:
@@ -78,11 +80,7 @@ class SakPlugin(owl.Thing):
         return self._ontology
 
     def get_namespace(self, namespace):
-        return self.ontology.get_namespace('http://127.0.0.1:2020/sak/%s' % namespace)
-
-    #@property
-    #def context(self) -> SakContext:
-    #    return self.context
+        return self.get_ontology().get_namespace('http://sak.org/sak/%s' % namespace)
 
     def setPluginPath(self, path: Path) -> None:
         self._path = path
@@ -99,12 +97,18 @@ class SakPlugin(owl.Thing):
         if path is not None:
             if (path / '.git').exists():
                 print('Updating repository for %s' % self.name)
-                subprocess.run(['git', 'remote', 'update'], check=True, cwd=path)
-                subprocess.run(['git', 'pull', 'origin', 'master'], check=True, cwd=path)
+                subprocess.run(['git', 'remote', 'update'],
+                               check=True,
+                               cwd=path)
+                subprocess.run(['git', 'pull', 'origin', 'master'],
+                               check=True,
+                               cwd=path)
 
             if (path / 'requirements.txt').exists():
                 print('Updating pip dependencies for %s' % self.name)
-                subprocess.run(['pip', 'install', '-r', 'requirements.txt'], check=True, cwd=path)
+                subprocess.run(['pip', 'install', '-r', 'requirements.txt'],
+                               check=True,
+                               cwd=path)
 
     def exportCmds(self, base: SakCmd) -> None:
         pass
@@ -130,16 +134,13 @@ class SakPluginManager(owl.Thing):
     def getPluginList(self) -> List[SakPlugin]:
         return self.plugins
 
-    # TODO: Instead of generating command tree, I want to return an object that containts things... the sak_arg_parser should be able to run things and the commands should be used only as decorators...
-    def generateCommandsTree(self) -> Dict:
-        #ret = {}
-        #for plugin in self.plugins:
-        #    ret[plugin.name] = plugin
-        #return ret
-        root = SakCmd('sak', helpmsg="Group everyday developer's tools in a swiss-army-knife command.")
+    def root_cmd(self) -> Dict:
+        root = SakCmd(
+            'sak',
+            helpmsg=
+            "Group everyday developer's tools in a swiss-army-knife command.")
         for plugin in self.plugins:
-            setattr(root, plugin.name, plugin)
-            #plugin.exportCmds(root)
+            root.subcmds.append(plugin)
         return root
 
     def loadPlugins(self, pluginsPath: Optional[Path] = None) -> None:
@@ -163,13 +164,17 @@ class SakPluginManager(owl.Thing):
                 try:
                     if PYTHON_VERSION_MAJOR == 3:
                         if PYTHON_VERSION_MINOR >= 6:
-                            spec = importlib.util.spec_from_file_location(name, fname_abs)
-                            imported_module = importlib.util.module_from_spec(spec)
+                            spec = importlib.util.spec_from_file_location(
+                                name, fname_abs)
+                            imported_module = importlib.util.module_from_spec(
+                                spec)
                             # TODO: Fix this!
-                            spec.loader.exec_module(imported_module) # type: ignore
+                            spec.loader.exec_module(
+                                imported_module)  # type: ignore
                         else:
                             # TODO: Fix this!
-                            imported_module = SourceFileLoader(name, fname_abs).load_module() # type: ignore
+                            imported_module = SourceFileLoader(
+                                name, fname_abs).load_module()  # type: ignore
                     elif PYTHON_VERSION_MAJOR == 2:
                         imported_module = imp.load_source(name, str(fname_abs))
                 except ImportError as error:
@@ -180,8 +185,11 @@ class SakPluginManager(owl.Thing):
                     requirements_path = plugin_path / 'requirements.txt'
 
                     if os.path.exists(requirements_path):
-                        if input("Would you like to do this now? [y/N]") in ['Y', 'y', 'yes']:
-                            os.system('pip install -r "%s"' % requirements_path)
+                        if input("Would you like to do this now? [y/N]") in [
+                                'Y', 'y', 'yes'
+                        ]:
+                            os.system('pip install -r "%s"' %
+                                      requirements_path)
                         else:
                             print('Skip adding plugin %s' % str(plugin_path))
                             continue
@@ -204,13 +212,16 @@ class SakPluginManager(owl.Thing):
 
 
 with onto:
-    class has_context((SakPlugin | SakPluginManager) >> SakContext, owl.FunctionalProperty): #type: ignore
+
+    class has_context((SakPlugin | SakPluginManager) >> SakContext,
+                      owl.FunctionalProperty):  #type: ignore
         python_name = "context"
 
-    class has_plugin_manager(SakContext >> SakPluginManager, owl.FunctionalProperty): #type: ignore
+    class has_plugin_manager(SakContext >> SakPluginManager,
+                             owl.FunctionalProperty):  #type: ignore
         python_name = "plugin_manager"
 
-    class has_plugin(SakPluginManager >> SakPlugin): #type: ignore
+    class has_plugin(SakPluginManager >> SakPlugin):  #type: ignore
         python_name = "plugins"
 
     owl.AllDisjoint([SakPlugin, SakPluginManager, SakContext])
