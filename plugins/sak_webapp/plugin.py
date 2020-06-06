@@ -46,3 +46,9 @@ class SakWebapp(SakPlugin):
     def start(self, **vargs):
         self.lazy_import()
         return self.sakwebapp.start(**vargs)
+
+
+    @SakCmd()
+    @SakArg('message', default='No message', type=str, helpmsg='Some message')
+    def say_hello(self, message, **vargs):
+        return 'Test say: ' +message

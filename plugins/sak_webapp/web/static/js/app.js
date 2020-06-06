@@ -25,7 +25,7 @@ $scope.vm = {};
   // Get list of all possible commands
   $scope.cmds = {}
   $scope.cmd_root = {};
-  $http.get("/api/cmd/sak")
+  $http.get("/api/sak")
   .then(function(response) {
     $scope.cmd_root = response.data;
     function traverseCmdTree(cmd) {

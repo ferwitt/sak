@@ -94,6 +94,8 @@ def object_to_dict(d):
                         chain = None
             else:
                 # TODO: Remove this
+                #TODO: I believe I suggested removing because it can be dangerous to call functions everywhere...
+                #      But maybe I could use some introspection and check the areguments... then build a proper command.
                 cb = d
                 d = { '_sak_cmd_callback': lambda **x: cb(), '_sak_cmd':None, '_sak_cmd_args':[] }
         else:
@@ -111,6 +113,7 @@ def object_to_dict(d):
                             if isinstance(chain, SakCmd):
                                 d['_sak_cmd'] = chain
                             elif isinstance(chain, SakArg):
+                                #TODO(witt): I think it would be nice to store everything inside the command object. What do you think?
                                 d['_sak_cmd_args'].append(chain)
                             if hasattr(chain.func, '_sak_dec_chain'):
                                 chain = chain.func._sak_dec_chain
@@ -134,7 +137,7 @@ def object_to_dict(d):
 
                     if not hasattr(dd, '_sak_dec_chain'):
                         if (not isinstance(dd, owl.Thing)) and (not isinstance(dd, owl.prop.IndividualValueList)):
-                            #continue
+                            continue
                             pass
 
                     k = k.replace('/', '__')
@@ -148,22 +151,26 @@ def object_to_dict(d):
     return d
 
 
-def sak_arg_parser(base_cmd, args=None) -> None:
-
-    #env_type = type(base_cmd)
-    #base_cmd = object_to_dict(base_cmd)
-
-
+def argcomplete_args():
+    args = []
     # Check if its auto completion
-    is_in_completion = False
+    #is_in_completion = False
     comp_line = os.environ.get("COMP_LINE", None)
     if comp_line is not None:
         # What is this COMP_POINT?
         comp_point = int(os.environ.get("COMP_POINT", 0))
-        is_in_completion = True
+        #is_in_completion = True
         _, _, _, comp_words, _ = argcomplete.split_line(comp_line, comp_point)
         if not args:
             args = comp_words[1:]
+    return args
+
+
+def sak_arg_parser(base_cmd, args=None
+        #, as_json=False
+        ) -> None:
+
+    args = args or argcomplete_args()
 
     # Remove the help flag from args and set show_help
     args = args or []
@@ -182,6 +189,11 @@ def sak_arg_parser(base_cmd, args=None) -> None:
     parser = root_parser
     base_cmd_callback = None # base_cmd.callback
     nm = Namespace(sak_callback=base_cmd_callback, sak_cmd=base_cmd, sak_parser=parser)
+
+    ret = {
+            'argparse': {},
+            'ret': None
+            }
 
     while True:
         cmd = object_to_dict(cmd)
@@ -236,36 +248,58 @@ def sak_arg_parser(base_cmd, args=None) -> None:
         except:
             # Parse failed, show error message only if it is not help command
             if not sak_show_help:
-                sys.stderr.write(f.getvalue())
+                #if as_json:
+                ret['argparse']['error'] = f.getvalue()
+                #else:
+                #    # TODO(witt): Maybe redirect to the json
+                #    sys.stderr.write(f.getvalue())
 
         # Here we have consumed all the arguments and completly built the parser
         # Register auto completion
         if hasArgcomplete:
+            #if not as_json:
             argcomplete.autocomplete(root_parser)
+            #else:
+            #    #TODO(witt): How to do suggestions based on json API?
+            #    pass
 
-        #print(nm)
+        ret['cmd'] = cmd
+        ret['nm'] = nm
 
         # We reached the leaf in the tree, but only want to get the help
         if nm.sak_callback is None:
             sak_show_help = True
         if sak_show_help:
-            parser.print_help()
-            # TODO(witt): There should be no return
-            return #True
+            f = StringIO()
+            with redirect_stdout(f):
+                parser.print_help()
+
+            #if as_json:
+            #    if as_json:
+            ret['argparse']['help'] = f.getvalue()
+            #    else:
+            #        # TODO(witt): Maybe redirect to the json
+            #        print(f.getvalue())
+            return ret
 
         # The parsing failed, so we just abort
         if not success:
             # TODO(witt): There should be no return
-            return #False
+            return ret
 
         if rargs:
             f = StringIO()
-            with redirect_stdout(f):
-                # There are remaining unparsed arguments, report error
-                msg = 'unrecognized arguments: %s'
-                parser.error(msg % ' '.join(rargs))
-            sys.stderr.write(f.getvalue())
-            return False
+            parser.print_usage(f)
+            msg = '%(usage)s\n%(prog)s: error: %(message)s\n' % {
+                    'usage': f.getvalue(),
+                    'prog': parser.prog,
+                    'message':  'unrecognized arguments: %s' % ' '.join(rargs),
+                    }
+            #if as_json:
+            ret['argparse']['error'] = msg
+            #else:
+            #    sys.stderr.write(msg)
+            return ret
 
         # Parse success and not arguments left.
         nm_dict: Dict[str, Any] = vars(nm)
@@ -273,14 +307,19 @@ def sak_arg_parser(base_cmd, args=None) -> None:
         sak_parser = nm_dict.pop('sak_parser')
         callback = nm_dict.pop('sak_callback')
         if callback:
-            ret = callback(**nm_dict)
-            if 'matplotlib.figure.Figure' in str(type(ret)):
-                import pylab as pl #type: ignore
-                pl.show()
-            elif ret is not None:
-                print(ret)
+            ret_value = callback(**nm_dict)
+
+            #if as_json:
+            ret['value'] = ret_value
+            #else:
+            #    if 'matplotlib.figure.Figure' in str(type(ret_value)):
+            #        import pylab as pl #type: ignore
+            #        pl.show()
+            #    elif ret_value is not None:
+            #        print(ret_value)
+
         # TODO(witt): There should be no return
-        return #True
+        return ret
 
 class SakCompleterArg(object):
     def __init__(self,
@@ -359,11 +398,11 @@ class SakArg(SakDecorator):
             aux.completer = completercbWrapper # type: ignore
 
 
-class SakCmdRet(object):
-    """docstring for SakCmdRet"""
-    def __init__(self) -> None:
-        super(SakCmdRet, self).__init__()
-        self.retValue: Optional[Any] = None
+#class SakCmdRet(object):
+#    """docstring for SakCmdRet"""
+#    def __init__(self) -> None:
+#        super(SakCmdRet, self).__init__()
+#        self.retValue: Optional[Any] = None
 
 
 # class SakCmdIO(StringIO): # type: ignore
@@ -389,7 +428,7 @@ class SakCmd(SakDecorator):
             name:str='', 
             # Deprecated
             #callback: Optional[Callable]=None,
-            args:List[SakArg]=[],
+            #args:List[SakArg]=[],
             expose:List[str]=[],
             helpmsg:str = ''
             ) -> None:
@@ -398,7 +437,7 @@ class SakCmd(SakDecorator):
         self.name = name
         #self.callback = None
         self.subcmds: List[SakCmd] = []
-        self.args = args or []
+        #self.args = args or []
 
         self.helpmsg = helpmsg
         self.description = None

@@ -102,7 +102,26 @@ def main() -> None:
 
     root = plm.generateCommandsTree()
 
-    sak_arg_parser(root, sys.argv[1:])
+
+    args = sys.argv[1:]
+    ret = sak_arg_parser(root, args)
+    
+    if 'error' in ret['argparse']:
+        sys.stderr.write(ret['argparse']['error'])
+        sys.exit(-1)
+
+    if 'help' in ret['argparse']:
+        sys.stdout.write(ret['argparse']['help'])
+        sys.exit(0)
+
+    if ret['value'] is not None:
+        if 'matplotlib.figure.Figure' in str(type(ret['value'])):
+            import pylab as pl #type: ignore
+            pl.show()
+        else:
+            print(ret['value'])
+
+
 
 
 if __name__ == "__main__":

@@ -77,6 +77,9 @@ class SakPlugin(owl.Thing):
                 pass
         return self._ontology
 
+    def get_namespace(self, namespace):
+        return self.ontology.get_namespace('http://127.0.0.1:2020/sak/%s' % namespace)
+
     #@property
     #def context(self) -> SakContext:
     #    return self.context
@@ -129,14 +132,15 @@ class SakPluginManager(owl.Thing):
 
     # TODO: Instead of generating command tree, I want to return an object that containts things... the sak_arg_parser should be able to run things and the commands should be used only as decorators...
     def generateCommandsTree(self) -> Dict:
-        ret = {}
-        for plugin in self.plugins:
-            ret[plugin.name] = plugin
-        return ret
-        #root = SakCmd('sak', helpmsg="Group everyday developer's tools in a swiss-army-knife command.")
+        #ret = {}
         #for plugin in self.plugins:
-        #    plugin.exportCmds(root)
-        #return root
+        #    ret[plugin.name] = plugin
+        #return ret
+        root = SakCmd('sak', helpmsg="Group everyday developer's tools in a swiss-army-knife command.")
+        for plugin in self.plugins:
+            setattr(root, plugin.name, plugin)
+            #plugin.exportCmds(root)
+        return root
 
     def loadPlugins(self, pluginsPath: Optional[Path] = None) -> None:
         if pluginsPath is None:
