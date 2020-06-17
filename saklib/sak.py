@@ -80,8 +80,7 @@ class SakPlugins(SakPlugin):
             print('Updating %s\n' % plugin.name)
             plugin.update()
 
-def main() -> None:
-
+def get_context() -> SakContext:
     ctx = SakContext()
 
     plm = SakPluginManager()
@@ -99,6 +98,13 @@ def main() -> None:
         sys.path.append(str(ctx.sak_local / 'plugins'))
         plm.loadPlugins(ctx.sak_local / 'plugins')
 
+    return ctx
+
+
+def main() -> None:
+
+    ctx = get_context()
+    plm = ctx.plugin_manager
     root = plm.root_cmd()
 
     args = sys.argv[1:]
@@ -121,7 +127,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    if False:
+    if True:
         main()
     else:
         import cProfile
