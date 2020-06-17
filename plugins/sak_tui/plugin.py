@@ -38,9 +38,3 @@ class SakTui(SakPlugin):
         self.lazy_import()
         return self.saktui.start()
 
-    @SakCmd('shell')
-    def shell(self):
-        answer = prompt('Give me some input: ')
-        print('You said: %s' % answer)
-        return ctx.get_ret()
-

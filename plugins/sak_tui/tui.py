@@ -327,6 +327,8 @@ class SakTuiImpl(object):
         return '(right) TODO'
 
     def start(self):
+        print('DEPRECATED!')
+        return
         self.widgetsList: List[Any] = []
         cmdTree = SakTuiCmd(self, self.plugin.context.pluginManager.generateCommandsTree())
 
