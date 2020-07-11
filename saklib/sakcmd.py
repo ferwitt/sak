@@ -155,6 +155,7 @@ class SakCmdWrapper:
         self._cmd = cmd
 
         d = wrapped_content
+
         if isinstance(d, SakCmdWrapper):
             self._wrapped_content = d._wrapped_content
             self._name = d._name
@@ -166,6 +167,12 @@ class SakCmdWrapper:
             self._cmd = d._cmd
         elif isinstance(d, SakCmd):
             self._cmd = d
+
+    def __str__(self):
+        return f'<{self.name} {self.callback}>'
+
+    def __repr__(self):
+        return str(self)
 
     @property
     def name(self):
@@ -198,11 +205,13 @@ class SakCmdWrapper:
         if self._wrapped_content:
             d = self._wrapped_content
 
-            if inspect.ismethod(d) or inspect.isfunction(d):
-                if hasattr(d, '_sak_dec_chain'):
-                    cb = d
-                    if cb:
-                        return cb
+            for plain_type in [str, int, float]:
+                if isinstance(d, plain_type):
+                    return lambda **x: d
+
+            if callable(d): #inspect.ismethod(d) or inspect.isfunction(d):
+                return d
+
                 # TODO(witt): I dont think I should return the result from the callback here :/
                 #return SakCmdWrapper(
                 #        callback = lambda **x: cb()
@@ -222,22 +231,34 @@ class SakCmdWrapper:
         if self._wrapped_content:
             d = self._wrapped_content
 
-            if isinstance(d, owl.Thing) or isinstance(d, owl.ThingClass):
+            if True or isinstance(d, owl.Thing) or isinstance(d, owl.ThingClass):
                 subcmds = []
                 for k in dir(d):
                     if k.startswith('_'): continue
-                    dd = getattr(d, k)
 
-                    if not hasattr(dd, '_sak_dec_chain'):
-                        if (not isinstance(dd, owl.Thing)) and (not isinstance(
-                                dd, owl.prop.IndividualValueList)):
+                    try:
+                        dd = getattr(d, k)
+
+                        if hasattr(d, '_sak_dec_chain'):
+                            args = []
+                            chain = d._sak_dec_chain
+                            while chain is not None:
+                                if hasattr(chain.func, '_sak_dec_chain'):
+                                    chain = chain.func._sak_dec_chain
+                                else:
+                                    chain = None
                             continue
 
-                    dd = SakCmdWrapper(wrapped_content=dd, name=k)
-                    subcmds.append(dd)
+                        dd = SakCmdWrapper(wrapped_content=dd, name=k)
+                        subcmds.append(dd)
+                    except:
+                        #TODO(witt): Just does not add because of failure.
+                        #print('skip', k)
+                        pass
                 if subcmds:
                     return subcmds
 
+            # TODO(witt): How about dictionaries?
             if isinstance(d, Iterable):
                 subcmds = []
                 for idx, v in enumerate(d):
@@ -273,6 +294,22 @@ class SakCmdWrapper:
                             chain = chain.func._sak_dec_chain
                         else:
                             chain = None
+                    if args:
+                        return args
+                else:
+                    signature = inspect.signature(d)
+                    args = []
+                    for param_name, param in signature.parameters.items():
+                        params = {}
+                        if param.default is not inspect._empty:
+                            #print(param.kind)
+                            params['default'] = param.default
+                        elif param.kind == 'POSITIONAL_OR_KEYWORD':
+                            params['required'] = True
+                        if param.annotation is not inspect._empty:
+                            params['type'] = param.annotation
+
+                        args.append(SakArg(name = param_name, **params))
                     if args:
                         return args
                 # TODO: If does not have decorators, I can try to inspect the arguments here
@@ -387,7 +424,7 @@ def sak_arg_parser(base_cmd, args=None) -> None:
     # The root parser
     description = base_cmd.description or base_cmd.helpmsg
     name = base_cmd.name
-    root_parser = ArgumentParser(prog=name, description=description)
+    root_parser = ArgumentParser(prog=name, description=description, formatter_class=RawTextHelpFormatter)
 
     # Prepare the variables for the tree decend
     cmd = base_cmd
@@ -427,7 +464,9 @@ def sak_arg_parser(base_cmd, args=None) -> None:
 
             sub_parser = subparsers.add_parser(subcmdname,
                                                help=helpmsg,
-                                               description=description)
+                                               description=description,
+                                               formatter_class=RawTextHelpFormatter
+                                               )
             sub_parser.set_defaults(sak_callback=subcmd_callback,
                                     sak_cmd=subcmd,
                                     sak_parser=sub_parser)
