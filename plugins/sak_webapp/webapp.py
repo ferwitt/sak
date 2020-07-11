@@ -8,8 +8,8 @@ __license__ = "MIT"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
+from sak import root_cmd
 from sakcmd import SakCmd, SakArg, sak_arg_parser, SakCmdWrapper
-from sakplugin import SakPlugin, SakPluginManager, onto
 
 import os
 import json
@@ -160,7 +160,7 @@ class SakWebappImpl(object):
         def index() -> ResponseBase:
             return redirect("index.html")
 
-        root_cmd = self.plugin.context.plugin_manager.root_cmd()
+        _root_cmd = root_cmd()
 
         api_root = '/api/sak'
 
@@ -176,7 +176,7 @@ class SakWebappImpl(object):
             args = [x for x in args if x]
 
             # Get only the metadata.
-            ret = sak_arg_parser(root_cmd, args + ['-h'])
+            ret = sak_arg_parser(_root_cmd, args + ['-h'])
 
             if args:
                 if args[-1] != ret['cmd'].name:
@@ -238,7 +238,7 @@ class SakWebappImpl(object):
                 for arg in webArgs:
                     param_args += arg.getRequestArgList(request)
 
-                post_ret = sak_arg_parser(root_cmd, args + param_args)
+                post_ret = sak_arg_parser(_root_cmd, args + param_args)
 
                 web_ret['error'] = False
                 if 'error' in post_ret['argparse']:
@@ -281,8 +281,8 @@ class SakWebappImpl(object):
 
     def appStart(self, port: int) -> None:
         pluginDirs = [
-            p.getPath()
-            for p in self.plugin.context.pluginManager.getPluginList()
+            p.has_plugin_path
+            for p in self.plugin.has_context.has_plugin_manager.has_plugins
         ]
 
         ## Add all the plugin files to the watch list to restart server

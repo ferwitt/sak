@@ -9,26 +9,36 @@ __version__ = "0.1.0"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from sakcmd import SakCmd, SakArg, sak_arg_parser
-from sakplugin import onto, SakPlugin, SakPluginManager, SakContext
-
 import os
 import sys
 import subprocess
 from pathlib import Path
-
 from typing import Optional
+
+from sakconfig import install_core_requirements
+
+try:
+    from sakcmd import SakCmd, SakArg, sak_arg_parser
+    from sakonto import owl, onto
+    from sakplugin import SakPlugin, SakPluginManager, SakContext
+except ImportError:
+    import sys, traceback
+    print("Exception in user code:")
+    print("-"*60)
+    traceback.print_exc(file=sys.stdout)
+    print("-"*60)
+
+    # If import fails, then ask if the user wants to try to update the requirements
+    install_core_requirements()
 
 
 class SakShow(SakPlugin):
     '''General information about SAK.'''
-    namespace = onto
 
-    def __init__(self, name, **kwargs) -> None:
-        super(SakShow, self).__init__(name, **kwargs)
-
-    def getPath(self) -> Optional[Path]:
-        return self.context.sak_global
+    @property
+    def plugin_path(self) -> Optional[Path]:
+        '''Plugin path.'''
+        return self.has_context.sak_global
 
     @SakCmd('version', expose=[SakCmd.EXP_CLI, SakCmd.EXP_WEB], helpmsg='Show SAK version.')
     def show_version(self) -> str:
@@ -49,30 +59,31 @@ class SakShow(SakPlugin):
 class SakPlugins(SakPlugin):
     '''Plugin manager.'''
 
-    namespace = onto
-    def __init__(self, name, **kwargs) -> None:
-        super(SakPlugins, self).__init__(name, **kwargs)
+    @property
+    def plugin_path(self) -> Optional[Path]:
+        '''Plugin path.'''
+        return self.has_context.sak_global
 
     @SakCmd('show', helpmsg='Show the list of plugins.')
     def show(self) -> str:
         ret = ''
-        for plugin in self.context.getPluginManager().getPluginList():
-            ret += 'name: %s\n\tpath: %s\n' % (plugin.name, plugin.getPath())
+        for plugin in self.has_context.has_plugin_manager.has_plugins:
+            ret += 'name: %s\n\tpath: %s\n' % (plugin.name, plugin.plugin_path)
         return ret
 
     @SakCmd('install', helpmsg='Install a new plugin.')
     @SakArg('url', required=True, helpmsg='The plugin git repo URL.')
     def install(self, url:str) -> None:
-        if self.context.sak_global is not None:
+        if self.has_context.sak_global is not None:
             name = url.split('/')[-1].replace('.git', '').replace('-', '_')
             subprocess.run(['git', 'clone', url, name],
                            check=True,
-                           cwd=(self.context.sak_global / 'plugins'))
+                           cwd=(self.has_context.sak_global / 'plugins'))
 
 
     @SakCmd('update', helpmsg='Update SAK and all the plugins.')
-    def doUpdate(self):
-        for plugin in self.context.getPluginManager().getPluginList():
+    def update(self):
+        for plugin in self.has_context.has_plugin_manager.getPluginList():
             if plugin == self:
                 continue
 
@@ -80,32 +91,35 @@ class SakPlugins(SakPlugin):
             print('Updating %s\n' % plugin.name)
             plugin.update()
 
-def get_context() -> SakContext:
-    ctx = SakContext()
+ctx = SakContext()
+plm = SakPluginManager()
 
-    plm = SakPluginManager()
+ctx.has_plugin_manager = plm
+plm.has_context = ctx
 
-    ctx.plugin_manager = plm
-    plm.context = ctx
+plm.addPlugin(SakShow('show'))
+plm.addPlugin(SakPlugins('plugins'))
 
-    plm.addPlugin(SakShow('show'))
-    plm.addPlugin(SakPlugins('plugins'))
+if ctx.sak_global:
+    sys.path.append(str(ctx.sak_global / 'plugins'))
+    plm.loadPlugins(ctx.sak_global / 'plugins')
+if ctx.sak_local and ctx.sak_local != ctx.sak_global:
+    sys.path.append(str(ctx.sak_local / 'plugins'))
+    plm.loadPlugins(ctx.sak_local / 'plugins')
 
-    if ctx.sak_global:
-        sys.path.append(str(ctx.sak_global / 'plugins'))
-        plm.loadPlugins(ctx.sak_global / 'plugins')
-    if ctx.sak_local and ctx.sak_local != ctx.sak_global:
-        sys.path.append(str(ctx.sak_local / 'plugins'))
-        plm.loadPlugins(ctx.sak_local / 'plugins')
 
-    return ctx
+def root_cmd():
+    root = SakCmd(
+        'sak',
+        helpmsg=
+        "Group everyday developer's tools in a swiss-army-knife command.")
+    for plugin in plm.has_plugins:
+        root.subcmds.append(plugin)
+    return root
 
 
 def main() -> None:
-
-    ctx = get_context()
-    plm = ctx.plugin_manager
-    root = plm.root_cmd()
+    root = root_cmd()
 
     args = sys.argv[1:]
     ret = sak_arg_parser(root, args)
@@ -124,6 +138,13 @@ def main() -> None:
             pl.show()
         else:
             print(ret['value'])
+
+    onto.save()
+    for plugin in plm.has_plugins:
+        if plugin.name in ['plugins']:
+            continue
+        plugin.get_ontology().save()
+    owl.default_world.save()
 
 
 if __name__ == "__main__":

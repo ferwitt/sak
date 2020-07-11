@@ -329,7 +329,7 @@ class SakTuiImpl(object):
         print('DEPRECATED!')
         return
         self.widgetsList: List[Any] = []
-        cmdTree = SakTuiCmd(self, self.plugin.context.pluginManager.generateCommandsTree())
+        cmdTree = SakTuiCmd(self, self.plugin.has_context.has_plugin_manager.generateCommandsTree())
 
         def exportCmdLayout(cmd: SakTuiCmd) -> None:
             if cmd.cmd.callback is not None:

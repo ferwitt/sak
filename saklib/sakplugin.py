@@ -7,8 +7,8 @@ __license__ = "MIT"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from sakcmd import SakCmd
-from sakconfig import SAK_GLOBAL, SAK_LOCAL
+from sakconfig import SAK_GLOBAL, SAK_LOCAL, CURRENT_DIR
+from sakonto import owl, onto, Sak
 
 import os
 import sys
@@ -19,10 +19,6 @@ import inspect
 
 from typing import Optional, List, Dict
 
-import owlready2 as owl  #type: ignore
-
-owl.onto_path.append(SAK_GLOBAL)
-onto = owl.get_ontology("http://test.org/sak_core.owl#")
 
 PYTHON_VERSION_MAJOR = sys.version_info.major
 PYTHON_VERSION_MINOR = sys.version_info.minor
@@ -38,60 +34,60 @@ else:
     print('Unkown python version %d' % PYTHON_VERSION_MAJOR)
     sys.exit(-1)
 
-
-class SakContext(owl.Thing):
-    namespace = onto
-
+class SakContext(object):
+    '''Sak plugins context.'''
     def __init__(self, **kwargs) -> None:
-        super(SakContext, self).__init__('sak_context', **kwargs)
+        super(SakContext, self).__init__()
         self.sak_global = SAK_GLOBAL
         self.sak_local = SAK_LOCAL
+        self.current_dir = CURRENT_DIR
 
-    @property
-    def pluginManager(self) -> 'SakPluginManager':
-        return self.plugin_manager
+        self.has_plugin_manager = None
 
-    def getPluginManager(self) -> 'SakPluginManager':
-        return self.plugin_manager
-
-
-class SakPlugin(owl.Thing):
-    namespace = onto
-
-    _path: Optional[Path] = None
-
+class SakPlugin(object):
     def __init__(self, name, **kwargs) -> None:
-        super(SakPlugin, self).__init__(name, **kwargs)
+        super(SakPlugin, self).__init__()
+        self.name = name
+        self.has_plugin_path = None
+        self.has_context = None
+
 
         self._ontology = None
+
+        local_onto = self.get_ontology()
+        with local_onto:
+            self.onto_declare(local_onto)
 
     def get_ontology(self):
         #TODO(witt): This was a property before, but then the arg_parse was
         #            trying to evaluate it, which caused the system to halt, due to some
         #            deadlock in: /owlready2/triplelite.py
         if self._ontology is None:
-            self._ontology = owl.get_ontology('http://sak.org/sak/%s.owl#' %
-                                              self.name)
+            self._ontology = owl.get_ontology(f'http://sak.org/sak/{self.name}.owl#')
+            #self._ontology = owl.get_ontology(f'file://{SAK_GLOBAL}/{self.name}.owl#')
             try:
                 self._ontology.load()
             except:
                 pass
+            self._ontology.imported_ontologies.append(onto)
         return self._ontology
 
-    def get_namespace(self, namespace):
-        return self.get_ontology().get_namespace('http://sak.org/sak/%s' % namespace)
+    def onto_declare(self, local_onto):
+        pass
 
-    def setPluginPath(self, path: Path) -> None:
-        self._path = path
+    def onto_impl(self, local_onto):
+        pass
 
-    def getPath(self) -> Optional[Path]:
-        return self._path
+    #def get_namespace(self, namespace):
+    #    return self.get_ontology().get_namespace('http://sak.org/sak/%s' % namespace)
 
-    def setContext(self, context: SakContext) -> None:
-        self.context = context
+    @property
+    def plugin_path(self) -> Optional[Path]:
+        '''Plugin path.'''
+        return Path(self.has_plugin_path)
 
     def update(self) -> None:
-        path = self.getPath()
+        path = self.plugin_path
 
         if path is not None:
             if (path / '.git').exists():
@@ -109,38 +105,26 @@ class SakPlugin(owl.Thing):
                                check=True,
                                cwd=path)
 
-    def exportCmds(self, base: SakCmd) -> None:
-        pass
 
-
-class SakPluginManager(owl.Thing):
-    namespace = onto
-
+class SakPluginManager(object):
     def __init__(self, **kwargs) -> None:
-        super(SakPluginManager, self).__init__('sak_plugin_manager', **kwargs)
+        super(SakPluginManager, self).__init__()
+        self.has_plugins = []
+        self.has_context = None
 
-    def getPuginByName(self, name: str) -> Optional[SakPlugin]:
-        for p in self.plugins:
+    def get_plugin(self, name: str) -> Optional[SakPlugin]:
+        for p in self.has_plugins:
             if p.name == name:
                 return p
         return None
 
     def addPlugin(self, plugin: SakPlugin) -> None:
-        plugin.setContext(self.context)
-        if plugin not in self.plugins:
-            self.plugins.append(plugin)
+        plugin.has_context = self.has_context
+        if plugin not in self.has_plugins:
+            self.has_plugins.append(plugin)
 
     def getPluginList(self) -> List[SakPlugin]:
-        return self.plugins
-
-    def root_cmd(self) -> Dict:
-        root = SakCmd(
-            'sak',
-            helpmsg=
-            "Group everyday developer's tools in a swiss-army-knife command.")
-        for plugin in self.plugins:
-            root.subcmds.append(plugin)
-        return root
+        return self.has_plugins
 
     def loadPlugins(self, pluginsPath: Optional[Path] = None) -> None:
         if pluginsPath is None:
@@ -205,22 +189,12 @@ class SakPluginManager(owl.Thing):
                     if name.startswith('sak_'):
                         name = name.replace('sak_', '')
                     plugin = attribute(name)
-                    plugin.setPluginPath(plugin_path)
-                    plugin.setContext(self.context)
+                    plugin.has_plugin_path = str(plugin_path)
+                    plugin.has_context = self.has_context
                     self.addPlugin(plugin)
 
+        for plugin in self.has_plugins:
+            local_onto = plugin.get_ontology()
+            with local_onto:
+                plugin.onto_impl(local_onto)
 
-with onto:
-
-    class has_context((SakPlugin | SakPluginManager) >> SakContext,
-                      owl.FunctionalProperty):  #type: ignore
-        python_name = "context"
-
-    class has_plugin_manager(SakContext >> SakPluginManager,
-                             owl.FunctionalProperty):  #type: ignore
-        python_name = "plugin_manager"
-
-    class has_plugin(SakPluginManager >> SakPlugin):  #type: ignore
-        python_name = "plugins"
-
-    owl.AllDisjoint([SakPlugin, SakPluginManager, SakContext])

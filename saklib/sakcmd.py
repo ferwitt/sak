@@ -11,21 +11,18 @@ import copy
 
 import sys, os
 import argparse
-from argparse import Namespace, ArgumentParser, REMAINDER
+from argparse import Namespace, ArgumentParser, REMAINDER, RawTextHelpFormatter
 import functools
 from typing import Optional, Callable, Dict, Any, List
+from io import StringIO  ## for Python 3
 from contextlib import redirect_stderr, redirect_stdout
 
 from collections.abc import Iterable
 import inspect
 
 from sakconfig import install_core_requirements
-
-#try:
-#    from StringIO import StringIO ## for Python 2
-#except ImportError:
-#    from io import StringIO ## for Python 3
-from io import StringIO  ## for Python 3
+from sakonto import owl
+from sakplugin import SakPlugin
 
 hasArgcomplete = False
 try:
@@ -34,14 +31,7 @@ try:
 except:
     pass
 
-try:
-    # Try to import owlready2 and redirect stderr to string IO
-    f = StringIO()
-    with redirect_stderr(f):
-        import owlready2 as owl  #type: ignore
-except ImportError:
-    # If import fails, then ask if the user wants to try to update the requirements
-    install_core_requirements()
+
 
 
 class SakDecorator:
@@ -154,7 +144,6 @@ class SakCmdWrapper:
                  helpmsg: str = None,
                  subcmds=None,
                  cmd=None):
-        d = wrapped_content
 
         self._wrapped_content = wrapped_content
         self._name = name
@@ -165,6 +154,7 @@ class SakCmdWrapper:
         self._description = subcmds
         self._cmd = cmd
 
+        d = wrapped_content
         if isinstance(d, SakCmdWrapper):
             self._wrapped_content = d._wrapped_content
             self._name = d._name
@@ -188,8 +178,14 @@ class SakCmdWrapper:
             return self._name
 
         d = self._wrapped_content
-        if isinstance(d, owl.Thing) or isinstance(
-                d, owl.Ontology) or isinstance(d, owl.ThingClass):
+
+        if inspect.ismethod(d) or inspect.isfunction(d):
+            return d.__name__
+
+        if isinstance(d, SakPlugin)  \
+            or isinstance(d, owl.Thing) \
+            or isinstance(d, owl.Ontology) \
+            or isinstance(d, owl.ThingClass):
             return d.name
 
         return None
@@ -298,8 +294,15 @@ class SakCmdWrapper:
                 return self.cmd.description
 
         d = self._wrapped_content
-        if isinstance(d, owl.Thing) or isinstance(
-                d, owl.Ontology) or isinstance(d, owl.ThingClass):
+        if isinstance(d, SakPlugin) \
+            or isinstance(d, owl.Thing) \
+            or isinstance(d, owl.Ontology) \
+            or isinstance(d, owl.ThingClass):
+            docstring = inspect.getdoc(d)
+            if docstring:
+                return inspect.cleandoc(docstring)
+
+        if inspect.ismethod(d) or inspect.isfunction(d):
             docstring = inspect.getdoc(d)
             if docstring:
                 return inspect.cleandoc(docstring)
@@ -309,7 +312,25 @@ class SakCmdWrapper:
 
     @property
     def description(self):
-        return self._description
+        if self._description:
+            return self._description
+
+        d = self._wrapped_content
+        if isinstance(d, SakPlugin) \
+            or isinstance(d, owl.Thing) \
+            or isinstance( d, owl.Ontology) \
+            or isinstance(d, owl.ThingClass):
+            docstring = inspect.getdoc(d)
+            if docstring:
+                return docstring
+
+
+        if inspect.ismethod(d) or inspect.isfunction(d):
+            docstring = inspect.getdoc(d)
+            if docstring:
+                return docstring
+
+        return None
 
     @property
     def cmd(self):
@@ -470,7 +491,22 @@ def sak_arg_parser(base_cmd, args=None) -> None:
         sak_cmd = nm_dict.pop('sak_cmd')
         sak_parser = nm_dict.pop('sak_parser')
         callback = nm_dict.pop('sak_callback')
+
+        ret['value'] = None
+
         if callback:
-            ret['value'] = callback(**nm_dict)
+            #import pdb; pdb.set_trace()
+            try:
+                ret['value'] = callback(**nm_dict)
+            except Exception as e:
+                # TODO(witt): Implement some verbose option that allows to view the whole stack call
+                verbose = True
+                if verbose:
+                    import sys, traceback
+                    print("Exception in user code:")
+                    print("-"*60)
+                    traceback.print_exc(file=sys.stdout)
+                    print("-"*60)
+                print(e)
 
         return ret

@@ -9,16 +9,7 @@ __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
 from sakcmd import SakCmd, SakArg
-import sakplugin
-from sakplugin import SakPlugin, SakPluginManager, owl
-
-import os
-import json
-import io
-import base64
-
-from pathlib import Path
-from typing import List, Dict, Any, Optional
+from sakplugin import SakPlugin
 
 import sys
 from pathlib import Path
@@ -46,8 +37,3 @@ class SakWebapp(SakPlugin):
         self.lazy_import()
         return self.sakwebapp.start(**vargs)
 
-
-    @SakCmd()
-    @SakArg('message', default='No message', type=str, helpmsg='Some message')
-    def say_hello(self, message, **vargs):
-        return 'Test say: ' +message
