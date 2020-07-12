@@ -33,6 +33,7 @@ class SakWebapp(SakPlugin):
 
     @SakCmd('start', helpmsg='Start webapp')
     @SakArg('port', short_name='p', type=int, default=2020, helpmsg='Server port (default: 2020)')
+    @SakArg('bokeh_port', short_name='b', type=int, default=5006, helpmsg='The Bokeh server port (default: 5006)')
     def start(self, **vargs):
         self.lazy_import()
         return self.sakwebapp.start(**vargs)

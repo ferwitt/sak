@@ -133,17 +133,25 @@ def main() -> None:
         sys.exit(0)
 
     if ret['value'] is not None:
-        if 'matplotlib.figure.Figure' in str(type(ret['value'])):
-            import pylab as pl #type: ignore
-            pl.show()
+        print(type(ret['value']))
+
+        if hasattr(ret['value'], 'show'):
+            ret['value'].show()
+        elif 'bokeh' in str(type(ret['value'])):
+            from bokeh.plotting import show
+            show(ret['value'])
         else:
             print(ret['value'])
 
-    onto.save()
+    onto.save(
+            format='ntriples'
+            )
     for plugin in plm.has_plugins:
         if plugin.name in ['plugins']:
             continue
-        plugin.get_ontology().save()
+        plugin.get_ontology().save(
+                format='ntriples'
+                )
     owl.default_world.save()
 
 
