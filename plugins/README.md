@@ -13,44 +13,66 @@ The plugin.py should contain a class that specialized SakPlugin. For example
 ```Python
 # -*- coding: UTF-8 -*-
 
-from sakplugin import SakPlugin
-from sakcmd import SakCmd, SakArg
+class SakCowsay(SakPlugin):
+    '''Cowsay demo.'''
+    @SakCmd()
+    @SakArg('message', short_name='m', helpmsg='The message to be printed.')
+    def dogsay(self, message='Bye world'):
+        '''Dog say something.'''
+        return f'''\
+ _____________
+< {message} >
+ -------------
+    \\      _
+     \\/\\,_/\\|
+      /==_ (
+     (Y_.) /       ///
+      U ) (__,_____) )
+        )'   >     `/
+        |._  _____  |
+        | | (    \\| (
+        | | |    || |
+'''
 
-import os
-
-class CowSay(SakPlugin):
-    def __init__(self):
-        super(CowSay, self).__init__('cowsay')
-
-    def cowsay(self, **vargs):
-        os.system('cowsay "Hello world"')
-
-    def exportCmds(self, base):
-        show = SakCmd('cowsay', self.cowsay)
-        base.addSubCmd(show)
+    @SakCmd()
+    @SakArg('message', short_name='m', helpmsg='The message to be printed.')
+    def __call__(self, message='Hello world'):
+        '''Cow say something.'''
+        return f'''\
+ _____________
+< {message} >
+ -------------
+        \\   ^__^
+         \\  (oo)\\_______
+            (__)\\       )\\/\\
+                ||----w |
+                ||     ||
+'''
 ```
 
 This will generate:
 
 ```
-$ sak -h
-usage: sak [-h] {show,plugins,cowsay} ...
+usage: sak cowsay [-h] [--message MESSAGE]
+                  {dogsay}
+                  ...
+
+Cowsay demo.
 
 positional arguments:
-  {show,plugins,cowsay}
-    show                TODO
-    plugins             TODO
-    cowsay              TODO
+  {dogsay,get_ontology,has_context,has_plugin_path,name,onto_declare,onto_impl,plugin_path,update}
+    dogsay              Dog say something.
 
 optional arguments:
   -h, --help            show this help message and exit
-
+  --message MESSAGE, -m MESSAGE
+                        The message to be printed.
 ```
 
 And callong the command subcommand will generate:
 
 ```
-$ sak cowsay 
+$ sak cowsay
  _____________
 < Hello world >
  -------------

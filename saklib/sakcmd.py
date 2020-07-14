@@ -32,20 +32,18 @@ except:
     pass
 
 
-
-
 class SakDecorator:
     def __init__(self, *args, **vargs):
-        self.args = args
-        self.vargs = vargs
-        self.func = None
+        self._sak_args = args
+        self._sak_vargs = vargs
+        self._sak_func = None
 
-    def __call__(self, func):
-        self.func = func
+    def __call__(self, _sak_func):
+        self._sak_func = _sak_func
 
-        @functools.wraps(func)
+        @functools.wraps(_sak_func)
         def wrapper(*args, **vargs):
-            return self.func(*args, **vargs)
+            return self._sak_func(*args, **vargs)
 
         wrapper._sak_dec_chain = self
         return wrapper
@@ -243,8 +241,8 @@ class SakCmdWrapper:
                             args = []
                             chain = d._sak_dec_chain
                             while chain is not None:
-                                if hasattr(chain.func, '_sak_dec_chain'):
-                                    chain = chain.func._sak_dec_chain
+                                if hasattr(chain._sak_func, '_sak_dec_chain'):
+                                    chain = chain._sak_func._sak_dec_chain
                                 else:
                                     chain = None
                             continue
@@ -283,36 +281,59 @@ class SakCmdWrapper:
         if self._wrapped_content:
             d = self._wrapped_content
 
-            if inspect.ismethod(d) or inspect.isfunction(d):
-                if hasattr(d, '_sak_dec_chain'):
-                    args = []
-                    chain = d._sak_dec_chain
+            if callable(d):
+                _d = d
+                if hasattr(d, '__call__') and not hasattr(d, '_sak_dec_chain'):
+                    _d = d.__call__
+
+                _params = {}
+
+                # Instrospect the function signature
+                signature = inspect.signature(_d)
+                for param_name, param in signature.parameters.items():
+                    if param_name.startswith('_sak_'):
+                        continue
+
+                    if str(param.kind) not in ['POSITIONAL_OR_KEYWORD']:
+                        continue
+
+                    if param_name not in _params:
+                        _params[param_name] = SakArg(name = param_name)
+
+                    if param.default is not inspect._empty:
+                        _params[param_name].vargs['default'] = param.default
+                    else:
+                        _params[param_name].vargs['required'] = True
+
+                    if param.annotation is not inspect._empty:
+                        _params[param_name].vargs['type'] = param.annotation
+
+
+                # Check if there are decorators and override the info from the decorator.
+                if hasattr(_d, '_sak_dec_chain'):
+                    chain = _d._sak_dec_chain
                     while chain is not None:
                         if isinstance(chain, SakArg):
-                            args.append(chain)
-                        if hasattr(chain.func, '_sak_dec_chain'):
-                            chain = chain.func._sak_dec_chain
+                            if chain.name not in _params:
+                                _params[chain.name] = chain
+
+                            if chain.helpmsg is not None:
+                                _params[chain.name].helpmsg = chain.helpmsg
+                            if chain.short_name:
+                                _params[chain.name].short_name = chain.short_name
+                            if chain.completercb is not None:
+                                _params[chain.name].completercb = chain.completercb
+                            _params[chain.name].vargs.update(chain.vargs)
+
+                        if hasattr(chain._sak_func, '_sak_dec_chain'):
+                            chain = chain._sak_func._sak_dec_chain
                         else:
                             chain = None
-                    if args:
-                        return args
-                else:
-                    signature = inspect.signature(d)
-                    args = []
-                    for param_name, param in signature.parameters.items():
-                        params = {}
-                        if param.default is not inspect._empty:
-                            #print(param.kind)
-                            params['default'] = param.default
-                        elif param.kind == 'POSITIONAL_OR_KEYWORD':
-                            params['required'] = True
-                        if param.annotation is not inspect._empty:
-                            params['type'] = param.annotation
 
-                        args.append(SakArg(name = param_name, **params))
-                    if args:
-                        return args
-                # TODO: If does not have decorators, I can try to inspect the arguments here
+                # If there is any parameter then return it.
+                if _params:
+                    return list(_params.values())
+
         return []
 
     @property
@@ -339,6 +360,7 @@ class SakCmdWrapper:
             if docstring:
                 return inspect.cleandoc(docstring)
 
+        #TODO(witt): How about __call__?
         if inspect.ismethod(d) or inspect.isfunction(d):
             docstring = inspect.getdoc(d)
             if docstring:
@@ -387,8 +409,8 @@ class SakCmdWrapper:
                     while chain is not None:
                         if isinstance(chain, SakCmd):
                             cmd = chain
-                        if hasattr(chain.func, '_sak_dec_chain'):
-                            chain = chain.func._sak_dec_chain
+                        if hasattr(chain._sak_func, '_sak_dec_chain'):
+                            chain = chain._sak_func._sak_dec_chain
                         else:
                             chain = None
                     if cmd:
@@ -483,6 +505,12 @@ def sak_arg_parser(base_cmd, args=None) -> None:
                 args = rargs
                 parser = nm.sak_parser
                 cmd = nm.sak_cmd
+
+                # Flush the namespace to go a level down.
+                nm = Namespace(sak_callback=nm.sak_callback,
+                               sak_cmd=nm.sak_cmd,
+                               sak_parser=nm.sak_parser)
+
                 continue
 
             success = True
