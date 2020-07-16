@@ -34,3 +34,6 @@ class Sak(owl.Thing):
         name = urllib.parse.quote(name, safe='')
         super(Sak, self).__init__(name, **vargs)
 
+    def get_name(self):
+        return urllib.parse.unquote(self.name)
+
