@@ -242,20 +242,11 @@ class SakWebappImpl(object):
                 elif webarg['type'] in ['bool']:
                     params[name] = pn.widgets.Checkbox(name=name, value=default)
                 elif webarg['type'] in ['list']:
-                    _params = {}
 
-                    if choices:
+                    if not name in params:
+                        _params = {}
                         if default:
                             _params['value'] = default
-
-                        _params['options'] = choices
-                        if arg.completercb:
-                            completer_args = SakCompleterArg(None, None, None, None)
-                            _params['options'] = arg.completercb(completer_args)
-
-                        params[name] = pn.widgets.CrossSelector(name=name, **_params)
-                    elif default:
-                        _params['value'] = default
 
                         if choices:
                             _params['options'] = choices
@@ -263,10 +254,30 @@ class SakWebappImpl(object):
                             completer_args = SakCompleterArg(None, None, None, None)
                             _params['options'] = arg.completercb(completer_args)
 
-                        params[name] = pn.widgets.MultiChoice(name=name, **_params)
-                    else:
+                        if 'options' in _params:
+                            params[name] = pn.widgets.MultiChoice(name=name, **_params)
+
+                    if not name in params:
+                        _params = {}
+                        if default:
+                            _params['value'] = default
+
+                        if choices:
+                            _params['options'] = choices
+                        if arg.completercb:
+                            completer_args = SakCompleterArg(None, None, None, None)
+                            _params['options'] = arg.completercb(completer_args)
+
+                        if 'options' in _params:
+                            params[name] = pn.widgets.CrossSelector(name=name, **_params)
+
+                    if not name in params:
+                        _params = {}
                         if default is not None:
-                            _params['placeholder'] = str(default)
+                            if isinstance(default, list):
+                                _params['value'] = '\n'.join(default)
+                            else:
+                                _params['value'] = str(default)
                         params[name] = pn.widgets.TextAreaInput(name=name, **_params)
 
             command = pn.Row(path, path)
