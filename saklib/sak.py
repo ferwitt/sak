@@ -19,8 +19,31 @@ from sakconfig import install_core_requirements
 
 try:
     from sakcmd import SakCmd, SakArg, sak_arg_parser
-    from sakonto import owl, onto
     from sakplugin import SakPlugin, SakPluginManager, SakContext
+
+    import lazy_import
+    lazy_import.lazy_module('param')
+    lazy_import.lazy_module('panel')
+    lazy_import.lazy_module('flask')
+    lazy_import.lazy_module('wrappers')
+    lazy_import.lazy_module('bokeh')
+    lazy_import.lazy_module('bokeh.server.server')
+    lazy_import.lazy_module('bokeh.embed')
+    #lazy_import.lazy_module('bokeh.models')
+    lazy_import.lazy_module('panel')
+    lazy_import.lazy_module('pandas')
+    #lazy_import.lazy_module('pandas_bokeh')
+    lazy_import.lazy_module('matplotlib')
+    lazy_import.lazy_module('matplotlib.pyplot')
+    lazy_import.lazy_module('matplotlib.animation')
+    lazy_import.lazy_module('matplotlib.widgets')
+    lazy_import.lazy_module('pylab')
+    lazy_import.lazy_module('tornado')
+    #lazy_import.lazy_module('pymovies')
+    lazy_import.lazy_module('numpy')
+    lazy_import.lazy_module('scipy.optimize')
+    lazy_import.lazy_module('scipy.spatial.transform')
+    lazy_import.lazy_module('git')
 except ImportError:
     import sys, traceback
     print("Exception in user code:")
@@ -31,14 +54,18 @@ except ImportError:
     # If import fails, then ask if the user wants to try to update the requirements
     install_core_requirements()
 
+#import param 
+#from dataclasses import dataclass
+
+ctx = SakContext()
+plm = SakPluginManager()
+
+ctx.has_plugin_manager = plm
+plm.has_context = ctx
+
 
 class SakShow(SakPlugin):
     '''General information about SAK.'''
-
-    @property
-    def plugin_path(self) -> Optional[Path]:
-        '''Plugin path.'''
-        return self.has_context.sak_global
 
     @SakCmd('version', expose=[SakCmd.EXP_CLI, SakCmd.EXP_WEB], helpmsg='Show SAK version.')
     def show_version(self) -> str:
@@ -49,56 +76,10 @@ class SakShow(SakPlugin):
         subprocess.call(['register-python-argcomplete', 'sak', '-s', 'bash'])
         return None
 
-    @SakCmd()
-    def bash(self):
-        os.system('bash')
-        #TODO: Fix this!
-        return None
 
 
-class SakPlugins(SakPlugin):
-    '''Plugin manager.'''
-
-    @property
-    def plugin_path(self) -> Optional[Path]:
-        '''Plugin path.'''
-        return self.has_context.sak_global
-
-    @SakCmd('show', helpmsg='Show the list of plugins.')
-    def show(self) -> str:
-        ret = ''
-        for plugin in self.has_context.has_plugin_manager.has_plugins:
-            ret += 'name: %s\n\tpath: %s\n' % (plugin.name, plugin.plugin_path)
-        return ret
-
-    @SakCmd('install', helpmsg='Install a new plugin.')
-    @SakArg('url', required=True, helpmsg='The plugin git repo URL.')
-    def install(self, url:str) -> None:
-        if self.has_context.sak_global is not None:
-            name = url.split('/')[-1].replace('.git', '').replace('-', '_')
-            subprocess.run(['git', 'clone', url, name],
-                           check=True,
-                           cwd=(self.has_context.sak_global / 'plugins'))
-
-
-    @SakCmd('update', helpmsg='Update SAK and all the plugins.')
-    def update(self):
-        for plugin in self.has_context.has_plugin_manager.getPluginList():
-            if plugin == self:
-                continue
-
-            print(80*'-' + '\n')
-            print('Updating %s\n' % plugin.name)
-            plugin.update()
-
-ctx = SakContext()
-plm = SakPluginManager()
-
-ctx.has_plugin_manager = plm
-plm.has_context = ctx
-
-plm.addPlugin(SakShow('show'))
-plm.addPlugin(SakPlugins('plugins'))
+plm.addPlugin(SakShow(ctx, 'show'))
+#plm.addPlugin(SakPlugins(ctx, 'plugins'))
 
 if ctx.sak_global:
     sys.path.append(str(ctx.sak_global / 'plugins'))
@@ -143,16 +124,6 @@ def main() -> None:
         else:
             print(ret['value'])
 
-    onto.save(
-            format='ntriples'
-            )
-    for plugin in plm.has_plugins:
-        if plugin.name in ['plugins']:
-            continue
-        plugin.get_ontology().save(
-                format='ntriples'
-                )
-    owl.default_world.save()
 
 
 if __name__ == "__main__":

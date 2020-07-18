@@ -21,7 +21,6 @@ from collections.abc import Iterable
 import inspect
 
 from sakconfig import install_core_requirements
-from sakonto import owl
 from sakplugin import SakPlugin
 
 hasArgcomplete = False
@@ -187,10 +186,7 @@ class SakCmdWrapper:
         if inspect.ismethod(d) or inspect.isfunction(d):
             return d.__name__
 
-        if isinstance(d, SakPlugin)  \
-            or isinstance(d, owl.Thing) \
-            or isinstance(d, owl.Ontology) \
-            or isinstance(d, owl.ThingClass):
+        if isinstance(d, SakPlugin):
             return d.name
 
         return None
@@ -207,8 +203,9 @@ class SakCmdWrapper:
                 if isinstance(d, plain_type):
                     return lambda **x: d
 
-            if callable(d): #inspect.ismethod(d) or inspect.isfunction(d):
-                return d
+            if not isinstance(d, SakDecorator):
+                if callable(d): #inspect.ismethod(d) or inspect.isfunction(d):
+                    return d
 
                 # TODO(witt): I dont think I should return the result from the callback here :/
                 #return SakCmdWrapper(
@@ -229,7 +226,18 @@ class SakCmdWrapper:
         if self._wrapped_content:
             d = self._wrapped_content
 
-            # TODO(witt): How about dictionaries?
+            if isinstance(d, dict):
+                subcmds = []
+                for k, v in d.items():
+                    if hasattr(v, '_sak_dec_chain'):
+                        k = v.__name__
+                    #elif hasattr(v, 'name'):
+                    #    k = v.name
+                    if k.startswith('_'): continue
+                    subcmds.append(SakCmdWrapper(wrapped_content=v, name=k))
+                if subcmds:
+                    return subcmds
+
             if isinstance(d, Iterable):
                 subcmds = []
                 for idx, v in enumerate(d):
@@ -244,11 +252,11 @@ class SakCmdWrapper:
                 if subcmds:
                     return subcmds
 
-            if True or isinstance(d, owl.Thing) or isinstance(d, owl.ThingClass):
+            if True:
                 subcmds = []
                 for k in dir(d):
-                    if k.startswith('_'): continue
 
+                    if k.startswith('_'): continue
                     try:
                         dd = getattr(d, k)
 
@@ -266,7 +274,12 @@ class SakCmdWrapper:
                         subcmds.append(dd)
                     except:
                         #TODO(witt): Just does not add because of failure.
-                        #print('skip', k)
+                        print('skip', k)
+                        import sys, traceback
+                        print("Exception in user code:")
+                        print("-"*60)
+                        traceback.print_exc(file=sys.stdout)
+                        print("-"*60)
                         pass
                 if subcmds:
                     return subcmds
@@ -312,6 +325,13 @@ class SakCmdWrapper:
                         if param.annotation is not inspect._empty:
                             _params[param_name].vargs['type'] = param.annotation
 
+                        if _params[param_name].vargs.get('type', None) is bool or isinstance(_params[param_name].vargs.get('default', None), bool):
+                            dft = _params[param_name].vargs.get('default', None)
+                            _params[param_name].vargs['action'] = 'store_true'
+                            if dft == True:
+                                _params[param_name].vargs['action'] = 'store_false'
+
+
 
                     # Check if there are decorators and override the info from the decorator.
                     if hasattr(_d, '_sak_dec_chain'):
@@ -356,10 +376,13 @@ class SakCmdWrapper:
                 return self.cmd.description
 
         d = self._wrapped_content
-        if isinstance(d, SakPlugin) \
-            or isinstance(d, owl.Thing) \
-            or isinstance(d, owl.Ontology) \
-            or isinstance(d, owl.ThingClass):
+
+        if isinstance(d, dict):
+            if '__doc__' in d:
+                return d['__doc__']
+
+
+        if isinstance(d, SakPlugin):
             docstring = inspect.getdoc(d)
             if docstring:
                 return inspect.cleandoc(docstring)
@@ -379,10 +402,7 @@ class SakCmdWrapper:
             return self._description
 
         d = self._wrapped_content
-        if isinstance(d, SakPlugin) \
-            or isinstance(d, owl.Thing) \
-            or isinstance( d, owl.Ontology) \
-            or isinstance(d, owl.ThingClass):
+        if isinstance(d, SakPlugin):
             docstring = inspect.getdoc(d)
             if docstring:
                 return docstring
