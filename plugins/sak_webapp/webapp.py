@@ -10,6 +10,8 @@ __email__ = "ferawitt@gmail.com"
 
 import ctypes
 import os
+
+# from threading import Thread
 import threading
 import time
 from functools import partial
@@ -392,10 +394,9 @@ class CallbackObject:
         self.cmd = cmd
 
         self.output = pn.Column(
-            # pn.layout.VSpacer(),
             # pn.pane.GIF('https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif')
-            # height=900,
-            sizing_mode="stretch_both"
+            # 'Output here'
+            sizing_mode="stretch_width",
         )
 
         self.run_button = pn.widgets.Button(
@@ -473,10 +474,7 @@ class CallbackObject:
         new_output = None
 
         # TODO: Get from my resources here
-        loading = pn.pane.GIF(
-            "https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif",
-            sizing_mode="stretch_both",
-        )
+        loading = pn.pane.GIF(str(RESOURCES_PATH / "static/img/loading.gif"))
         # loading = pni.LoadingSpinner()
         self.doc.add_next_tick_callback(
             partial(self.update_doc, new_output=loading, stdout_str=None)
@@ -501,10 +499,8 @@ class CallbackObject:
 
                     stdout_strio = get_stdout_buffer_for_thread(self.thread.ident)
                     stdout_str = ""
-
                     if stdout_strio is not None:
                         stdout_str = stdout_strio.getvalue()[-MAX_SIZE:]
-
                     if self.stdout.object != stdout_str:
                         # loading = pn.pane.GIF('https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif')
                         self.doc.add_next_tick_callback(
@@ -594,90 +590,44 @@ class SakDoc(param.Parameterized):  # type: ignore
         # Filter empty fields
         self._args = [x for x in path.split("/") if x]
 
-    # def view(self):
-    #    content = CallbackObject(self.doc, self._curr_cmd, self._args)
-    #    return pn.Column(
-    #            pn.pane.Markdown('''# SAK'''),
-    #            #pn.Row(
-    #                #self.param,
-    #                content.view()
-    #                #)
-    #
-    #
-    #            )
-
-    def server_doc(self) -> bokeh.document.document.Document:
+    def view(self) -> pn.pane.PaneBase:
         content = CallbackObject(self.doc, self._curr_cmd, self._args)
 
-        # from panel.template import DarkTheme
+        toc_md = """
+        [HOME &#127968;](/new/)
+        """
 
-        # tmpl = pn.Template(template=(template % 'server'), nb_template=(template % 'notebook'))
-        # tmpl = pn.template.GoldenTemplate(title='SAK' #, theme=DarkTheme)
-        # tmpl = pn.template.VanillaTemplate(title='SAK', header_background="#357ebd") #, theme=DarkTheme)
-        tmpl = pn.template.BootstrapTemplate(
-            title="SAK", header_background="#357ebd"
-        )  # , theme=DarkTheme)
-        # tmpl.nb_template.globals['get_id'] = make_globally_unique_id
-
-        toc_md = ""
-        # toc_md += f'''[HOME &#127968;](./)'''
         if content.path:
-            toc_md += f"""[PARENT  &#8593;](./?path={os.path.dirname(content.path)})"""
+            toc_md += f"""
+        [PARENT  &#8593;](/new/{os.path.dirname(content.path)})
+        """
 
-        # toc_md += f'''
-        # ---
-        # '''
-
-        subcmds_md = ""
-        if content.cmd.subcmds:
-            subcmds_md += """
+        toc_md += """
         ---
         """
 
         for subcmd in content.cmd.subcmds:
-            subcmds_md += f"""
-        [{subcmd.name.upper()}](./?path={os.path.join(content.path, subcmd.name)})
+            toc_md += f"""
+        [{subcmd.name.upper()}](/new/{os.path.join(content.path, subcmd.name)})
         """
-        # toc_md += '''
-        # ---
-        # '''
+        toc_md += """
+        ---
+        """
 
-        controller = pn.Column(
-            # pn.Row(
-            #    pn.pane.Pane(str( RESOURCES_PATH / 'static/img/sak.png' ), height=40),
-            #    pn.pane.Markdown('# SAK')
-            # ),
-            pn.pane.Markdown(toc_md, sizing_mode="stretch_width"),
-            pn.pane.Markdown(
-                subcmds_md, sizing_mode="stretch_width"
-            ),  # , style={'font-size': '12px'}),
-            content.parameters_view(),
+        controller = pn.WidgetBox(
+            pn.Row(
+                pn.pane.Pane(str(RESOURCES_PATH / "static/img/sak.png"), height=40),
+                pn.pane.Markdown("# SAK"),
+            ),
+            pn.pane.Markdown(toc_md, sizing_mode="stretch_both"),
+            # content.parameters_view(),
             # pn.layout.VSpacer(),
-            # css_classes=['panel-widget-box', 'custom-wbox'],
+            content.parameters_view(),
+            css_classes=["panel-widget-box", "custom-wbox"],
             sizing_mode="stretch_both",
         )
 
-        # parameters = content.parameters_view()
-
-        content_pane = pn.Tabs(
-            ("output", content.view()),
-            ("stdout", content.stdout_view()),
-            # height=900,
-            # css_classes=['panel-widget-box', 'custom-wbox'],
-            sizing_mode="stretch_both",
+        return pn.Row(
+            pn.Column(controller),
+            pn.Tabs(("Result", content.view()), ("stdout", content.stdout_view())),
         )
-        # content_pane = content.view()
-
-        tmpl.sidebar.append(controller)
-        tmpl.main.append(content_pane)
-
-        # tmpl.add_panel('controller', controller)
-        # tmpl.add_panel('parameters', parameters)
-        # tmpl.add_panel('content', content_pane)
-        # tmpl.add_panel('stdout', content.stdout_view())
-
-        # tmpl.modal.append(pn.pane.Markdown('This is a modal test'))
-        # tmpl.open_modal()
-
-        ret = tmpl.server_doc(self.doc)
-        return ret

@@ -21,6 +21,14 @@ class SakThreadedTee(TextIOWrapper):
 
         self._threaded_tee_lock = threading.Lock()
 
+    @property
+    def encoding(self):  # type: ignore
+        return self.stream.encoding
+
+    @property
+    def errors(self):  # type: ignore
+        return self.stream.errors
+
     def write(self, message: str) -> int:
         ret = self.stream.write(message)
 
