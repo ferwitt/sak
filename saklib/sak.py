@@ -15,7 +15,9 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
-from sakconfig import install_core_requirements
+sys.path.append(os.environ["SAK_GLOBAL"])
+
+from saklib.sakconfig import install_core_requirements
 
 try:
     import lazy_import
@@ -53,8 +55,8 @@ except ImportError:
     # If import fails, then ask if the user wants to try to update the requirements
     install_core_requirements()
 
-from sakcmd import SakCmd, SakArg, sak_arg_parser
-from sakplugin import SakPlugin, SakPluginManager, SakContext
+from saklib.sakcmd import SakCmd, SakArg, sak_arg_parser
+from saklib.sakplugin import SakPlugin, SakPluginManager, SakContext
 
 # import param
 # from dataclasses import dataclass
@@ -92,7 +94,7 @@ if ctx.sak_local and ctx.sak_local != ctx.sak_global:
     plm.loadPlugins(ctx.sak_local / "plugins")
 
 
-def root_cmd():
+def root_cmd() -> SakCmd:
     root = SakCmd(
         "sak", helpmsg="Group everyday developer's tools in a swiss-army-knife command."
     )

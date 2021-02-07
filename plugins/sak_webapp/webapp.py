@@ -10,9 +10,13 @@ __email__ = "ferawitt@gmail.com"
 
 import os
 
-from sak import root_cmd
-from sakcmd import  SakArg, sak_arg_parser, SakCompleterArg
-from sakio import get_stdout_buffer_for_thread, get_stderr_buffer_for_thread, unregister_stderr_thread_id, unregister_stdout_thread_id
+from saklib.sak import root_cmd
+from saklib.sakcmd import SakArg, sak_arg_parser, SakCompleterArg
+from saklib.sakio import (
+    get_stderr_buffer_for_thread,
+    unregister_stderr_thread_id,
+    unregister_stdout_thread_id,
+)
 
 from functools import partial
 #from threading import Thread
@@ -173,15 +177,16 @@ myLayout.init();
 
 
 class StopableThread(threading.Thread):
-    def get_id(self):
+    def get_id(self) -> Optional[int]:
         # returns id of the respective thread
-        if hasattr(self, '_thread_id'):
-            return self._thread_id
-        for id, thread in threading._active.items():
+        #if hasattr(self, '_thread_id'):
+        #    return self._thread_id
+        for thread_id, thread in threading._active.items(): #type: ignore
             if thread is self:
-                return id
+                return thread_id
+        return None
 
-    def raise_exception(self):
+    def raise_exception(self) -> None:
         print('Raise exception')
         thread_id = self.get_id()
         res = ctypes.pythonapi.PyThreadState_SetAsyncExc(thread_id, ctypes.py_object(SystemExit))
@@ -195,7 +200,8 @@ class SakWebCmdArg():
         self.arg = arg
 
     # TODO(witt): Maybe I can populate the arg defaults with what comes from the get params?
-    def getAsDict(self, request = None) -> Dict[str, Any]:
+    # TODO(witt): What is the type of request?
+    def getAsDict(self, request: Optional[Any] = None) -> Dict[str, Any]:
         action = self.arg.vargs.get('action', '')
         default = self.arg.vargs.get('default', None)
         choices = list(self.arg.vargs.get('choices', []))
@@ -244,7 +250,7 @@ class SakWebCmdArg():
         #ret.update(self.vargs)
         return ret
 
-    def getRequestArgList(self, request: Dict) -> List[str]:
+    def getRequestArgList(self, request: Dict[str, Any]) -> List[str]:
         type_lut = {
             'bool': bool,
             'string': str,
@@ -293,7 +299,7 @@ class SakWebCmdArg():
 
 
 class CallbackObject:
-    def __init__(self, doc, root_cmd, args):
+    def __init__(self, doc, root_cmd, args) -> None:
 
         web_ret = {}
         self.path = '/'.join(args)
@@ -305,7 +311,7 @@ class CallbackObject:
         if args:
             if args[-1] != ret['cmd'].name:
                 web_ret['error'] = True
-                web_ret[ 'error_message'] = 'Could not find the path for %s' % (self.path)
+                web_ret['error_message'] = 'Could not find the path for %s' % (self.path)
                 raise Exception(web_ret)
                 #return web_ret
 
@@ -395,12 +401,12 @@ class CallbackObject:
         self.run_button.on_click(self.start_callback)
         self.abort_button.on_click(self.abort_callback)
 
-        self.thread = None
+        self.thread: Optional[StopableThread] = None
 
-    def stdout_view(self):
+    def stdout_view(self) -> pn.pane.Str:
         return self.stdout
 
-    def parameters_view(self):
+    def parameters_view(self) -> pn.Column:
 
         mk_content = f'''
         # {self.cmd.name.capitalize()}
@@ -423,31 +429,31 @@ class CallbackObject:
 
         return ret
 
-    def view(self):
+    def view(self) -> pn.Column:
         return self.output
 
     @tornado.gen.coroutine
-    def update_doc(self, new_output, stdout_str):
-        #TODO(witt): This coroutine is the one that will actually update the content
-        #source.stream(dict(x=[x], y=[y]))
+    def update_doc(self, new_output, stdout_str: pn.pane.Str) -> None:
+        # TODO(witt): This coroutine is the one that will actually update the content
+        # source.stream(dict(x=[x], y=[y]))
         self.output.clear()
         self.output.append(new_output)
         #print(stdout_str)
         self.stdout.object = stdout_str
 
     @tornado.gen.coroutine
-    def update_stdout(self, stdout_str):
+    def update_stdout(self, stdout_str: str) -> None:
         #TODO(witt): This coroutine is the one that will actually update the content
         #print(stdout_str)
         self.stdout.object = stdout_str
 
-    def abort_callback(self, event):
+    def abort_callback(self, event: Any) -> None:
         print('Raise exception!!!')
         if self.thread:
             self.thread.raise_exception()
         self.thread = None
 
-    def start_callback(self, event):
+    def start_callback(self, event: Any) -> None:
         vargs = {param_name: param.value for param_name, param in self.params.items()}
 
         # Start thread in another callback.
@@ -455,7 +461,7 @@ class CallbackObject:
         #self.thread = threading.Thread(target=self.callback, kwargs=vargs)
         self.thread.start()
 
-    def callback(self, **vargs):
+    def callback(self, **vargs: Any) -> None:
         new_output = None
 
         # TODO: Get from my resources here
@@ -471,7 +477,7 @@ class CallbackObject:
         try:
             # Start a thread to update the stdout every 1s
             do_update_stdout = True
-            def simple_update_stdout():
+            def simple_update_stdout() -> None:
                 UPDATE_PERIOD = 2
                 #MAX_SIZE = -1
                 MAX_SIZE = 10*1024

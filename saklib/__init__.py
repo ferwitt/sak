@@ -16,6 +16,9 @@ import subprocess
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 SAK_GLOBAL = os.path.abspath(os.path.join(os.environ["HOME"], ".sak"))
 
+os.environ["SAK_GLOBAL"] = SAK_GLOBAL
+
+
 # SAK will not use the system python, but will download miniconda
 SAK_PYTHON = os.path.join(SAK_GLOBAL, "python")
 SAK_PYTHON_BIN = os.path.join(SAK_PYTHON, "miniconda3", "bin", "python3")
@@ -92,6 +95,6 @@ def run() -> None:
         sys.exit(os.system(" ".join(['"%s"' % x for x in cmd])))
     else:
         sys.path.append(os.path.join(SAK_GLOBAL, "saklib"))
-        import sak
+        from saklib import sak
 
         sak.main()

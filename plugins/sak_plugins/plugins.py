@@ -1,11 +1,15 @@
 # -*- coding: UTF-8 -*-
 
-from sak import ctx
-from sakcmd import SakCmd, SakArg
+from saklib.sak import ctx
+from saklib.sakcmd import SakCmd, SakArg
+
+import subprocess
 
 @SakCmd('show', helpmsg='Show the list of plugins.')
 def show() -> str:
     ret = ''
+    if ctx.has_plugin_manager is None:
+        raise Exception("No plugin manager specifief")
     for plugin in ctx.has_plugin_manager.has_plugins:
         ret += 'name: %s\n\tpath: %s\n' % (plugin.name, plugin.plugin_path)
     return ret
@@ -19,8 +23,10 @@ def install(url:str) -> None:
 
 
 @SakCmd(helpmsg='Update SAK and all the plugins.')
-def update_all():
+def update_all() -> None:
     print('Update plugins')
+    if ctx.has_plugin_manager is None:
+        raise Exception("No plugin manager specifief")
     for plugin in ctx.has_plugin_manager.getPluginList():
         if plugin.name == 'plugins':
             continue

@@ -8,10 +8,10 @@ __license__ = "MIT"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from sak import root_cmd, plm, ctx
-from sakcmd import SakCmd, SakArg, sak_arg_parser, SakCmdWrapper
-from sakplugin import load_file
-from sakio import register_threaded_stdout_tee, register_threaded_stderr_tee
+from saklib.sak import root_cmd, plm, ctx
+from saklib.sakcmd import SakCmd, SakArg, sak_arg_parser, SakCmdWrapper
+from saklib.sakplugin import load_file
+from saklib.sakio import register_threaded_stdout_tee, register_threaded_stderr_tee
 
 import os
 import sys
@@ -26,7 +26,7 @@ from pathlib import Path
 
 from typing import Optional
 
-import flask
+#import flask
 
 import bokeh
 import bokeh.embed
@@ -57,7 +57,7 @@ except:
 
 from functools import partial
 
-import holoviews as hv
+#import holoviews as hv
 import numpy as np
 import panel as pn
 import param
@@ -68,7 +68,7 @@ import param
 from scipy.ndimage import zoom
 
 
-def set_extensions():
+def set_extensions() -> None:
     pass
     # css = '''
     # .custom-wbox > div.bk {
@@ -104,7 +104,7 @@ def set_extensions():
     # hv.opts.defaults(hv.opts.Image(responsive=True, tools=['hover']))
 
 
-def modify_doc(doc):
+def modify_doc(doc) -> None:
     webapp_file = Path(__file__).resolve().parent / 'webapp.py'
     webapp = load_file(webapp_file)
 
@@ -145,7 +145,7 @@ def modify_doc(doc):
         pass
 
 
-def bk_worker(bokeh_port):
+def bk_worker(bokeh_port: int) -> None:
     pn.extension()
     server = bokeh.server.server.Server({'/': modify_doc},
             io_loop=tornado.ioloop.IOLoop(),
@@ -157,7 +157,7 @@ def bk_worker(bokeh_port):
 
 @SakCmd('start', helpmsg='Start webapp')
 @SakArg('port', short_name='p', helpmsg='The Bokeh server port (default: 5006)')
-def start(port:int=2020):
+def start(port:int=2020) -> None:
     set_extensions()
 
     register_threaded_stdout_tee()
@@ -166,7 +166,7 @@ def start(port:int=2020):
     print(f'Running on http://127.0.0.1:{port}/')
     bk_worker(port)
 
-def jupyter():
+def jupyter() -> None:
     sys.path.append(ctx.sak_global / 'saklib')
     os.environ['PATH'] = str(ctx.sak_global / 'saklib') + ':' + os.environ['PATH']
     os.system('jupyter lab')
