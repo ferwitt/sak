@@ -8,7 +8,7 @@ __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
 from sakconfig import SAK_GLOBAL, SAK_LOCAL, CURRENT_DIR
-from sakonto import Sak #, get_ontology, owl, onto
+from sakonto import Sak  # , get_ontology, owl, onto
 
 import os
 import sys
@@ -31,11 +31,13 @@ if PYTHON_VERSION_MAJOR == 3:
 elif PYTHON_VERSION_MAJOR == 2:
     import imp
 else:
-    print('Unkown python version %d' % PYTHON_VERSION_MAJOR)
+    print("Unkown python version %d" % PYTHON_VERSION_MAJOR)
     sys.exit(-1)
 
+
 class SakContext(object):
-    '''Sak plugins context.'''
+    """Sak plugins context."""
+
     def __init__(self, **kwargs) -> None:
         super(SakContext, self).__init__()
         self.sak_global = SAK_GLOBAL
@@ -44,10 +46,12 @@ class SakContext(object):
 
         self.has_plugin_manager = None
 
-#_curronto = onto
-#def curronto(): return _curronto
 
-class add_path():
+# _curronto = onto
+# def curronto(): return _curronto
+
+
+class add_path:
     def __init__(self, path):
         self.path = path
 
@@ -60,88 +64,93 @@ class add_path():
         except ValueError:
             pass
 
-#import pickle
+
+# import pickle
+
 
 def load_file(fpath, environ=None):
 
-    #TODO(witt): Implement some sort of auto reload. Check this as inspiration
-    #https://github.com/ipython/ipython/blob/cd54f15544eee69449cc5b3e926665bda5afb9fa/IPython/extensions/autoreload.py
+    # TODO(witt): Implement some sort of auto reload. Check this as inspiration
+    # https://github.com/ipython/ipython/blob/cd54f15544eee69449cc5b3e926665bda5afb9fa/IPython/extensions/autoreload.py
 
-    #cache_pickle = Path(str(fpath) + '.pk')
-    #if cache_pickle.exists():
+    # cache_pickle = Path(str(fpath) + '.pk')
+    # if cache_pickle.exists():
     #    with open(cache_pickle, 'rb') as f:
     #        return pickle.load(f)
 
-    #PLUGIN_DIR = Path(__file__).resolve().parent
+    # PLUGIN_DIR = Path(__file__).resolve().parent
 
     try:
         if False:
             with open(fpath) as f:
-                code = compile(f.read(), str(fpath), 'exec')
+                code = compile(f.read(), str(fpath), "exec")
 
-            global_env = {'__file__': '__sak_plugin__'} # {'__builtins__': None}
+            global_env = {"__file__": "__sak_plugin__"}  # {'__builtins__': None}
             global_env.update(environ or {})
-            #global_env.update(globals())
-            #global_env.update(locals())
+            # global_env.update(globals())
+            # global_env.update(locals())
 
-            #locals_env = {}
+            # locals_env = {}
             with add_path(str(fpath.parent)):
                 exec(code, global_env, global_env)
-            global_env.pop('__builtins__')
-            global_env.pop('__file__')
-            #print(global_env)
+            global_env.pop("__builtins__")
+            global_env.pop("__file__")
+            # print(global_env)
 
-            #with open(cache_pickle, 'wb') as f:
+            # with open(cache_pickle, 'wb') as f:
             #    pickle.dump(global_env, f)
 
             return global_env
         else:
             imported_module = None
-            name = fpath.name.replace(".py", '')
+            name = fpath.name.replace(".py", "")
             with add_path(str(fpath.parent)):
                 if PYTHON_VERSION_MAJOR == 3:
                     if PYTHON_VERSION_MINOR >= 6:
                         spec = importlib.util.spec_from_file_location(name, fpath)
-                        imported_module = importlib.util.module_from_spec(spec) # TODO: Fix this!
+                        imported_module = importlib.util.module_from_spec(
+                            spec
+                        )  # TODO: Fix this!
                         spec.loader.exec_module(imported_module)  # type: ignore
                     else:
                         # TODO: Fix this!
-                        imported_module = SourceFileLoader(name, fpath).load_module()  # type: ignore
+                        imported_module = SourceFileLoader(
+                            name, fpath
+                        ).load_module()  # type: ignore
                 elif PYTHON_VERSION_MAJOR == 2:
                     imported_module = imp.load_source(name, str(fpath))
 
-            #import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             ret = {}
             for k in dir(imported_module):
                 ret[k] = getattr(imported_module, k)
             return ret
 
     except ImportError as error:
-        print('Missing modules in plugin %s' % str(plugin_path))
+        print("Missing modules in plugin %s" % str(plugin_path))
         print(str(error))
-        print('Please, update dependencies!')
+        print("Please, update dependencies!")
 
-        requirements_path = plugin_path / 'requirements.txt'
+        requirements_path = plugin_path / "requirements.txt"
 
         if os.path.exists(requirements_path):
-            if input("Would you like to do this now? [y/N]") in [
-                    'Y', 'y', 'yes'
-            ]:
-                os.system('pip install --upgrade -r "%s"' %
-                          requirements_path)
+            if input("Would you like to do this now? [y/N]") in ["Y", "y", "yes"]:
+                os.system('pip install --upgrade -r "%s"' % requirements_path)
             else:
-                print('Skip adding plugin %s' % str(plugin_path))
+                print("Skip adding plugin %s" % str(plugin_path))
     except:
         import traceback
+
         print("Exception in user code:")
-        print("-"*60)
+        print("-" * 60)
         traceback.print_exc(file=sys.stdout)
-        print("-"*60)
+        print("-" * 60)
     return None
 
 
 class SakPluginExposedFile(object):
     """docstring for SakPluginExposedFile"""
+
     def __init__(self, file_path):
         super(SakPluginExposedFile, self).__init__()
         self.file_path = file_path
@@ -155,76 +164,74 @@ class SakPlugin(object):
         self.name = name
         self._has_plugin_path = Path(path) if path is not None else None
 
-
         self._loaded = False
         self._exposed = {}
-        #self._load_exposes()
+        # self._load_exposes()
 
-        #self._ontology = None
+        # self._ontology = None
 
-        #config_file = plugin_path / 'plugin.py'
+        # config_file = plugin_path / 'plugin.py'
 
         self._config_file = None
         if path is not None:
-            self._config_file = path / 'sak_config.py'
+            self._config_file = path / "sak_config.py"
 
-        #TODO(witt): What to do if the config_file is not a file?
-        #if not self._config_file.is_file(): continue
+        # TODO(witt): What to do if the config_file is not a file?
+        # if not self._config_file.is_file(): continue
 
-        #TODO(witt): Maybe I could run this in a sandbox?!
+        # TODO(witt): Maybe I could run this in a sandbox?!
         self._config = {}
         if self._config_file is not None and self._config_file.exists():
             self._config = load_file(self._config_file)
-        #if self._config is not None:
-            #pass
+        # if self._config is not None:
+        # pass
 
-        #global _curronto
-        #_curronto = local_onto
+        # global _curronto
+        # _curronto = local_onto
 
-        #self._onto_init()
-
+        # self._onto_init()
 
     def _load_exposes(self):
 
         # TODO: This loaded should be invalidated in case the stat is newer...
-        #if self._loaded: return
+        # if self._loaded: return
         self._loaded = True
 
-        expose = self._config.get('EXPOSE_FILES', None)
+        expose = self._config.get("EXPOSE_FILES", None)
 
         if isinstance(expose, dict):
             for expose_name, expose_file_name in expose.items():
                 expose_file = self._has_plugin_path / expose_file_name
                 if not expose_file.exists():
-                    #print('Does not exist', expose_file)
+                    # print('Does not exist', expose_file)
                     continue
-                #print('will load', expose_name, expose_file)
+                # print('will load', expose_name, expose_file)
                 imp_res = load_file(expose_file)
                 if imp_res is not None:
-                    exp_res = imp_res.get('EXPOSE', {})
-                    if expose_name == '_':
+                    exp_res = imp_res.get("EXPOSE", {})
+                    if expose_name == "_":
                         for k, v in exp_res.items():
-                            #TODO(witt): Should I override the command or report an error?
+                            # TODO(witt): Should I override the command or report an error?
                             self._exposed[k] = v
                     else:
                         self._exposed[expose_name] = exp_res
                 else:
-                    print('Failed to load:', expose_file)
+                    print("Failed to load:", expose_file)
         elif isinstance(expose, str):
             expose_file_name = expose
             expose_file = self._has_plugin_path / expose_file_name
             if expose_file.exists():
                 imp_res = load_file(expose_file)
                 if imp_res is not None:
-                    exp_res = imp_res.get('EXPOSE', {})
-                    #print(exp_res)
+                    exp_res = imp_res.get("EXPOSE", {})
+                    # print(exp_res)
                     for k, v in exp_res.items():
-                        #print(k)
+                        # print(k)
                         self._exposed[k] = v
                 else:
-                    print('Failed to load:', expose_file)
+                    print("Failed to load:", expose_file)
 
-        #print(self._exposed)
+        # print(self._exposed)
 
     def __dir__(self):
         self._load_exposes()
@@ -237,43 +244,41 @@ class SakPlugin(object):
         if name in self._exposed:
             return self._exposed[name]
         return super(SakPlugin, self).__getattribute__(name)
-        #return super(SakPlugin, self).__getattr__(name)
+        # return super(SakPlugin, self).__getattr__(name)
 
-
-    #def get_namespace(self, namespace):
+    # def get_namespace(self, namespace):
     #    return self._get_ontology().get_namespace('http://sak.org/sak/%s' % namespace)
 
     @property
     def plugin_path(self) -> Optional[Path]:
-        '''Plugin path.'''
+        """Plugin path."""
         if self._has_plugin_path is not None:
             return Path(self._has_plugin_path)
         return None
 
     def update(self) -> None:
-        '''Update the plugin.'''
+        """Update the plugin."""
         path = self.plugin_path
 
         if path is None:
-            print(f'The plugin {self.name} has not a real path')
+            print(f"The plugin {self.name} has not a real path")
             return
 
         if path is not None:
-            if (path / '.git').exists():
-                print('Updating repository for %s' % self.name)
-                subprocess.run(['git', 'remote', 'update'],
-                               check=True,
-                               cwd=path)
-                subprocess.run(['git', 'pull', 'origin', 'master'],
-                               check=True,
-                               cwd=path)
+            if (path / ".git").exists():
+                print("Updating repository for %s" % self.name)
+                subprocess.run(["git", "remote", "update"], check=True, cwd=path)
+                subprocess.run(
+                    ["git", "pull", "origin", "master"], check=True, cwd=path
+                )
 
-            if (path / 'requirements.txt').exists():
-                print('Updating pip dependencies for %s' % self.name)
-                subprocess.run(['pip', 'install', '--upgrade', '-r', 'requirements.txt'],
-                               check=True,
-                               cwd=path)
-
+            if (path / "requirements.txt").exists():
+                print("Updating pip dependencies for %s" % self.name)
+                subprocess.run(
+                    ["pip", "install", "--upgrade", "-r", "requirements.txt"],
+                    check=True,
+                    cwd=path,
+                )
 
 
 class SakPluginManager(object):
@@ -289,8 +294,8 @@ class SakPluginManager(object):
         return None
 
     def addPlugin(self, plugin: SakPlugin) -> None:
-        #print('Register plugin', plugin)
-        #plugin._has_context = self._has_context
+        # print('Register plugin', plugin)
+        # plugin._has_context = self._has_context
         if plugin not in self.has_plugins:
             self.has_plugins.append(plugin)
 
@@ -308,16 +313,14 @@ class SakPluginManager(object):
             if not plugin_path.is_dir():
                 continue
 
-            config_file = plugin_path / 'sak_config.py'
+            config_file = plugin_path / "sak_config.py"
             if not config_file.is_file():
                 continue
 
-            if name.startswith('sak_'):
-                name = name.replace('sak_', '')
+            if name.startswith("sak_"):
+                name = name.replace("sak_", "")
 
             plugin = SakPlugin(self._has_context, name, plugin_path)
-            #plugin._has_plugin_path = str(plugin_path)
-            #plugin._has_context = self._has_context
+            # plugin._has_plugin_path = str(plugin_path)
+            # plugin._has_context = self._has_context
             self.addPlugin(plugin)
-
-

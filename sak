@@ -13,41 +13,42 @@ import sys
 import subprocess
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
-SAK_GLOBAL = os.path.abspath(os.path.join(os.environ.get('HOME'), '.sak'))
+SAK_GLOBAL = os.path.abspath(os.path.join(os.environ.get("HOME"), ".sak"))
 
 sys.path.append(SAK_GLOBAL)
 
+
 def install_sak():
-    if ' '.join(sys.argv[1:]) == 'show argcomp':
+    if " ".join(sys.argv[1:]) == "show argcomp":
         return
 
     if not os.path.exists(SAK_GLOBAL):
-        print('No SAK installed.')
+        print("No SAK installed.")
 
-        if input("Would you like to install it? [y/N]") in ['Y', 'y', 'yes']:
-            print ('installing')
+        if input("Would you like to install it? [y/N]") in ["Y", "y", "yes"]:
+            print("installing")
 
-            ret_code = subprocess.call([
-                'git',
-                'clone',
-                'https://github.com/ferwitt/sak',
-                SAK_GLOBAL
-                ])
+            ret_code = subprocess.call(
+                ["git", "clone", "https://github.com/ferwitt/sak", SAK_GLOBAL]
+            )
 
             if ret_code != 0:
-                print('Failed to install! Check if you have Git and internet connection')
+                print(
+                    "Failed to install! Check if you have Git and internet connection"
+                )
                 return ret_code
             return 0
         else:
             return -1
 
-    print('Failed to import sak. Reason: unknown!')
+    print("Failed to import sak. Reason: unknown!")
     return 0
 
 
 if __name__ == "__main__":
     try:
         import saklib
+
         saklib.run()
     except ImportError as _:
         ret_code = install_sak()
@@ -55,4 +56,4 @@ if __name__ == "__main__":
         if ret_code != 0:
             sys.exit(ret_code)
 
-        print('Execute the sak command again to finish the installation process...')
+        print("Execute the sak command again to finish the installation process...")

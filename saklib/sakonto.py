@@ -20,17 +20,20 @@ import uuid
 try:
     import panel as pn
     import param
+
     HAS_PANEL = True
 except:
     HAS_PANEL = False
 
 from functools import partial
 
+
 class Sak(object):
     """Sak base class"""
+
     def __init__(self, name=None, **vargs):
         if name is not None:
-            name = urllib.parse.quote(name, safe='')
+            name = urllib.parse.quote(name, safe="")
         else:
             name = uuid.uuid4().hex
 
@@ -39,7 +42,6 @@ class Sak(object):
 
     def get_name(self):
         return urllib.parse.unquote(self.name)
-
 
     def property_editor(self, set_content):
 
@@ -61,10 +63,9 @@ class Sak(object):
             save_ontologies(True)
             set_content()
 
-        destroy_button = pn.widgets.Button(name='Destroy', width=40)
+        destroy_button = pn.widgets.Button(name="Destroy", width=40)
         destroy_button.on_click(partial(__destroy, self))
         ret.append(destroy_button)
-
 
         def __delete(prop_name, prop_pos, event):
             if prop_pos is None:
@@ -82,7 +83,9 @@ class Sak(object):
             save_ontologies(True)
             set_content()
 
-        def __get_widget(prop_name, prop_pos, prop_type, enable_update=True, enable_delete=True):
+        def __get_widget(
+            prop_name, prop_pos, prop_type, enable_update=True, enable_delete=True
+        ):
 
             if prop_pos is None:
                 prop_value = getattr(self, prop_name)
@@ -92,26 +95,30 @@ class Sak(object):
             if prop_type is str:
                 text_input = pn.widgets.TextInput(name=prop_name, value=prop_value)
             elif prop_type is int:
-                text_input = pn.widgets.Spinner(name=prop_name, value=prop_value, step=1)
+                text_input = pn.widgets.Spinner(
+                    name=prop_name, value=prop_value, step=1
+                )
 
             ret = pn.Row(text_input)
 
             if enable_update:
-                update_button = pn.widgets.Button(name='Update', width=40)
-                update_button.on_click(partial(__update, prop_name, prop_pos, text_input))
+                update_button = pn.widgets.Button(name="Update", width=40)
+                update_button.on_click(
+                    partial(__update, prop_name, prop_pos, text_input)
+                )
                 ret.append(update_button)
 
             if enable_delete:
-                delete_button = pn.widgets.Button(name='Delete', width=40)
+                delete_button = pn.widgets.Button(name="Delete", width=40)
                 delete_button.on_click(partial(__delete, prop_name, prop_pos))
                 ret.append(delete_button)
 
             return ret
 
-        ret.append(__get_widget('name', None, str, enable_delete=False))
+        ret.append(__get_widget("name", None, str, enable_delete=False))
 
         if self.label:
-            ret.append(__get_widget('label', None, str, enable_delete=True))
+            ret.append(__get_widget("label", None, str, enable_delete=True))
 
         for prop in self.get_properties():
             if owl.FunctionalProperty in prop.is_a:
@@ -129,7 +136,6 @@ class Sak(object):
                     if int in prop.range:
                         _prop_editor = __get_widget(prop.name, i, int)
                         ret.append(_prop_editor)
-
 
         add_props = []
         for prop in owl.default_world.data_properties():
@@ -149,7 +155,7 @@ class Sak(object):
         add_prop_obj_selector = []
 
         # TODO: Nao posso criar essa classe sob demanda?
-        class PropValue():
+        class PropValue:
             def __init__(self, obj, prop, set_content):
                 self.obj = obj
                 self.prop = prop
@@ -182,7 +188,7 @@ class Sak(object):
 
                 ret.append(text_input)
 
-                add_button = pn.widgets.Button(name='Add', width=40)
+                add_button = pn.widgets.Button(name="Add", width=40)
                 add_button.on_click(partial(self.__add, text_input))
                 ret.append(add_button)
 
@@ -192,9 +198,11 @@ class Sak(object):
             add_prop_obj_selector.append(PropValue(self, prop, set_content))
 
         class DataPropAdder(param.Parameterized):
-            prop = param.ObjectSelector(add_prop_obj_selector[0], objects=add_prop_obj_selector)
+            prop = param.ObjectSelector(
+                add_prop_obj_selector[0], objects=add_prop_obj_selector
+            )
 
-            @param.depends('prop')
+            @param.depends("prop")
             def view(self):
                 return self.prop.view()
 
@@ -204,25 +212,23 @@ class Sak(object):
         ret.append(DataPropAdder().panel())
         return ret
 
-
     def panel(self):
-        tab_content = pn.Column(
-                sizing_mode='stretch_width'
-                )
+        tab_content = pn.Column(sizing_mode="stretch_width")
 
         def set_content():
             tab_content.clear()
-            tab_content.append(pn.pane.Markdown(f'''\
+            tab_content.append(
+                pn.pane.Markdown(
+                    f"""\
                 # {self.name}
 
                 name: {self.name}
 
                 iri: {self.iri}
-            ''' ))
+            """
+                )
+            )
 
         set_content()
 
-        return pn.Tabs(('SAK', tab_content),
-                sizing_mode='stretch_width',
-                )
-
+        return pn.Tabs(("SAK", tab_content), sizing_mode="stretch_width")

@@ -13,64 +13,85 @@ import platform
 import subprocess
 
 
-
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
-SAK_GLOBAL = os.path.abspath(os.path.join(os.environ['HOME'], '.sak'))
+SAK_GLOBAL = os.path.abspath(os.path.join(os.environ["HOME"], ".sak"))
 
 # SAK will not use the system python, but will download miniconda
-SAK_PYTHON = os.path.join(SAK_GLOBAL, 'python')
-SAK_PYTHON_BIN = os.path.join(SAK_PYTHON, 'miniconda3', 'bin', 'python3')
+SAK_PYTHON = os.path.join(SAK_GLOBAL, "python")
+SAK_PYTHON_BIN = os.path.join(SAK_PYTHON, "miniconda3", "bin", "python3")
+
 
 def check_python() -> bool:
     return os.path.exists(SAK_PYTHON_BIN)
 
+
 def pip_install() -> None:
     pass
 
-def install_python(ask_confirm:bool = True) -> None:
-    if ' '.join(sys.argv[1:]) == 'show argcomp':
+
+def install_python(ask_confirm: bool = True) -> None:
+    if " ".join(sys.argv[1:]) == "show argcomp":
         return
 
     if check_python():
         return
 
     if ask_confirm:
-        if not input("No local python found in SAK directory, would like to install? [y/N]") in ['Y', 'y', 'yes']:
+        if not input(
+            "No local python found in SAK directory, would like to install? [y/N]"
+        ) in ["Y", "y", "yes"]:
             sys.exit(-1)
 
     if not os.path.exists(SAK_PYTHON):
         os.makedirs(SAK_PYTHON)
 
-    miniconda_installer = os.path.join(SAK_PYTHON, 'miniconda.sh')
+    miniconda_installer = os.path.join(SAK_PYTHON, "miniconda.sh")
     if not os.path.exists(miniconda_installer):
-        subprocess.check_call([
-            'wget',
-            'https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh',
-            '-O',
-            miniconda_installer])
+        subprocess.check_call(
+            [
+                "wget",
+                "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh",
+                "-O",
+                miniconda_installer,
+            ]
+        )
 
-    instalation_prefix = os.path.join(SAK_PYTHON, 'miniconda3')
-    subprocess.check_call(['/usr/bin/env', 'bash', miniconda_installer, '-b', '-p', instalation_prefix])
+    instalation_prefix = os.path.join(SAK_PYTHON, "miniconda3")
+    subprocess.check_call(
+        ["/usr/bin/env", "bash", miniconda_installer, "-b", "-p", instalation_prefix]
+    )
 
-    os.environ['PATH'] = os.path.dirname(SAK_PYTHON_BIN) + ':' + os.environ['PATH']
-    subprocess.check_call(['/usr/bin/env', 'pip', 'install', '-r', os.path.join(SAK_GLOBAL, 'requirements.txt')])
+    os.environ["PATH"] = os.path.dirname(SAK_PYTHON_BIN) + ":" + os.environ["PATH"]
+    subprocess.check_call(
+        [
+            "/usr/bin/env",
+            "pip",
+            "install",
+            "-r",
+            os.path.join(SAK_GLOBAL, "requirements.txt"),
+        ]
+    )
 
 
 def install() -> None:
-    if 'x86' in platform.machine():
+    if "x86" in platform.machine():
         # Only try to run inside miniconda if is in x86
         install_python(ask_confirm=True)
 
+
 def run() -> None:
-    if 'x86' in platform.machine():
+    if "x86" in platform.machine():
         # Only try to run inside miniconda if is in x86
         install()
 
-        os.environ['PATH'] = os.path.dirname(SAK_PYTHON_BIN) + ':' + os.environ['PATH']
+        os.environ["PATH"] = os.path.dirname(SAK_PYTHON_BIN) + ":" + os.environ["PATH"]
 
-        cmd = [SAK_PYTHON_BIN, os.path.join(SAK_GLOBAL,'saklib', 'sak.py') ] + sys.argv[1:]
-        sys.exit(os.system(' '.join(['"%s"' % x for x in cmd])))
+        cmd = [SAK_PYTHON_BIN, os.path.join(SAK_GLOBAL, "saklib", "sak.py")] + sys.argv[
+            1:
+        ]
+        sys.exit(os.system(" ".join(['"%s"' % x for x in cmd])))
     else:
-        sys.path.append(os.path.join(SAK_GLOBAL,'saklib'))
+        sys.path.append(os.path.join(SAK_GLOBAL, "saklib"))
         import sak
+
         sak.main()

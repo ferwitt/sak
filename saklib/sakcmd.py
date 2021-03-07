@@ -25,7 +25,8 @@ from sakplugin import SakPlugin
 
 hasArgcomplete = False
 try:
-    import argcomplete  #type: ignore
+    import argcomplete  # type: ignore
+
     hasArgcomplete = True
 except:
     pass
@@ -54,12 +55,13 @@ class SakProperty(SakDecorator):
 
 class SakCompleterArg(object):
     def __init__(
-            self,
-            prefix: str,
-            action: Any,  # TODO: Restrict Any
-            parser: Any,  # TODO: Restrict Any
-            parsed_args: Namespace):
-        '''
+        self,
+        prefix: str,
+        action: Any,  # TODO: Restrict Any
+        parser: Any,  # TODO: Restrict Any
+        parsed_args: Namespace,
+    ):
+        """
         Example of parameters from argcomplete
         {
             'prefix': '',
@@ -67,7 +69,7 @@ class SakCompleterArg(object):
             'parser': MonkeyPatchedIntrospectiveArgumentParser(prog='sak fin total', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True),
             'parsed_args': Namespace(account=None, currency=None, sak_callback=<bound method SakFin.total of <sak_fin.SakFin object at 0x7fe68bbb8390>>)
         }
-        '''
+        """
         super(SakCompleterArg, self).__init__()
         self.prefix = prefix
         self.action = action
@@ -76,13 +78,14 @@ class SakCompleterArg(object):
 
 
 class SakArg(SakDecorator):
-    def __init__(self,
-                 name: str,
-                 helpmsg: str = '',
-                 short_name: Optional[str] = None,
-                 completercb: Optional[Callable[[Optional[SakCompleterArg]],
-                                                List[Any]]] = None,
-                 **vargs: Any) -> None:
+    def __init__(
+        self,
+        name: str,
+        helpmsg: str = "",
+        short_name: Optional[str] = None,
+        completercb: Optional[Callable[[Optional[SakCompleterArg]], List[Any]]] = None,
+        **vargs: Any,
+    ) -> None:
         super(SakArg, self).__init__()
         self.name = name
         self.helpmsg = helpmsg
@@ -92,9 +95,9 @@ class SakArg(SakDecorator):
 
     def addToArgParser(self, parser: ArgumentParser) -> None:
         pargs = []
-        pargs += ['--%s' % self.name]
+        pargs += ["--%s" % self.name]
         if self.short_name:
-            pargs += ['-%s' % self.short_name]
+            pargs += ["-%s" % self.short_name]
 
         aux = parser.add_argument(*pargs, help=self.helpmsg, **self.vargs)
 
@@ -103,10 +106,10 @@ class SakArg(SakDecorator):
 
             def completercbWrapper(**vargs: Any) -> List[Any]:
                 arg = SakCompleterArg(
-                    prefix=vargs['prefix'],
-                    action=vargs['action'],
-                    parser=vargs['parser'],
-                    parsed_args=vargs['parsed_args'],
+                    prefix=vargs["prefix"],
+                    action=vargs["action"],
+                    parser=vargs["parser"],
+                    parsed_args=vargs["parsed_args"],
                 )
                 return completercb(arg)  # type: ignore
 
@@ -114,13 +117,12 @@ class SakArg(SakDecorator):
 
 
 class SakCmd(SakDecorator):
-    EXP_CLI = 'cli'
-    EXP_WEB = 'web'
+    EXP_CLI = "cli"
+    EXP_WEB = "web"
 
-    def __init__(self,
-                 name: str = '',
-                 expose: List[str] = [],
-                 helpmsg: str = '') -> None:
+    def __init__(
+        self, name: str = "", expose: List[str] = [], helpmsg: str = ""
+    ) -> None:
         super(SakCmd, self).__init__()
 
         self.name = name
@@ -133,14 +135,16 @@ class SakCmd(SakDecorator):
 
 
 class SakCmdWrapper:
-    def __init__(self,
-                 wrapped_content=None,
-                 name: str = None,
-                 callback: Optional[Callable] = None,
-                 args: List[SakArg] = None,
-                 helpmsg: str = None,
-                 subcmds=None,
-                 cmd=None):
+    def __init__(
+        self,
+        wrapped_content=None,
+        name: str = None,
+        callback: Optional[Callable] = None,
+        args: List[SakArg] = None,
+        helpmsg: str = None,
+        subcmds=None,
+        cmd=None,
+    ):
 
         self._wrapped_content = wrapped_content
         self._name = name
@@ -166,7 +170,7 @@ class SakCmdWrapper:
             self._cmd = d
 
     def __str__(self):
-        return f'<{self.name} {self.callback}>'
+        return f"<{self.name} {self.callback}>"
 
     def __repr__(self):
         return str(self)
@@ -204,11 +208,11 @@ class SakCmdWrapper:
                     return lambda **x: d
 
             if not isinstance(d, SakDecorator):
-                if callable(d): #inspect.ismethod(d) or inspect.isfunction(d):
+                if callable(d):  # inspect.ismethod(d) or inspect.isfunction(d):
                     return d
 
                 # TODO(witt): I dont think I should return the result from the callback here :/
-                #return SakCmdWrapper(
+                # return SakCmdWrapper(
                 #        callback = lambda **x: cb()
                 #        ) #{ '_sak_cmd_callback': lambda **x: cb(), '_sak_cmd':None, '_sak_cmd_args':[] }
         return None
@@ -229,11 +233,12 @@ class SakCmdWrapper:
             if isinstance(d, dict):
                 subcmds = []
                 for k, v in d.items():
-                    if hasattr(v, '_sak_dec_chain'):
+                    if hasattr(v, "_sak_dec_chain"):
                         k = v.__name__
-                    #elif hasattr(v, 'name'):
+                    # elif hasattr(v, 'name'):
                     #    k = v.name
-                    if k.startswith('_'): continue
+                    if k.startswith("_"):
+                        continue
                     subcmds.append(SakCmdWrapper(wrapped_content=v, name=k))
                 if subcmds:
                     return subcmds
@@ -242,7 +247,7 @@ class SakCmdWrapper:
                 subcmds = []
                 for idx, v in enumerate(d):
                     k = str(idx)
-                    if hasattr(v, '_sak_dec_chain'):
+                    if hasattr(v, "_sak_dec_chain"):
                         k = v.__name__
                     try:
                         k = v.name
@@ -256,15 +261,16 @@ class SakCmdWrapper:
                 subcmds = []
                 for k in dir(d):
 
-                    if k.startswith('_'): continue
+                    if k.startswith("_"):
+                        continue
                     try:
                         dd = getattr(d, k)
 
-                        if hasattr(d, '_sak_dec_chain'):
+                        if hasattr(d, "_sak_dec_chain"):
                             args = []
                             chain = d._sak_dec_chain
                             while chain is not None:
-                                if hasattr(chain._sak_func, '_sak_dec_chain'):
+                                if hasattr(chain._sak_func, "_sak_dec_chain"):
                                     chain = chain._sak_func._sak_dec_chain
                                 else:
                                     chain = None
@@ -273,17 +279,17 @@ class SakCmdWrapper:
                         dd = SakCmdWrapper(wrapped_content=dd, name=k)
                         subcmds.append(dd)
                     except:
-                        #TODO(witt): Just does not add because of failure.
-                        print('skip', k)
+                        # TODO(witt): Just does not add because of failure.
+                        print("skip", k)
                         import sys, traceback
+
                         print("Exception in user code:")
-                        print("-"*60)
+                        print("-" * 60)
                         traceback.print_exc(file=sys.stdout)
-                        print("-"*60)
+                        print("-" * 60)
                         pass
                 if subcmds:
                     return subcmds
-
 
         return []
 
@@ -297,7 +303,7 @@ class SakCmdWrapper:
 
             if callable(d):
                 d_list = [d]
-                if hasattr(d, '__call__'):
+                if hasattr(d, "__call__"):
                     d_list.append(d.__call__)
 
                 _params = {}
@@ -308,33 +314,35 @@ class SakCmdWrapper:
                     signature = inspect.signature(_d)
                     for param_name, param in signature.parameters.items():
 
-                        if param_name.startswith('_sak_'):
+                        if param_name.startswith("_sak_"):
                             continue
 
-                        if str(param.kind) != 'POSITIONAL_OR_KEYWORD':
+                        if str(param.kind) != "POSITIONAL_OR_KEYWORD":
                             continue
 
                         if param_name not in _params:
-                            _params[param_name] = SakArg(name = param_name)
+                            _params[param_name] = SakArg(name=param_name)
 
                         if param.default is not inspect._empty:
-                            _params[param_name].vargs['default'] = param.default
+                            _params[param_name].vargs["default"] = param.default
                         else:
-                            _params[param_name].vargs['required'] = True
+                            _params[param_name].vargs["required"] = True
 
                         if param.annotation is not inspect._empty:
-                            _params[param_name].vargs['type'] = param.annotation
+                            _params[param_name].vargs["type"] = param.annotation
 
-                        if _params[param_name].vargs.get('type', None) is bool or isinstance(_params[param_name].vargs.get('default', None), bool):
-                            dft = _params[param_name].vargs.get('default', None)
-                            _params[param_name].vargs['action'] = 'store_true'
+                        if _params[param_name].vargs.get(
+                            "type", None
+                        ) is bool or isinstance(
+                            _params[param_name].vargs.get("default", None), bool
+                        ):
+                            dft = _params[param_name].vargs.get("default", None)
+                            _params[param_name].vargs["action"] = "store_true"
                             if dft == True:
-                                _params[param_name].vargs['action'] = 'store_false'
-
-
+                                _params[param_name].vargs["action"] = "store_false"
 
                     # Check if there are decorators and override the info from the decorator.
-                    if hasattr(_d, '_sak_dec_chain'):
+                    if hasattr(_d, "_sak_dec_chain"):
                         chain = _d._sak_dec_chain
                         while chain is not None:
                             if isinstance(chain, SakArg):
@@ -349,7 +357,7 @@ class SakCmdWrapper:
                                     _params[chain.name].completercb = chain.completercb
                                 _params[chain.name].vargs.update(chain.vargs)
 
-                            if hasattr(chain._sak_func, '_sak_dec_chain'):
+                            if hasattr(chain._sak_func, "_sak_dec_chain"):
                                 chain = chain._sak_func._sak_dec_chain
                             else:
                                 chain = None
@@ -378,23 +386,22 @@ class SakCmdWrapper:
         d = self._wrapped_content
 
         if isinstance(d, dict):
-            if '__doc__' in d:
-                return d['__doc__']
-
+            if "__doc__" in d:
+                return d["__doc__"]
 
         if isinstance(d, SakPlugin):
             docstring = inspect.getdoc(d)
             if docstring:
                 return inspect.cleandoc(docstring)
 
-        #TODO(witt): How about __call__?
+        # TODO(witt): How about __call__?
         if inspect.ismethod(d) or inspect.isfunction(d):
             docstring = inspect.getdoc(d)
             if docstring:
                 return inspect.cleandoc(docstring)
 
         # TODO(witt): I did my best to get the help message, but no success
-        return ''
+        return ""
 
     @property
     def description(self):
@@ -406,7 +413,6 @@ class SakCmdWrapper:
             docstring = inspect.getdoc(d)
             if docstring:
                 return docstring
-
 
         if inspect.ismethod(d) or inspect.isfunction(d):
             docstring = inspect.getdoc(d)
@@ -427,13 +433,13 @@ class SakCmdWrapper:
                 return d
 
             if inspect.ismethod(d) or inspect.isfunction(d):
-                if hasattr(d, '_sak_dec_chain'):
+                if hasattr(d, "_sak_dec_chain"):
                     cmd = None
                     chain = d._sak_dec_chain
                     while chain is not None:
                         if isinstance(chain, SakCmd):
                             cmd = chain
-                        if hasattr(chain._sak_func, '_sak_dec_chain'):
+                        if hasattr(chain._sak_func, "_sak_dec_chain"):
                             chain = chain._sak_func._sak_dec_chain
                         else:
                             chain = None
@@ -445,12 +451,12 @@ class SakCmdWrapper:
 def argcomplete_args():
     args = []
     # Check if its auto completion
-    #is_in_completion = False
+    # is_in_completion = False
     comp_line = os.environ.get("COMP_LINE", None)
     if comp_line is not None:
         # What is this COMP_POINT?
         comp_point = int(os.environ.get("COMP_POINT", 0))
-        #is_in_completion = True
+        # is_in_completion = True
         _, _, _, comp_words, _ = argcomplete.split_line(comp_line, comp_point)
         if not args:
             args = comp_words[1:]
@@ -463,24 +469,24 @@ def sak_arg_parser(base_cmd, args=None) -> None:
     # Remove the help flag from args and set show_help
     args = args or []
     sak_show_help = False
-    if ('-h' in args) or ('--help' in args):
+    if ("-h" in args) or ("--help" in args):
         sak_show_help = True
-        args = [x for x in args if x != '-h' and x != '--help']
+        args = [x for x in args if x != "-h" and x != "--help"]
 
     # The root parser
     description = base_cmd.description or base_cmd.helpmsg
     name = base_cmd.name
-    root_parser = ArgumentParser(prog=name, description=description, formatter_class=RawTextHelpFormatter)
+    root_parser = ArgumentParser(
+        prog=name, description=description, formatter_class=RawTextHelpFormatter
+    )
 
     # Prepare the variables for the tree decend
     cmd = base_cmd
     parser = root_parser
     base_cmd_callback = None  # base_cmd.callback
-    nm = Namespace(sak_callback=base_cmd_callback,
-                   sak_cmd=base_cmd,
-                   sak_parser=parser)
+    nm = Namespace(sak_callback=base_cmd_callback, sak_cmd=base_cmd, sak_parser=parser)
 
-    ret = {'argparse': {}, 'ret': None}
+    ret = {"argparse": {}, "ret": None}
 
     while True:
         cmd = SakCmdWrapper(cmd)
@@ -503,7 +509,7 @@ def sak_arg_parser(base_cmd, args=None) -> None:
             subcmd = SakCmdWrapper(subcmd)
 
             if not subcmdname:
-                #TODO(witt): It makes no sense to have a subcmd without name....
+                # TODO(witt): It makes no sense to have a subcmd without name....
                 continue
 
             if subparsers is None:
@@ -513,14 +519,15 @@ def sak_arg_parser(base_cmd, args=None) -> None:
             helpmsg = subcmd.helpmsg
             subcmd_callback = subcmd.callback
 
-            sub_parser = subparsers.add_parser(subcmdname,
-                                               help=helpmsg,
-                                               description=description,
-                                               formatter_class=RawTextHelpFormatter
-                                               )
-            sub_parser.set_defaults(sak_callback=subcmd_callback,
-                                    sak_cmd=subcmd,
-                                    sak_parser=sub_parser)
+            sub_parser = subparsers.add_parser(
+                subcmdname,
+                help=helpmsg,
+                description=description,
+                formatter_class=RawTextHelpFormatter,
+            )
+            sub_parser.set_defaults(
+                sak_callback=subcmd_callback, sak_cmd=subcmd, sak_parser=sub_parser
+            )
 
         rargs: List[str] = []
         success = False
@@ -536,9 +543,11 @@ def sak_arg_parser(base_cmd, args=None) -> None:
                 cmd = nm.sak_cmd
 
                 # Flush the namespace to go a level down.
-                nm = Namespace(sak_callback=nm.sak_callback,
-                               sak_cmd=nm.sak_cmd,
-                               sak_parser=nm.sak_parser)
+                nm = Namespace(
+                    sak_callback=nm.sak_callback,
+                    sak_cmd=nm.sak_cmd,
+                    sak_parser=nm.sak_parser,
+                )
 
                 continue
 
@@ -546,15 +555,15 @@ def sak_arg_parser(base_cmd, args=None) -> None:
         except:
             # Parse failed, show error message only if it is not help command
             if not sak_show_help:
-                ret['argparse']['error'] = f.getvalue()
+                ret["argparse"]["error"] = f.getvalue()
 
         # Here we have consumed all the arguments and completly built the parser
         # Register auto completion
         if hasArgcomplete:
             argcomplete.autocomplete(root_parser)
 
-        ret['cmd'] = cmd
-        ret['nm'] = nm
+        ret["cmd"] = cmd
+        ret["nm"] = nm
 
         # We reached the leaf in the tree, but only want to get the help
         if nm.sak_callback is None:
@@ -564,7 +573,7 @@ def sak_arg_parser(base_cmd, args=None) -> None:
             with redirect_stdout(f):
                 parser.print_help()
 
-            ret['argparse']['help'] = f.getvalue()
+            ret["argparse"]["help"] = f.getvalue()
             return ret
 
         # The parsing failed, so we just abort
@@ -574,35 +583,36 @@ def sak_arg_parser(base_cmd, args=None) -> None:
         if rargs:
             f = StringIO()
             parser.print_usage(f)
-            msg = '%(usage)s\n%(prog)s: error: %(message)s\n' % {
-                'usage': f.getvalue(),
-                'prog': parser.prog,
-                'message': 'unrecognized arguments: %s' % ' '.join(rargs),
+            msg = "%(usage)s\n%(prog)s: error: %(message)s\n" % {
+                "usage": f.getvalue(),
+                "prog": parser.prog,
+                "message": "unrecognized arguments: %s" % " ".join(rargs),
             }
-            ret['argparse']['error'] = msg
+            ret["argparse"]["error"] = msg
             return ret
 
         # Parse success and not arguments left.
         nm_dict: Dict[str, Any] = vars(nm)
-        sak_cmd = nm_dict.pop('sak_cmd')
-        sak_parser = nm_dict.pop('sak_parser')
-        callback = nm_dict.pop('sak_callback')
+        sak_cmd = nm_dict.pop("sak_cmd")
+        sak_parser = nm_dict.pop("sak_parser")
+        callback = nm_dict.pop("sak_callback")
 
-        ret['value'] = None
+        ret["value"] = None
 
         if callback:
-            #import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             try:
-                ret['value'] = callback(**nm_dict)
+                ret["value"] = callback(**nm_dict)
             except Exception as e:
                 # TODO(witt): Implement some verbose option that allows to view the whole stack call
                 verbose = True
                 if verbose:
                     import sys, traceback
+
                     print("Exception in user code:")
-                    print("-"*60)
+                    print("-" * 60)
                     traceback.print_exc(file=sys.stdout)
-                    print("-"*60)
+                    print("-" * 60)
                 print(e)
 
         return ret

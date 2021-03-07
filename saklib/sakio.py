@@ -13,7 +13,7 @@ from io import StringIO  ## for Python 3
 import threading
 
 
-class SakThreadedTee():
+class SakThreadedTee:
     def __init__(self, stream):
         self.thread_buffer = {}
         self.stream = stream
