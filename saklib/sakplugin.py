@@ -8,7 +8,6 @@ __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
 from sakconfig import SAK_GLOBAL, SAK_LOCAL, CURRENT_DIR
-from sakonto import Sak  # , get_ontology, owl, onto
 
 import os
 import sys
