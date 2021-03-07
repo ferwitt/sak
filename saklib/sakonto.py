@@ -16,8 +16,13 @@ import os
 import urllib
 from pathlib import Path
 import uuid
-import panel as pn
-import param
+
+try:
+    import panel as pn
+    import param
+    HAS_PANEL = True
+except:
+    HAS_PANEL = False
 
 from functools import partial
 

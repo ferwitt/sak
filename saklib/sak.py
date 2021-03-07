@@ -18,9 +18,6 @@ from typing import Optional
 from sakconfig import install_core_requirements
 
 try:
-    from sakcmd import SakCmd, SakArg, sak_arg_parser
-    from sakplugin import SakPlugin, SakPluginManager, SakContext
-
     import lazy_import
     lazy_import.lazy_module('param')
     lazy_import.lazy_module('panel')
@@ -53,6 +50,9 @@ except ImportError:
 
     # If import fails, then ask if the user wants to try to update the requirements
     install_core_requirements()
+
+from sakcmd import SakCmd, SakArg, sak_arg_parser
+from sakplugin import SakPlugin, SakPluginManager, SakContext
 
 #import param 
 #from dataclasses import dataclass
