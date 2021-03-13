@@ -26,6 +26,7 @@ from saklib.sakplugin import SakPlugin
 hasArgcomplete = False
 try:
     import argcomplete
+
     hasArgcomplete = True
 except:
     pass
@@ -44,7 +45,7 @@ class SakDecorator:
         def wrapper(*args: Any, **vargs: Any) -> Any:
             return self._sak_func(*args, **vargs)
 
-        wrapper._sak_dec_chain = self #type: ignore
+        wrapper._sak_dec_chain = self  # type: ignore
         return wrapper
 
 
@@ -138,18 +139,20 @@ class SakCmd(SakDecorator):
 class SakCmdWrapper:
     def __init__(
         self,
-        wrapped_content: Optional[Union['SakCmdWrapper', SakPlugin, SakCmd, Callable[..., Any]]] = None,
+        wrapped_content: Optional[
+            Union["SakCmdWrapper", SakPlugin, SakCmd, Callable[..., Any]]
+        ] = None,
         name: Optional[str] = None,
         callback: Optional[Callable[[Any], Any]] = None,
-        args: Optional[ List[SakArg] ] = None,
+        args: Optional[List[SakArg]] = None,
         helpmsg: Optional[str] = None,
-        subcmds: Optional[List[Any]] =None, # TODO: Make this more specific
+        subcmds: Optional[List[Any]] = None,  # TODO: Make this more specific
         cmd: Optional[SakCmd] = None,
     ):
         if cmd is not None:
             assert isinstance(cmd, SakCmd)
 
-        assert name != '0'
+        assert name != "0"
 
         self._wrapped_content = wrapped_content
         self._name = name
@@ -163,7 +166,6 @@ class SakCmdWrapper:
         self._helpmsg = helpmsg
         self._description = helpmsg
         self._cmd = cmd
-
 
         d = wrapped_content
 
@@ -200,7 +202,11 @@ class SakCmdWrapper:
         if isinstance(d, SakPlugin):
             return d.name
 
-        if (d is not None) and (not isinstance(d, SakCmdWrapper)) and (not isinstance(d, SakCmd)) :
+        if (
+            (d is not None)
+            and (not isinstance(d, SakCmdWrapper))
+            and (not isinstance(d, SakCmd))
+        ):
             if inspect.ismethod(d) or inspect.isfunction(d):
                 return d.__name__
 
@@ -229,7 +235,7 @@ class SakCmdWrapper:
         return None
 
     @property
-    def subcmds(self) -> List['SakCmdWrapper']:
+    def subcmds(self) -> List["SakCmdWrapper"]:
         if self._subcmds:
             return [SakCmdWrapper(x) for x in self._subcmds]
 
@@ -258,7 +264,7 @@ class SakCmdWrapper:
                 subcmds = []
                 for idx, v in enumerate(d):
                     k = str(idx)
-                    #if hasattr(v, "_sak_dec_chain"): #TODO(witt): What is the impact of this change?
+                    # if hasattr(v, "_sak_dec_chain"): #TODO(witt): What is the impact of this change?
                     if hasattr(v, "__name__"):
                         k = v.__name__
                     try:
@@ -279,7 +285,7 @@ class SakCmdWrapper:
                         dd = getattr(d, k)
 
                         if hasattr(d, "_sak_dec_chain"):
-                            chain = d._sak_dec_chain #type: ignore
+                            chain = d._sak_dec_chain  # type: ignore
                             while chain is not None:
                                 if hasattr(chain._sak_func, "_sak_dec_chain"):
                                     chain = chain._sak_func._sak_dec_chain
@@ -315,8 +321,8 @@ class SakCmdWrapper:
             if callable(d) and not isinstance(d, SakCmd):
                 d_list = [d]
                 if hasattr(d, "__call__"):
-                    #TODO(witt): Fix this ignore?
-                    d_list.append(d.__call__) #type: ignore
+                    # TODO(witt): Fix this ignore?
+                    d_list.append(d.__call__)  # type: ignore
 
                 _params = {}
 
@@ -334,14 +340,14 @@ class SakCmdWrapper:
                         if param_name not in _params:
                             _params[param_name] = SakArg(name=param_name)
 
-                        #TODO(witt): Fix this ignore?
-                        if param.default is not inspect._empty: #type: ignore
+                        # TODO(witt): Fix this ignore?
+                        if param.default is not inspect._empty:  # type: ignore
                             _params[param_name].vargs["default"] = param.default
                         else:
                             _params[param_name].vargs["required"] = True
 
-                        #TODO(witt): Fix this ignore?
-                        if param.annotation is not inspect._empty: #type: ignore
+                        # TODO(witt): Fix this ignore?
+                        if param.annotation is not inspect._empty:  # type: ignore
                             _params[param_name].vargs["type"] = param.annotation
 
                         if _params[param_name].vargs.get(
@@ -356,7 +362,7 @@ class SakCmdWrapper:
 
                     # Check if there are decorators and override the info from the decorator.
                     if hasattr(_d, "_sak_dec_chain"):
-                        chain = _d._sak_dec_chain #type: ignore
+                        chain = _d._sak_dec_chain  # type: ignore
                         while chain is not None:
                             if isinstance(chain, SakArg):
                                 if chain.name not in _params:
@@ -448,7 +454,7 @@ class SakCmdWrapper:
             if inspect.ismethod(d) or inspect.isfunction(d):
                 if hasattr(d, "_sak_dec_chain"):
                     cmd = None
-                    chain = d._sak_dec_chain #type: ignore
+                    chain = d._sak_dec_chain  # type: ignore
                     while chain is not None:
                         if isinstance(chain, SakCmd):
                             cmd = chain
@@ -476,7 +482,9 @@ def argcomplete_args() -> List[str]:
     return args
 
 
-def sak_arg_parser(base_cmd: SakCmd, args: Optional[List[str]] = None) -> Dict[str, Any]:
+def sak_arg_parser(
+    base_cmd: SakCmd, args: Optional[List[str]] = None
+) -> Dict[str, Any]:
     args = args or argcomplete_args()
 
     # Remove the help flag from args and set show_help

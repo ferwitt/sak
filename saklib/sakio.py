@@ -30,7 +30,7 @@ class SakThreadedTee(TextIOWrapper):
             if current_thread not in self.thread_buffer:
                 self.thread_buffer[current_thread] = StringIO()
 
-            #TODO(witt): Write only the ret bytes to the stringio?
+            # TODO(witt): Write only the ret bytes to the stringio?
             self.thread_buffer[current_thread].write(message)
         return ret
 
@@ -49,7 +49,9 @@ class SakThreadedTee(TextIOWrapper):
                 self.thread_buffer.pop(thread_id)
 
 
-def _get_stream_buffer_for_thread(stream: TextIOWrapper, thread_id: Optional[int] = None) -> Optional[StringIO]:
+def _get_stream_buffer_for_thread(
+    stream: TextIOWrapper, thread_id: Optional[int] = None
+) -> Optional[StringIO]:
     if thread_id is None:
         thread_id = threading.get_ident()
     if isinstance(stream, SakThreadedTee):
@@ -57,7 +59,9 @@ def _get_stream_buffer_for_thread(stream: TextIOWrapper, thread_id: Optional[int
     return None
 
 
-def _unregister_threaded_tee(stream: TextIOWrapper, thread_id: Optional[int] = None) -> None:
+def _unregister_threaded_tee(
+    stream: TextIOWrapper, thread_id: Optional[int] = None
+) -> None:
     if thread_id is None:
         thread_id = threading.get_ident()
 
@@ -67,27 +71,27 @@ def _unregister_threaded_tee(stream: TextIOWrapper, thread_id: Optional[int] = N
 
 def register_threaded_stdout_tee() -> None:
     if not isinstance(sys.stdout, SakThreadedTee):
-        #TODO(witt): Check if the stdout should inherit TextIOWrapper.
-        sys.stdout = SakThreadedTee(sys.stdout) #type: ignore
+        # TODO(witt): Check if the stdout should inherit TextIOWrapper.
+        sys.stdout = SakThreadedTee(sys.stdout)  # type: ignore
 
 
 def register_threaded_stderr_tee() -> None:
     if not isinstance(sys.stderr, SakThreadedTee):
-        #TODO(witt): Check if the stdout should inherit TextIOWrapper.
-        sys.stderr = SakThreadedTee(sys.stderr) #type: ignore
+        # TODO(witt): Check if the stdout should inherit TextIOWrapper.
+        sys.stderr = SakThreadedTee(sys.stderr)  # type: ignore
 
 
 def get_stdout_buffer_for_thread(thread_id: Optional[int] = None) -> Optional[StringIO]:
-    return _get_stream_buffer_for_thread(sys.stdout, thread_id) #type: ignore
+    return _get_stream_buffer_for_thread(sys.stdout, thread_id)  # type: ignore
 
 
 def get_stderr_buffer_for_thread(thread_id: Optional[int] = None) -> Optional[StringIO]:
-    return _get_stream_buffer_for_thread(sys.stderr, thread_id) #type: ignore
+    return _get_stream_buffer_for_thread(sys.stderr, thread_id)  # type: ignore
 
 
 def unregister_stdout_thread_id(thread_id: Optional[int] = None) -> None:
-    _unregister_threaded_tee(sys.stdout, thread_id) #type: ignore
+    _unregister_threaded_tee(sys.stdout, thread_id)  # type: ignore
 
 
 def unregister_stderr_thread_id(thread_id: Optional[int] = None) -> None:
-    _unregister_threaded_tee(sys.stderr, thread_id) #type: ignore
+    _unregister_threaded_tee(sys.stderr, thread_id)  # type: ignore

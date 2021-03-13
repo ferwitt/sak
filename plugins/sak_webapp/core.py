@@ -26,7 +26,7 @@ from pathlib import Path
 
 from typing import Optional
 
-#import flask
+# import flask
 
 import bokeh
 import bokeh.embed
@@ -41,6 +41,7 @@ import tornado.gen
 has_pandas = False
 try:
     import pandas as pd
+
     has_pandas = True
 except:
     pass
@@ -49,22 +50,23 @@ has_matplotlib = False
 try:
     import matplotlib
     import matplotlib.pyplot as plt
+
     has_matplotlib = True
 except:
     pass
 
 
-
 from functools import partial
 
-#import holoviews as hv
+# import holoviews as hv
 import numpy as np
 import panel as pn
 import param
-#import pyvista as pv
 
-#from holoviews.operation.datashader import rasterize
-#from pyvista import examples
+# import pyvista as pv
+
+# from holoviews.operation.datashader import rasterize
+# from pyvista import examples
 from scipy.ndimage import zoom
 
 
@@ -105,11 +107,11 @@ def set_extensions() -> None:
 
 
 def modify_doc(doc) -> None:
-    webapp_file = Path(__file__).resolve().parent / 'webapp.py'
+    webapp_file = Path(__file__).resolve().parent / "webapp.py"
     webapp = load_file(webapp_file)
 
     # Get the doc object
-    newdoc = webapp['SakDoc'](doc)
+    newdoc = webapp["SakDoc"](doc)
 
     newdoc.server_doc()
 
@@ -120,56 +122,57 @@ def modify_doc(doc) -> None:
 
     return
 
-
-
     args = doc.session_context.request.arguments
 
-    path = ''
+    path = ""
     try:
-        path = args['path'][0].decode("utf-8")
+        path = args["path"][0].decode("utf-8")
     except:
         pass
 
     # TODO(witt): Make some way to cache this and not reload the module all the time!
     try:
-        webapp_file = Path(__file__).resolve().parent / 'webapp.py'
+        webapp_file = Path(__file__).resolve().parent / "webapp.py"
         webapp = load_file(webapp_file)
 
         # Get the doc object
-        newdoc = webapp['get_callback_object'](doc, path)
+        newdoc = webapp["get_callback_object"](doc, path)
         newdoc_layout = newdoc.layout
 
         doc.add_root(newdoc_layout.get_root(doc))
     except:
-        #TODO(witt): I could update the doc with some nice error message :)
+        # TODO(witt): I could update the doc with some nice error message :)
         pass
 
 
 def bk_worker(bokeh_port: int) -> None:
     pn.extension()
-    server = bokeh.server.server.Server({'/': modify_doc},
-            io_loop=tornado.ioloop.IOLoop(),
-            allow_websocket_origin=[f'127.0.0.1:{bokeh_port}'],
-            port=bokeh_port)
+    server = bokeh.server.server.Server(
+        {"/": modify_doc},
+        io_loop=tornado.ioloop.IOLoop(),
+        allow_websocket_origin=[f"127.0.0.1:{bokeh_port}"],
+        port=bokeh_port,
+    )
     server.start()
     server.io_loop.start()
 
 
-@SakCmd('start', helpmsg='Start webapp')
-@SakArg('port', short_name='p', helpmsg='The Bokeh server port (default: 5006)')
-def start(port:int=2020) -> None:
+@SakCmd("start", helpmsg="Start webapp")
+@SakArg("port", short_name="p", helpmsg="The Bokeh server port (default: 5006)")
+def start(port: int = 2020) -> None:
     set_extensions()
 
     register_threaded_stdout_tee()
     register_threaded_stderr_tee()
 
-    print(f'Running on http://127.0.0.1:{port}/')
+    print(f"Running on http://127.0.0.1:{port}/")
     bk_worker(port)
 
+
 def jupyter() -> None:
-    sys.path.append(ctx.sak_global / 'saklib')
-    os.environ['PATH'] = str(ctx.sak_global / 'saklib') + ':' + os.environ['PATH']
-    os.system('jupyter lab')
+    sys.path.append(ctx.sak_global / "saklib")
+    os.environ["PATH"] = str(ctx.sak_global / "saklib") + ":" + os.environ["PATH"]
+    os.system("jupyter lab")
 
 
-EXPOSE = {'start': start, 'jupyter': jupyter}
+EXPOSE = {"start": start, "jupyter": jupyter}

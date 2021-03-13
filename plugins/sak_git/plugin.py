@@ -2,7 +2,8 @@
 
 from saklib.sak import ctx
 from saklib.sakplugin import SakPlugin
-#from sakcmd import SakCmd, SakArg, SakProperty
+
+# from sakcmd import SakCmd, SakArg, SakProperty
 
 import git
 from git import Repo
@@ -14,7 +15,7 @@ import subprocess
 from typing import Optional
 
 
-#class SakGit(SakPlugin):
+# class SakGit(SakPlugin):
 #    'Git commands'
 #    def __init__(self, name) -> None:
 #        super(SakGit, self).__init__('git')

@@ -37,15 +37,16 @@ else:
 class SakContext(object):
     """Sak plugins context."""
 
-    def __init__(self
-            #, **kwargs
-            ) -> None:
+    def __init__(
+        self
+        # , **kwargs
+    ) -> None:
         super(SakContext, self).__init__()
         self.sak_global = SAK_GLOBAL
         self.sak_local = SAK_LOCAL
         self.current_dir = CURRENT_DIR
 
-        self.has_plugin_manager: Optional['SakPluginManager'] = None
+        self.has_plugin_manager: Optional["SakPluginManager"] = None
 
 
 # _curronto = onto
@@ -158,7 +159,9 @@ class SakPluginExposedFile(object):
 
 
 class SakPlugin(object):
-    def __init__(self, context: SakContext, name: str, path: Optional[Path] = None) -> None:
+    def __init__(
+        self, context: SakContext, name: str, path: Optional[Path] = None
+    ) -> None:
         super(SakPlugin, self).__init__()
         self.has_context = context
 
