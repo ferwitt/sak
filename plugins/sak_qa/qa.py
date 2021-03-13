@@ -21,7 +21,16 @@ import subprocess
 @SakCmd("mypy", helpmsg="Execute mypy for Sak and Plugins")
 def mypy() -> None:
 
-    cmd = ["mypy", ".", "--strict", "--exclude", "python", "--ignore-missing-imports"]
+    cmd = [
+        "mypy",
+        str(SAK_GLOBAL / "saklib"),
+        str(SAK_GLOBAL / "plugins"),
+        "--strict",
+        "--exclude",
+        "python",
+        "--ignore-missing-imports",
+        "--show-absolute-path",
+    ]
 
     cwd = SAK_GLOBAL
     subprocess.run(cmd, check=True, cwd=cwd)
