@@ -8,25 +8,15 @@ __license__ = "MIT"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from saklib.sak import root_cmd, plm, ctx
-from saklib.sakcmd import SakCmd, SakArg, sak_arg_parser, SakCmdWrapper
+from saklib.sak import ctx
+from saklib.sakcmd import SakCmd, SakArg
 from saklib.sakplugin import load_file
 from saklib.sakio import register_threaded_stdout_tee, register_threaded_stderr_tee
 
 import os
 import sys
-import json
-import io
-import base64
-import uuid
-
-from threading import Thread
 
 from pathlib import Path
-
-from typing import Optional
-
-# import flask
 
 import bokeh
 import bokeh.embed
@@ -34,40 +24,8 @@ import bokeh.server.server
 
 import panel as pn
 
-
 import tornado
 import tornado.gen
-
-has_pandas = False
-try:
-    import pandas as pd
-
-    has_pandas = True
-except:
-    pass
-
-has_matplotlib = False
-try:
-    import matplotlib
-    import matplotlib.pyplot as plt
-
-    has_matplotlib = True
-except:
-    pass
-
-
-from functools import partial
-
-# import holoviews as hv
-import numpy as np
-import panel as pn
-import param
-
-# import pyvista as pv
-
-# from holoviews.operation.datashader import rasterize
-# from pyvista import examples
-from scipy.ndimage import zoom
 
 
 def set_extensions() -> None:

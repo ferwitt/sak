@@ -1,18 +1,7 @@
 # -*- coding: UTF-8 -*-
 
-from saklib.sak import ctx
-from saklib.sakplugin import SakPlugin
-
-# from sakcmd import SakCmd, SakArg, SakProperty
-
 import git
 from git import Repo
-
-import re
-from pathlib import Path
-import subprocess
-
-from typing import Optional
 
 
 # class SakGit(SakPlugin):

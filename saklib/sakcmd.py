@@ -7,20 +7,16 @@ __license__ = "MIT"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-import copy
-
-import sys, os
-import argparse
-from argparse import Namespace, ArgumentParser, REMAINDER, RawTextHelpFormatter
+import os
+from argparse import Namespace, ArgumentParser, RawTextHelpFormatter
 import functools
 from typing import Optional, Callable, Dict, Any, List, Union
-from io import StringIO  ## for Python 3
+from io import StringIO
 from contextlib import redirect_stderr, redirect_stdout
 
 from collections.abc import Iterable
 import inspect
 
-from saklib.sakconfig import install_core_requirements
 from saklib.sakplugin import SakPlugin
 
 hasArgcomplete = False
@@ -298,7 +294,8 @@ class SakCmdWrapper:
                     except:
                         # TODO(witt): Just does not add because of failure.
                         print("skip", k)
-                        import sys, traceback
+                        import sys
+                        import traceback
 
                         print("Exception in user code:")
                         print("-" * 60)
@@ -630,7 +627,8 @@ def sak_arg_parser(
                 # TODO(witt): Implement some verbose option that allows to view the whole stack call
                 verbose = True
                 if verbose:
-                    import sys, traceback
+                    import sys
+                    import traceback
 
                     print("Exception in user code:")
                     print("-" * 60)

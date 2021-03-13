@@ -38,9 +38,6 @@ import param
 
 import time
 
-from io import StringIO  ## for Python 3
-
-# from contextlib import redirect_stdout, redirect_stderr
 
 has_pandas = False
 try:
@@ -51,10 +48,7 @@ except:
     pass
 
 
-import threading
 import ctypes
-import time
-from bokeh.util.serialization import make_globally_unique_id
 
 SCRIPT_PATH = Path(__file__).resolve()
 RESOURCES_PATH = SCRIPT_PATH.parent / "web"
@@ -349,7 +343,7 @@ class CallbackObject:
                 params[name] = pn.widgets.Checkbox(name=name, value=default)
             elif webarg["type"] in ["list"]:
 
-                if not name in params:
+                if name not in params:
                     _params = {}
                     if default:
                         _params["value"] = default
@@ -363,7 +357,7 @@ class CallbackObject:
                     if "options" in _params:
                         params[name] = pn.widgets.MultiChoice(name=name, **_params)
 
-                if not name in params:
+                if name not in params:
                     _params = {}
                     if default:
                         _params["value"] = default
@@ -377,7 +371,7 @@ class CallbackObject:
                     if "options" in _params:
                         params[name] = pn.widgets.CrossSelector(name=name, **_params)
 
-                if not name in params:
+                if name not in params:
                     _params = {}
                     if default is not None:
                         if isinstance(default, list):

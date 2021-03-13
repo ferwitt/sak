@@ -14,7 +14,6 @@ import sys
 import subprocess
 
 from pathlib import Path
-import inspect
 
 from typing import Optional, List, Dict, Any, Set
 

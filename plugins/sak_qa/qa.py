@@ -8,18 +8,16 @@ __license__ = "MIT"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from saklib.sak import root_cmd, plm, ctx
-from saklib.sakcmd import SakCmd, SakArg, sak_arg_parser, SakCmdWrapper
-from saklib.sakplugin import load_file
-from saklib.sakio import register_threaded_stdout_tee, register_threaded_stderr_tee
-
-from saklib.sakconfig import SAK_GLOBAL, SAK_LOCAL, CURRENT_DIR
+from saklib.sakcmd import SakCmd
+from saklib.sakconfig import SAK_GLOBAL
 
 import subprocess
 
 
 @SakCmd("mypy", helpmsg="Execute mypy for Sak and Plugins")
 def mypy() -> None:
+    if SAK_GLOBAL is None:
+        raise Exception("No SAK_GLOBAL defined")
 
     cmd = [
         "mypy",
@@ -38,6 +36,8 @@ def mypy() -> None:
 
 @SakCmd("flake8", helpmsg="Execute flake8 for Sak and Plugins")
 def flake8() -> None:
+    if SAK_GLOBAL is None:
+        raise Exception("No SAK_GLOBAL defined")
     cmd = ["flake8", str(SAK_GLOBAL / "saklib"), str(SAK_GLOBAL / "plugins")]
 
     cwd = SAK_GLOBAL
@@ -46,6 +46,8 @@ def flake8() -> None:
 
 @SakCmd("black", helpmsg="Execute black format for Sak and Plugins")
 def black() -> None:
+    if SAK_GLOBAL is None:
+        raise Exception("No SAK_GLOBAL defined")
     cmd = ["black", str(SAK_GLOBAL / "saklib"), str(SAK_GLOBAL / "plugins")]
 
     cwd = SAK_GLOBAL

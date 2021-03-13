@@ -12,8 +12,6 @@ __email__ = "ferawitt@gmail.com"
 import os
 import sys
 import subprocess
-from pathlib import Path
-from typing import Optional
 
 sys.path.append(os.environ["SAK_GLOBAL"])
 
@@ -45,7 +43,8 @@ try:
     lazy_import.lazy_module("scipy.spatial.transform")
     lazy_import.lazy_module("git")
 except ImportError:
-    import sys, traceback
+    import sys
+    import traceback
 
     print("Exception in user code:")
     print("-" * 60)
@@ -55,7 +54,7 @@ except ImportError:
     # If import fails, then ask if the user wants to try to update the requirements
     install_core_requirements()
 
-from saklib.sakcmd import SakCmd, SakArg, sak_arg_parser
+from saklib.sakcmd import SakCmd, sak_arg_parser
 from saklib.sakplugin import SakPlugin, SakPluginManager, SakContext
 
 # import param
