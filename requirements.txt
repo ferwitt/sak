@@ -1,4 +1,2 @@
-#mypy
 argcomplete
-#owlready2
 lazy-import
