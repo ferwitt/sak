@@ -54,4 +54,59 @@ def black() -> None:
     subprocess.run(cmd, check=True, cwd=cwd)
 
 
-EXPOSE = {"mypy": mypy, "flake8": flake8, "black": black}
+@SakCmd("test", helpmsg="Execute tests for Sak and Plugins")
+def test(coverage=False) -> None:
+    if SAK_GLOBAL is None:
+        raise Exception("No SAK_GLOBAL defined")
+
+    cmd = []
+
+    if coverage:
+        cmd += ["coverage", "run", "--source=saklib,plugins"]
+    else:
+        cmd += ["python"]
+
+    cmd += [
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        str(SAK_GLOBAL / "saklib"),
+        "-s",
+        str(SAK_GLOBAL / "plugins"),
+        "-p",
+        "*_test.py",
+    ]
+
+    cwd = SAK_GLOBAL
+    subprocess.run(cmd, check=True, cwd=cwd)
+
+
+@SakCmd("report", helpmsg="Show the coverage report")
+def coverage_report(html=False) -> None:
+    if SAK_GLOBAL is None:
+        raise Exception("No SAK_GLOBAL defined")
+
+    test(coverage=True)
+
+    # For more information check: https://coverage.readthedocs.io/en/coverage-5.5/
+    cmd = []
+    if html:
+        cmd += ["coverage", "html"]
+    else:
+        cmd += ["coverage", "report"]
+
+    cwd = SAK_GLOBAL
+    subprocess.run(cmd, check=True, cwd=cwd)
+
+    if html:
+        subprocess.run(["xdg-open", "htmlcov/index.html"], check=True, cwd=cwd)
+
+
+EXPOSE = {
+    "mypy": mypy,
+    "flake8": flake8,
+    "black": black,
+    "test": test,
+    "coverage": {"report": coverage_report},
+}
