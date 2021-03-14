@@ -11,6 +11,8 @@ __email__ = "ferawitt@gmail.com"
 from saklib.sakcmd import SakCmd
 from saklib.sakconfig import SAK_GLOBAL
 
+import re
+import sys
 import subprocess
 
 
@@ -79,7 +81,35 @@ def test(coverage=False) -> None:
     ]
 
     cwd = SAK_GLOBAL
-    subprocess.run(cmd, check=True, cwd=cwd)
+
+    normalize_file_path = True
+    if normalize_file_path:
+        p = subprocess.Popen(
+            cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+        if p.stdout is None:
+            raise Exception('Failed to execute "%s" ' % (" ".join(cmd)))
+
+        def convertPythonTracebackFileToNormalizeFile(line: str) -> str:
+            return re.sub(r'^ *File "(.*?)", line (\d+),', r"\1:\2:", line, re.M)
+
+        for l in p.stdout:
+            sys.stdout.write(
+                convertPythonTracebackFileToNormalizeFile(l.decode("utf-8"))
+            )
+            sys.stdout.flush()
+        for l in p.stderr:
+            sys.stderr.write(
+                convertPythonTracebackFileToNormalizeFile(l.decode("utf-8"))
+            )
+            sys.stderr.flush()
+        p.communicate()
+        if p.returncode != 0:
+            raise Exception(
+                'Failed to execute "%s" ret core: %d' % (" ".join(cmd), p.returncode)
+            )
+    else:
+        subprocess.run(cmd, check=True, cwd=cwd)
 
 
 @SakCmd("report", helpmsg="Show the coverage report")
