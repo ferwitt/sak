@@ -30,6 +30,7 @@ def mypy() -> None:
         "python",
         "--ignore-missing-imports",
         "--show-absolute-path",
+        "--pretty",
     ]
 
     cwd = SAK_GLOBAL
@@ -57,7 +58,7 @@ def black() -> None:
 
 
 @SakCmd("test", helpmsg="Execute tests for Sak and Plugins")
-def test(coverage=False) -> None:
+def test(coverage: bool = False) -> None:
     if SAK_GLOBAL is None:
         raise Exception("No SAK_GLOBAL defined")
 
@@ -87,7 +88,7 @@ def test(coverage=False) -> None:
         p = subprocess.Popen(
             cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-        if p.stdout is None:
+        if (p.stdout is None) or (p.stderr is None):
             raise Exception('Failed to execute "%s" ' % (" ".join(cmd)))
 
         def convertPythonTracebackFileToNormalizeFile(line: str) -> str:
@@ -113,7 +114,7 @@ def test(coverage=False) -> None:
 
 
 @SakCmd("report", helpmsg="Show the coverage report")
-def coverage_report(html=False) -> None:
+def coverage_report(html: bool = False) -> None:
     if SAK_GLOBAL is None:
         raise Exception("No SAK_GLOBAL defined")
 
