@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 """
-Centralized support for Quality Assurance
+Centralized support for Quality Assurance.
 """
 from typing import List
 

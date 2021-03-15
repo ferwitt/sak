@@ -1,4 +1,9 @@
 # -*- coding: UTF-8 -*-
+
+"""
+Plugin manager commands.
+"""
+
 from typing import List
 
 PLUGIN_NAME = "plugins"

@@ -1,4 +1,8 @@
 # -*- coding: UTF-8 -*-
+"""
+Simple Text user interface for SAK.
+"""
+
 from typing import List
 
 PLUGIN_NAME = "tui"
