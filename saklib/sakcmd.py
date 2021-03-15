@@ -251,13 +251,27 @@ class SakCmdWrapper:
             if isinstance(d, dict):
                 subcmds = []
                 for k, v in d.items():
+                    if k == "sak_subcmds":
+                        if isinstance(v, dict):
+                            subcmds += [
+                                SakCmdWrapper(wrapped_content=y, name=x)
+                                for x, y in v.items()
+                            ]
+                            continue
+                        elif isinstance(v, list):
+                            subcmds += [SakCmdWrapper(wrapped_content=x) for x in v]
+                            continue
+
                     if hasattr(v, "_sak_dec_chain"):
                         k = v.__name__
                     # elif hasattr(v, 'name'):
                     #    k = v.name
+
                     if k.startswith("_"):
-                        continue
-                    subcmds.append(SakCmdWrapper(wrapped_content=v, name=k))
+                        subcmds.append(SakCmdWrapper(wrapped_content=v))
+                    else:
+                        subcmds.append(SakCmdWrapper(wrapped_content=v, name=k))
+
                 if subcmds:
                     return subcmds
 
@@ -279,23 +293,20 @@ class SakCmdWrapper:
             if True:
                 subcmds = []
                 for k in dir(d):
+                    if k.startswith("_sak_unamed_expose_"):
+                        dd = getattr(d, k)
+                        subcmds.append(SakCmdWrapper(wrapped_content=dd))
+                        continue
 
                     if k.startswith("_"):
                         continue
+
                     try:
                         dd = getattr(d, k)
 
-                        if hasattr(d, "_sak_dec_chain"):
-                            chain = d._sak_dec_chain  # type: ignore
-                            while chain is not None:
-                                if hasattr(chain._sak_func, "_sak_dec_chain"):
-                                    chain = chain._sak_func._sak_dec_chain
-                                else:
-                                    chain = None
-                            continue
-
                         dd = SakCmdWrapper(wrapped_content=dd, name=k)
                         subcmds.append(dd)
+                        continue
                     except:
                         # TODO(witt): Just does not add because of failure.
                         print("skip", k)
@@ -306,7 +317,8 @@ class SakCmdWrapper:
                         print("-" * 60)
                         traceback.print_exc(file=sys.stdout)
                         print("-" * 60)
-                        pass
+                        continue
+
                 if subcmds:
                     return subcmds
 
@@ -408,7 +420,7 @@ class SakCmdWrapper:
 
         if isinstance(d, dict):
             if "__doc__" in d:
-                return d["__doc__"]
+                return (d["__doc__"] or "").strip()
 
         if isinstance(d, SakPlugin):
             plugin_helpmsg = d.helpmsg

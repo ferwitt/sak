@@ -202,41 +202,59 @@ class SakPlugin(object):
         # if self._loaded: return
         self._loaded = True
 
-        expose = self._config.get("EXPOSE_FILES", None)
+        expose_files = self._config.get("EXPOSE_FILES", None)
 
-        if isinstance(expose, dict):
-            for expose_name, expose_file_name in expose.items():
+        if isinstance(expose_files, dict):
+            for expose_name, expose_file_name in expose_files.items():
                 expose_file = self._has_plugin_path / expose_file_name
-                if not expose_file.exists():
-                    # print('Does not exist', expose_file)
-                    continue
-                # print('will load', expose_name, expose_file)
-                imp_res = load_file(expose_file)
-                if imp_res is not None:
-                    exp_res = imp_res.get("EXPOSE", {})
-                    if expose_name == "_":
-                        for k, v in exp_res.items():
-                            # TODO(witt): Should I override the command or report an error?
-                            self._exposed[k] = v
-                    else:
-                        self._exposed[expose_name] = exp_res
-                else:
-                    print("Failed to load:", expose_file)
-        elif isinstance(expose, str):
-            expose_file_name = expose
-            expose_file = self._has_plugin_path / expose_file_name
-            if expose_file.exists():
-                imp_res = load_file(expose_file)
-                if imp_res is not None:
-                    exp_res = imp_res.get("EXPOSE", {})
-                    # print(exp_res)
-                    for k, v in exp_res.items():
-                        # print(k)
-                        self._exposed[k] = v
-                else:
-                    print("Failed to load:", expose_file)
 
-        # print(self._exposed)
+                if not expose_file.exists():
+                    raise Exception("Could not add exposed file %s" % expose_file_name)
+
+                imp_res = load_file(expose_file)
+                if imp_res is not None:
+                    exp_res = imp_res.get("EXPOSE", {})
+
+                    if expose_name == "_":
+                        if isinstance(exp_res, dict):
+                            for k, v in exp_res.items():
+                                self._exposed[k] = v
+                        elif isinstance(exp_res, list):
+                            for idx, v in enumerate(exp_res):
+                                self._exposed[f"_sak_unamed_expose_{idx}"] = v
+                        else:
+                            self._exposed[f"_sak_unamed_expose_"] = exp_res
+                    else:
+                        if isinstance(exp_res, dict) or isinstance(exp_res, list):
+                            self._exposed[expose_name] = {
+                                "__doc__": imp_res.get("__doc__", ""),
+                                "sak_subcmds": exp_res,
+                            }
+                        else:
+                            self._exposed[f"_sak_unamed_expose_"] = exp_res
+                else:
+                    raise Exception("Failed to load: %s" % expose_file)
+
+        elif isinstance(expose_files, str):
+            expose_file_name = expose_files
+            expose_file = self._has_plugin_path / expose_file_name
+
+            if not expose_file.exists():
+                raise Exception("Could not add exposed file %s" % expose_file_name)
+
+            imp_res = load_file(expose_file)
+            if imp_res is not None:
+                exp_res = imp_res.get("EXPOSE", {})
+                if isinstance(exp_res, dict):
+                    for k, v in exp_res.items():
+                        self._exposed[k] = v
+                elif isinstance(exp_res, list):
+                    for idx, v in enumerate(exp_res):
+                        self._exposed[f"_sak_unamed_expose_{idx}"] = v
+                else:
+                    self._exposed[f"_sak_unamed_expose_"] = exp_res
+            else:
+                raise Exception("Failed to load: %s" % expose_file)
 
     def __dir__(self) -> Set[Any]:
         self._load_exposes()
@@ -292,6 +310,9 @@ class SakPlugin(object):
 
     @property
     def helpmsg(self):
+        """
+        Show help message.
+        """
         l = self.__doc__.splitlines()
         if l:
             return l[0]
