@@ -52,10 +52,10 @@ class SakProperty(SakDecorator):
 class SakCompleterArg(object):
     def __init__(
         self,
-        prefix: str,
-        action: Any,  # TODO: Restrict Any
-        parser: Any,  # TODO: Restrict Any
-        parsed_args: Namespace,
+        prefix: Optional[str],
+        action: Optional[Any],  # TODO: Restrict Any
+        parser: Optional[Any],  # TODO: Restrict Any
+        parsed_args: Optional[Namespace],
     ):
         """
         Example of parameters from argcomplete

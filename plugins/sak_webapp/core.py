@@ -19,6 +19,7 @@ import sys
 from pathlib import Path
 
 import bokeh
+import bokeh.document
 import bokeh.embed
 import bokeh.server.server
 
@@ -64,7 +65,7 @@ def set_extensions() -> None:
     # hv.opts.defaults(hv.opts.Image(responsive=True, tools=['hover']))
 
 
-def modify_doc(doc) -> None:
+def modify_doc(doc: bokeh.document.document.Document) -> None:
     webapp_file = Path(__file__).resolve().parent / "webapp.py"
     webapp = load_file(webapp_file)
 
@@ -128,7 +129,11 @@ def start(port: int = 2020) -> None:
 
 
 def jupyter() -> None:
-    sys.path.append(ctx.sak_global / "saklib")
+    if ctx.sak_global is None:
+        raise Exception("No context available")
+
+    sys.path.append(str(ctx.sak_global / "saklib"))
+
     os.environ["PATH"] = str(ctx.sak_global / "saklib") + ":" + os.environ["PATH"]
     os.system("jupyter lab")
 

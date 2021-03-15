@@ -11,7 +11,7 @@ __email__ = "ferawitt@gmail.com"
 import os
 
 from saklib.sak import root_cmd
-from saklib.sakcmd import SakArg, sak_arg_parser, SakCompleterArg
+from saklib.sakcmd import SakArg, SakCmd, sak_arg_parser, SakCompleterArg
 from saklib.sakio import (
     get_stdout_buffer_for_thread,
     unregister_stderr_thread_id,
@@ -27,6 +27,7 @@ import panel as pn
 import param
 import time
 import ctypes
+import bokeh
 
 from typing import List, Dict, Any, Optional
 
@@ -170,7 +171,7 @@ class StopableThread(threading.Thread):
         #    return self._thread_id
         for thread_id, thread in threading._active.items():  # type: ignore
             if thread is self:
-                return thread_id
+                return thread_id  # type: ignore
         return None
 
     def raise_exception(self) -> None:
@@ -303,9 +304,11 @@ class SakWebCmdArg:
 
 
 class CallbackObject:
-    def __init__(self, doc, root_cmd, args) -> None:
+    def __init__(
+        self, doc: bokeh.document.document.Document, root_cmd: SakCmd, args: List[str]
+    ) -> None:
 
-        web_ret = {}
+        web_ret: Dict[str, Any] = {}
         self.path = "/".join(args)
         # _root_cmd = root_cmd()
 
@@ -440,7 +443,7 @@ class CallbackObject:
         return self.output
 
     @tornado.gen.coroutine
-    def update_doc(self, new_output, stdout_str: pn.pane.Str) -> None:
+    def update_doc(self, new_output: pn.pane.PaneBase, stdout_str: pn.pane.Str) -> None:
         # TODO(witt): This coroutine is the one that will actually update the content
         # source.stream(dict(x=[x], y=[y]))
         self.output.clear()
@@ -495,10 +498,15 @@ class CallbackObject:
                 # MAX_SIZE = -1
                 MAX_SIZE = 10 * 1024
                 while do_update_stdout:
+                    if self.thread is None:
+                        raise Exception("Thread was not set")
+
                     stdout_strio = get_stdout_buffer_for_thread(self.thread.ident)
                     stdout_str = ""
+
                     if stdout_strio is not None:
                         stdout_str = stdout_strio.getvalue()[-MAX_SIZE:]
+
                     if self.stdout.object != stdout_str:
                         # loading = pn.pane.GIF('https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif')
                         self.doc.add_next_tick_callback(
@@ -525,7 +533,7 @@ class CallbackObject:
             if stdout_strio is not None:
                 stdout_str = stdout_strio.getvalue()
 
-            if hasattr(new_output, "panel"):
+            if (new_output is not None) and hasattr(new_output, "panel"):
                 new_output = new_output.panel()
 
             self.doc.add_next_tick_callback(
@@ -542,8 +550,8 @@ class CallbackObject:
 
         # TODO(witt): Should I do some thread cleaning?
 
-    def _callback(self, **vargs):
-        ret = None
+    def _callback(self, **vargs: Any) -> Any:
+        ret: Any = None
 
         param_args = []
         for arg in self.cmd.args:
@@ -568,11 +576,11 @@ class CallbackObject:
         return ret
 
 
-class SakDoc(param.Parameterized):
+class SakDoc(param.Parameterized):  # type: ignore
 
     # command = param.ObjectSelector()
 
-    def __init__(self, doc):
+    def __init__(self, doc: bokeh.document.document.Document) -> None:
         self.doc = doc
         super().__init__()
 
@@ -600,7 +608,7 @@ class SakDoc(param.Parameterized):
     #
     #            )
 
-    def server_doc(self):
+    def server_doc(self) -> bokeh.document.document.Document:
         content = CallbackObject(self.doc, self._curr_cmd, self._args)
 
         # from panel.template import DarkTheme
@@ -673,4 +681,5 @@ class SakDoc(param.Parameterized):
         # tmpl.modal.append(pn.pane.Markdown('This is a modal test'))
         # tmpl.open_modal()
 
-        return tmpl.server_doc(self.doc)
+        ret = tmpl.server_doc(self.doc)
+        return ret
