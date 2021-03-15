@@ -15,7 +15,6 @@ import subprocess
 
 sys.path.append(os.environ["SAK_GLOBAL"])
 
-from saklib.sakconfig import install_core_requirements
 
 try:
     import lazy_import
@@ -52,13 +51,12 @@ except ImportError:
     print("-" * 60)
 
     # If import fails, then ask if the user wants to try to update the requirements
+    from saklib.sakconfig import install_core_requirements  # noqa: E402
+
     install_core_requirements()
 
-from saklib.sakcmd import SakCmd, sak_arg_parser
-from saklib.sakplugin import SakPlugin, SakPluginManager, SakContext
-
-# import param
-# from dataclasses import dataclass
+from saklib.sakcmd import SakCmd, sak_arg_parser  # noqa: E402
+from saklib.sakplugin import SakPlugin, SakPluginManager, SakContext  # noqa: E402
 
 ctx = SakContext()
 plm = SakPluginManager()

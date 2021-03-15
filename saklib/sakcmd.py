@@ -24,8 +24,8 @@ try:
     import argcomplete
 
     hasArgcomplete = True
-except:
-    pass
+except Exception as e:
+    print("WARNING! argcomplete not supported.", str(e))
 
 
 class SakDecorator:
@@ -61,9 +61,27 @@ class SakCompleterArg(object):
         Example of parameters from argcomplete
         {
             'prefix': '',
-            'action': IntrospectAction(option_strings=['--account', '-a'], dest='account', nargs=None, const=None, default=None, type=None, choices=None, help='', metavar=None),
-            'parser': MonkeyPatchedIntrospectiveArgumentParser(prog='sak fin total', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True),
-            'parsed_args': Namespace(account=None, currency=None, sak_callback=<bound method SakFin.total of <sak_fin.SakFin object at 0x7fe68bbb8390>>)
+            'action': IntrospectAction(
+                            option_strings=['--account', '-a'],
+                            dest='account',
+                            nargs=None,
+                            const=None,
+                            default=None,
+                            type=None,
+                            choices=None,
+                            help='',
+                            metavar=None),
+            'parser': MonkeyPatchedIntrospectiveArgumentParser(
+                            prog='sak fin total',
+                            usage=None,
+                            description=None,
+                            formatter_class=<class 'argparse.HelpFormatter'>,
+                            conflict_handler='error', add_help=True),
+            'parsed_args': Namespace(
+                            account=None,
+                            currency=None,
+                            sak_callback=<bound method SakFin.total of <...>>
+                            )
         }
         """
         super(SakCompleterArg, self).__init__()
@@ -183,7 +201,6 @@ class SakCmdWrapper:
         if self.name is None:
             raise Exception("I failed to infer the name")
 
-
     def __str__(self) -> str:
         return f"<{self.name} {self.callback}>"
 
@@ -291,8 +308,11 @@ class SakCmdWrapper:
                         k = v.__name__
                     try:
                         k = v.name
-                    except:
-                        pass
+                    except Exception as e:
+                        print(
+                            "WARNING! I am trying to access the name attribute but failed.",
+                            str(e),
+                        )
                     subcmds.append(SakCmdWrapper(wrapped_content=v, name=k))
                 if subcmds:
                     return subcmds
@@ -314,9 +334,9 @@ class SakCmdWrapper:
                         dd = SakCmdWrapper(wrapped_content=dd, name=k)
                         subcmds.append(dd)
                         continue
-                    except:
+                    except Exception as e:
                         # TODO(witt): Just does not add because of failure.
-                        print("skip", k)
+                        print("skip", k, str(e))
                         import sys
                         import traceback
 
@@ -603,10 +623,15 @@ def sak_arg_parser(
                 continue
 
             success = True
-        except:
+        except Exception as e:
             # Parse failed, show error message only if it is not help command
             if not sak_show_help:
                 ret["argparse"]["error"] = f.getvalue()
+            else:
+                print(
+                    "ERROR! Something bad happened while iterating in the command tree.",
+                    str(e),
+                )
 
         # Here we have consumed all the arguments and completly built the parser
         # Register auto completion

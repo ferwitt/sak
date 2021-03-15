@@ -19,23 +19,16 @@ from saklib.sakio import (
 )
 
 from functools import partial
-
-# from threading import Thread
 import threading
-
 from pathlib import Path
-
-from typing import List, Dict, Any, Optional
-
 import tornado
 import tornado.gen
 import panel as pn
-
 import param
-
-# pn.config.sizing_mode = "stretch_width"
-
 import time
+import ctypes
+
+from typing import List, Dict, Any, Optional
 
 
 has_pandas = False
@@ -43,15 +36,12 @@ try:
     import pandas as pd
 
     has_pandas = True
-except:
-    pass
+except Exception as e:
+    print("WARNING! Failed to import pandas", str(e))
 
-
-import ctypes
 
 SCRIPT_PATH = Path(__file__).resolve()
 RESOURCES_PATH = SCRIPT_PATH.parent / "web"
-
 
 template = """
 {%% extends base %%}
@@ -593,8 +583,8 @@ class SakDoc(param.Parameterized):
         path = ""
         try:
             path = args["path"][0].decode("utf-8")
-        except:
-            pass
+        except Exception as e:
+            print("ERROR! Failed to get the path from the document.", str(e))
         # Filter empty fields
         self._args = [x for x in path.split("/") if x]
 

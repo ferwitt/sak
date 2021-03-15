@@ -85,8 +85,8 @@ def modify_doc(doc) -> None:
     path = ""
     try:
         path = args["path"][0].decode("utf-8")
-    except:
-        pass
+    except Exception as e:
+        print("ERROR! Failed to get the path from the args", str(e))
 
     # TODO(witt): Make some way to cache this and not reload the module all the time!
     try:
@@ -98,9 +98,9 @@ def modify_doc(doc) -> None:
         newdoc_layout = newdoc.layout
 
         doc.add_root(newdoc_layout.get_root(doc))
-    except:
+    except Exception as e:
         # TODO(witt): I could update the doc with some nice error message :)
-        pass
+        print("ERROR! Failed to load the webapp or to execute the command.", str(e))
 
 
 def bk_worker(bokeh_port: int) -> None:

@@ -139,10 +139,10 @@ def load_file(fpath: Path, environ: Optional[Dict[str, Any]] = None) -> Any:
                 os.system('pip install --upgrade -r "%s"' % requirements_path)
             else:
                 print("Skip adding plugin %s" % str(fpath))
-    except:
+    except Exception as e:
         import traceback
 
-        print("Exception in user code:")
+        print("Exception in user code:", str(e))
         print("-" * 60)
         traceback.print_exc(file=sys.stdout)
         print("-" * 60)
