@@ -180,6 +180,10 @@ class SakCmdWrapper:
         elif isinstance(d, SakCmd):
             self._cmd = d
 
+        if self.name is None:
+            raise Exception("I failed to infer the name")
+
+
     def __str__(self) -> str:
         return f"<{self.name} {self.callback}>"
 
@@ -268,7 +272,10 @@ class SakCmdWrapper:
                     #    k = v.name
 
                     if k.startswith("_"):
-                        subcmds.append(SakCmdWrapper(wrapped_content=v))
+                        continue
+                        # TODO(witt): Maybe it makes no sense to try to add a private subcommand. It
+                        #             was failing because it tried to add the __doc__.
+                        # subcmds.append(SakCmdWrapper(wrapped_content=v))
                     else:
                         subcmds.append(SakCmdWrapper(wrapped_content=v, name=k))
 
