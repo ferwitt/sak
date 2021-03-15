@@ -1,4 +1,3 @@
-import pytest
 import unittest
 
 from saklib.sakcmd import SakCmd, SakCmdWrapper, sak_arg_parser

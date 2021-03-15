@@ -371,7 +371,7 @@ class SakCmdWrapper:
                         ):
                             dft = _params[param_name].vargs.get("default", None)
                             _params[param_name].vargs["action"] = "store_true"
-                            if dft == True:
+                            if dft is True:
                                 _params[param_name].vargs["action"] = "store_false"
 
                     # Check if there are decorators and override the info from the decorator.
@@ -637,8 +637,8 @@ def sak_arg_parser(
 
         # Parse success and not arguments left.
         nm_dict: Dict[str, Any] = vars(nm)
-        sak_cmd = nm_dict.pop("sak_cmd")
-        sak_parser = nm_dict.pop("sak_parser")
+        nm_dict.pop("sak_cmd")
+        nm_dict.pop("sak_parser")
         callback = nm_dict.pop("sak_callback")
 
         ret["value"] = None

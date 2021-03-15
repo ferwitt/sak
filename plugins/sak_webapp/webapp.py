@@ -14,7 +14,6 @@ from saklib.sak import root_cmd
 from saklib.sakcmd import SakArg, sak_arg_parser, SakCompleterArg
 from saklib.sakio import (
     get_stdout_buffer_for_thread,
-    get_stderr_buffer_for_thread,
     unregister_stderr_thread_id,
     unregister_stdout_thread_id,
 )
@@ -616,7 +615,7 @@ class SakDoc(param.Parameterized):
 
         # toc_md += f'''
         # ---
-        #'''
+        # '''
 
         subcmds_md = ""
         if content.cmd.subcmds:
@@ -630,7 +629,7 @@ class SakDoc(param.Parameterized):
         """
         # toc_md += '''
         # ---
-        #'''
+        # '''
 
         controller = pn.Column(
             # pn.Row(
@@ -647,7 +646,7 @@ class SakDoc(param.Parameterized):
             sizing_mode="stretch_both",
         )
 
-        parameters = content.parameters_view()
+        # parameters = content.parameters_view()
 
         content_pane = pn.Tabs(
             ("output", content.view()),

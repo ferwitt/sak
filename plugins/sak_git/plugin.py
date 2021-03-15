@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
-import git
-from git import Repo
+# import git
+# from git import Repo
 
 
 # class SakGit(SakPlugin):

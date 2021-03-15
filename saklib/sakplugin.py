@@ -157,11 +157,10 @@ class SakPluginExposedFile(object):
         self.file_path = file_path
 
 
-class SakPlugin(object):
+class SakPlugin:
     def __init__(
         self, context: SakContext, name: str, path: Optional[Path] = None
     ) -> None:
-        super(SakPlugin, self).__init__()
         self.has_context = context
 
         self.name = name
@@ -223,7 +222,7 @@ class SakPlugin(object):
                             for idx, v in enumerate(exp_res):
                                 self._exposed[f"_sak_unamed_expose_{idx}"] = v
                         else:
-                            self._exposed[f"_sak_unamed_expose_"] = exp_res
+                            self._exposed["_sak_unamed_expose_"] = exp_res
                     else:
                         if isinstance(exp_res, dict) or isinstance(exp_res, list):
                             self._exposed[expose_name] = {
@@ -231,7 +230,7 @@ class SakPlugin(object):
                                 "sak_subcmds": exp_res,
                             }
                         else:
-                            self._exposed[f"_sak_unamed_expose_"] = exp_res
+                            self._exposed["_sak_unamed_expose_"] = exp_res
                 else:
                     raise Exception("Failed to load: %s" % expose_file)
 
@@ -252,7 +251,7 @@ class SakPlugin(object):
                     for idx, v in enumerate(exp_res):
                         self._exposed[f"_sak_unamed_expose_{idx}"] = v
                 else:
-                    self._exposed[f"_sak_unamed_expose_"] = exp_res
+                    self._exposed["_sak_unamed_expose_"] = exp_res
             else:
                 raise Exception("Failed to load: %s" % expose_file)
 
@@ -304,18 +303,18 @@ class SakPlugin(object):
                 )
 
     @property
-    def __doc__(self):
+    def __doc__(self) -> str:  # type: ignore
         v = self._config.get("__doc__") or ""
         return v.strip()
 
     @property
-    def helpmsg(self):
+    def helpmsg(self) -> str:
         """
         Show help message.
         """
-        l = self.__doc__.splitlines()
-        if l:
-            return l[0]
+        lines = self.__doc__.splitlines()
+        if lines:
+            return lines[0]
         return ""
 
 

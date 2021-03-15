@@ -15,7 +15,6 @@ from saklib.sakconfig import SAK_GLOBAL
 import re
 import sys
 import subprocess
-import unittest
 
 from pathlib import Path
 
@@ -104,14 +103,14 @@ def test(coverage: bool = False, filefilter: Optional[str] = None) -> None:
         def convertPythonTracebackFileToNormalizeFile(line: str) -> str:
             return re.sub(r'^ *File "(.*?)", line (\d+),', r"\1:\2:", line, re.M)
 
-        for l in p.stdout:
+        for data in p.stdout:
             sys.stdout.write(
-                convertPythonTracebackFileToNormalizeFile(l.decode("utf-8"))
+                convertPythonTracebackFileToNormalizeFile(data.decode("utf-8"))
             )
             sys.stdout.flush()
-        for l in p.stderr:
+        for data in p.stderr:
             sys.stderr.write(
-                convertPythonTracebackFileToNormalizeFile(l.decode("utf-8"))
+                convertPythonTracebackFileToNormalizeFile(data.decode("utf-8"))
             )
             sys.stderr.flush()
         p.communicate()
