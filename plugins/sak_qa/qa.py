@@ -12,7 +12,6 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 from saklib.sak import plm
 from saklib.sakcmd import SakCmd
@@ -86,7 +85,7 @@ def black() -> None:
 
 
 @SakCmd("test", helpmsg="Execute tests for Sak and Plugins")
-def test(coverage: bool = False, filefilter: Optional[str] = None) -> None:
+def test(coverage: bool = False) -> None:
     if SAK_GLOBAL is None:
         raise Exception("No SAK_GLOBAL defined")
 
@@ -103,15 +102,7 @@ def test(coverage: bool = False, filefilter: Optional[str] = None) -> None:
             continue
         test_files += [str(x) for x in Path(plugin.plugin_path).rglob("*_test.py")]
 
-    filtered_files = []
-    if filefilter is not None:
-        for test_file in test_files:
-            if filefilter in test_file:
-                filtered_files.append(test_file)
-    else:
-        filtered_files = test_files
-
-    cmd += filtered_files
+    cmd += test_files
 
     cwd = SAK_GLOBAL
 
