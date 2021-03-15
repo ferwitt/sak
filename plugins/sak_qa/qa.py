@@ -26,10 +26,15 @@ def mypy() -> None:
     if SAK_GLOBAL is None:
         raise Exception("No SAK_GLOBAL defined")
 
+    paths = []
+    paths += [str(SAK_GLOBAL / "saklib")]
+    for plugin in plm.getPluginList():
+        if plugin.plugin_path is None:
+            continue
+        paths += [str(plugin.plugin_path)]
+
     cmd = [
         "mypy",
-        str(SAK_GLOBAL / "saklib"),
-        str(SAK_GLOBAL / "plugins"),
         "--strict",
         "--exclude",
         "python",
@@ -37,6 +42,8 @@ def mypy() -> None:
         "--show-absolute-path",
         "--pretty",
     ]
+
+    cmd += paths
 
     cwd = SAK_GLOBAL
     subprocess.run(cmd, check=True, cwd=cwd)
@@ -46,7 +53,16 @@ def mypy() -> None:
 def flake8() -> None:
     if SAK_GLOBAL is None:
         raise Exception("No SAK_GLOBAL defined")
-    cmd = ["flake8", str(SAK_GLOBAL / "saklib"), str(SAK_GLOBAL / "plugins")]
+
+    paths = []
+    paths += [str(SAK_GLOBAL / "saklib")]
+    for plugin in plm.getPluginList():
+        if plugin.plugin_path is None:
+            continue
+        paths += [str(plugin.plugin_path)]
+
+    cmd = ["flake8"]
+    cmd += paths
 
     cwd = SAK_GLOBAL
     subprocess.run(cmd, check=True, cwd=cwd)
@@ -56,10 +72,19 @@ def flake8() -> None:
 def black() -> None:
     if SAK_GLOBAL is None:
         raise Exception("No SAK_GLOBAL defined")
-    cmd = ["black", str(SAK_GLOBAL / "saklib"), str(SAK_GLOBAL / "plugins")]
 
-    cwd = SAK_GLOBAL
-    subprocess.run(cmd, check=True, cwd=cwd)
+    paths = []
+    paths += [str(SAK_GLOBAL / "saklib")]
+    for plugin in plm.getPluginList():
+        if plugin.plugin_path is None:
+            continue
+        paths += [str(plugin.plugin_path)]
+
+    for path in paths:
+        cmd = ["black", path]
+
+        cwd = path
+        subprocess.run(cmd, check=True, cwd=cwd)
 
 
 @SakCmd("test", helpmsg="Execute tests for Sak and Plugins")
