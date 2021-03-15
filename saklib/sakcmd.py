@@ -95,7 +95,13 @@ class SakArg(SakDecorator):
         if self.short_name:
             pargs += ["-%s" % self.short_name]
 
-        aux = parser.add_argument(*pargs, help=self.helpmsg, **self.vargs)
+        # TODO(witt): I think add_argument should accept the argument type.
+        vargs = {}
+        vargs.update(self.vargs)
+        if "type" in vargs:
+            vargs.pop("type")
+
+        aux = parser.add_argument(*pargs, help=self.helpmsg, **vargs)
 
         completercb = self.completercb
         if hasArgcomplete and (completercb is not None):
@@ -143,11 +149,7 @@ class SakCmdWrapper:
         args: Optional[List[SakArg]] = None,
         helpmsg: Optional[str] = None,
         subcmds: Optional[List[Any]] = None,  # TODO: Make this more specific
-        cmd: Optional[SakCmd] = None,
     ):
-        if cmd is not None:
-            assert isinstance(cmd, SakCmd)
-
         assert name != "0"
 
         self._wrapped_content = wrapped_content
@@ -161,7 +163,8 @@ class SakCmdWrapper:
         self._args = args or []
         self._helpmsg = helpmsg
         self._description = helpmsg
-        self._cmd = cmd
+        # self._cmd = cmd
+        self._cmd: Optional[SakCmd] = None
 
         d = wrapped_content
 
@@ -239,6 +242,8 @@ class SakCmdWrapper:
         if cmd:
             if cmd.subcmds:
                 return [SakCmdWrapper(x) for x in cmd.subcmds]
+            else:
+                return []
 
         if self._wrapped_content:
             d = self._wrapped_content
@@ -507,7 +512,8 @@ def sak_arg_parser(
     ret: Dict[str, Any] = {"argparse": {}, "ret": None}
 
     while True:
-        cmd = SakCmdWrapper(cmd)
+        if not isinstance(cmd, SakCmdWrapper):
+            cmd = SakCmdWrapper(cmd)
 
         for arg in cmd.args:
             arg.addToArgParser(parser)
@@ -526,7 +532,9 @@ def sak_arg_parser(
                         continue
 
             subcmdname = subcmd.name
-            subcmd = SakCmdWrapper(subcmd)
+
+            if not isinstance(subcmd, SakCmdWrapper):
+                subcmd = SakCmdWrapper(subcmd)
 
             if not subcmdname:
                 # TODO(witt): It makes no sense to have a subcmd without name....
