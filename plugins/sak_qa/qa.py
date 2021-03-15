@@ -168,7 +168,33 @@ def coverage_report(html: bool = False) -> None:
         subprocess.run(["xdg-open", "htmlcov/index.html"], check=True, cwd=cwd)
 
 
+@SakCmd("all", helpmsg="Execute all the QA commands.")
+def execute_all() -> None:
+    print(80 * "=")
+    print("Black")
+    print(80 * "=")
+    black()
+
+    print(80 * "=")
+    print("Flake8")
+    print(80 * "=")
+    flake8()
+
+    print(80 * "=")
+    print("Mypy")
+    print(80 * "=")
+    mypy()
+
+    print(80 * "=")
+    print("Unit test")
+    print(80 * "=")
+    test(coverage=True)
+
+    # TODO(witt): Evaluate coverage requirements.
+
+
 EXPOSE = {
+    "all": execute_all,
     "mypy": mypy,
     "flake8": flake8,
     "black": black,
