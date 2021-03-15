@@ -8,25 +8,22 @@ __license__ = "MIT"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from saklib.sak import ctx
-from saklib.sakcmd import SakCmd, SakArg
-from saklib.sakplugin import load_file
-from saklib.sakio import register_threaded_stdout_tee, register_threaded_stderr_tee
-
 import os
 import sys
-
 from pathlib import Path
 
 import bokeh
 import bokeh.document
 import bokeh.embed
 import bokeh.server.server
-
 import panel as pn
-
 import tornado
 import tornado.gen
+
+from saklib.sak import ctx
+from saklib.sakcmd import SakArg, SakCmd
+from saklib.sakio import register_threaded_stderr_tee, register_threaded_stdout_tee
+from saklib.sakplugin import load_file
 
 
 def set_extensions() -> None:

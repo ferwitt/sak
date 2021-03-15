@@ -7,15 +7,14 @@ __license__ = "MIT"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-import os
-from argparse import Namespace, ArgumentParser, RawTextHelpFormatter
 import functools
-from typing import Optional, Callable, Dict, Any, List, Union
-from io import StringIO
-from contextlib import redirect_stderr, redirect_stdout
-
-from collections.abc import Iterable
 import inspect
+import os
+from argparse import ArgumentParser, Namespace, RawTextHelpFormatter
+from collections.abc import Iterable
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from saklib.sakplugin import SakPlugin
 

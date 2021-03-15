@@ -9,9 +9,8 @@ __email__ = "ferawitt@gmail.com"
 
 
 import sys
-from io import StringIO, TextIOWrapper  # for Python 3
 import threading
-
+from io import StringIO, TextIOWrapper  # for Python 3
 from typing import Dict, Optional
 
 

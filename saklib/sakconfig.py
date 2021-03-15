@@ -7,10 +7,10 @@ __license__ = "MIT"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
+import subprocess
 import sys
 from pathlib import Path
-from typing import List, Any, Optional
-import subprocess
+from typing import Any, List, Optional
 
 
 def find_in_parent(dirname: Path, name: Path) -> Optional[Path]:

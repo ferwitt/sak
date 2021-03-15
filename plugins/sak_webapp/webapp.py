@@ -8,29 +8,27 @@ __license__ = "MIT"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
+import ctypes
 import os
+import threading
+import time
+from functools import partial
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import bokeh
+import panel as pn
+import param
+import tornado
+import tornado.gen
 
 from saklib.sak import root_cmd
-from saklib.sakcmd import SakArg, SakCmd, sak_arg_parser, SakCompleterArg
+from saklib.sakcmd import SakArg, SakCmd, SakCompleterArg, sak_arg_parser
 from saklib.sakio import (
     get_stdout_buffer_for_thread,
     unregister_stderr_thread_id,
     unregister_stdout_thread_id,
 )
-
-from functools import partial
-import threading
-from pathlib import Path
-import tornado
-import tornado.gen
-import panel as pn
-import param
-import time
-import ctypes
-import bokeh
-
-from typing import List, Dict, Any, Optional
-
 
 has_pandas = False
 try:

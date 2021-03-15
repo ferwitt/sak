@@ -1,9 +1,9 @@
 # -*- coding: UTF-8 -*-
 
-from saklib.sak import ctx
-from saklib.sakcmd import SakCmd, SakArg
-
 import subprocess
+
+from saklib.sak import ctx
+from saklib.sakcmd import SakArg, SakCmd
 
 
 @SakCmd("show", helpmsg="Show the list of plugins.")

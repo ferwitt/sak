@@ -7,16 +7,13 @@ __license__ = "MIT"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
-from saklib.sakconfig import SAK_GLOBAL, SAK_LOCAL, CURRENT_DIR
-
 import os
-import sys
 import subprocess
-
+import sys
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Set
 
-from typing import Optional, List, Dict, Any, Set
-
+from saklib.sakconfig import CURRENT_DIR, SAK_GLOBAL, SAK_LOCAL
 
 PYTHON_VERSION_MAJOR = sys.version_info.major
 PYTHON_VERSION_MINOR = sys.version_info.minor

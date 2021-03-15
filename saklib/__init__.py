@@ -8,10 +8,9 @@ __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
 import os
-import sys
 import platform
 import subprocess
-
+import sys
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 SAK_GLOBAL = os.path.abspath(os.path.join(os.environ["HOME"], ".sak"))

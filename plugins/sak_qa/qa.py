@@ -8,17 +8,15 @@ __license__ = "MIT"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
+import re
+import subprocess
+import sys
+from pathlib import Path
+from typing import Optional
+
 from saklib.sak import plm
 from saklib.sakcmd import SakCmd
 from saklib.sakconfig import SAK_GLOBAL
-
-import re
-import sys
-import subprocess
-
-from pathlib import Path
-
-from typing import Optional
 
 
 @SakCmd("mypy", helpmsg="Execute mypy for Sak and Plugins")

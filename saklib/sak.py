@@ -10,8 +10,8 @@ __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
 import os
-import sys
 import subprocess
+import sys
 
 sys.path.append(os.environ["SAK_GLOBAL"])
 
@@ -56,7 +56,7 @@ except ImportError:
     install_core_requirements()
 
 from saklib.sakcmd import SakCmd, sak_arg_parser  # noqa: E402
-from saklib.sakplugin import SakPlugin, SakPluginManager, SakContext  # noqa: E402
+from saklib.sakplugin import SakContext, SakPlugin, SakPluginManager  # noqa: E402
 
 ctx = SakContext()
 plm = SakPluginManager()
