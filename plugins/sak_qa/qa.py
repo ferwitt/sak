@@ -166,7 +166,7 @@ def coverage_report(html: bool = False) -> None:
         subprocess.run(["xdg-open", "htmlcov/index.html"], check=True, cwd=cwd)
 
 
-@SakCmd("isort", helpmsg="Show the coverage report")
+@SakCmd("isort", helpmsg="Execute isort on Sak core and plugins.")
 def isort() -> None:
     if SAK_GLOBAL is None:
         raise Exception("No SAK_GLOBAL defined")
@@ -185,8 +185,42 @@ def isort() -> None:
         subprocess.run(cmd, check=True, cwd=cwd)
 
 
+@SakCmd("autoflake", helpmsg="Execute autoflake on Sak core and plugins.")
+def autoflake() -> None:
+    if SAK_GLOBAL is None:
+        raise Exception("No SAK_GLOBAL defined")
+
+    paths = []
+    paths += [str(SAK_GLOBAL / "saklib")]
+    for plugin in plm.getPluginList():
+        if plugin.plugin_path is None:
+            continue
+        paths += [str(plugin.plugin_path)]
+
+    for path in paths:
+        cmd = [
+            "autoflake",
+            "-i",
+            "-r",
+            "--expand-star-imports",
+            "--remove-all-unused-imports",
+            "--remove-duplicate-keys",
+            "--remove-unused-variables",
+            "--verbose",
+            path,
+        ]
+
+        cwd = path
+        subprocess.run(cmd, check=True, cwd=cwd)
+
+
 @SakCmd("all", helpmsg="Execute all the QA commands.")
 def execute_all() -> None:
+    print(80 * "=")
+    print("Autoflake")
+    print(80 * "=")
+    autoflake()
+
     print(80 * "=")
     print("Isort")
     print(80 * "=")
@@ -220,6 +254,7 @@ EXPOSE = {
     "black": black,
     "coverage": {"report": coverage_report},
     "flake8": flake8,
+    "autoflake": autoflake,
     "isort": isort,
     "mypy": mypy,
     "test": test,
