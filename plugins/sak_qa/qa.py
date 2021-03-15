@@ -168,8 +168,32 @@ def coverage_report(html: bool = False) -> None:
         subprocess.run(["xdg-open", "htmlcov/index.html"], check=True, cwd=cwd)
 
 
+@SakCmd("isort", helpmsg="Show the coverage report")
+def isort() -> None:
+    if SAK_GLOBAL is None:
+        raise Exception("No SAK_GLOBAL defined")
+
+    paths = []
+    paths += [str(SAK_GLOBAL / "saklib")]
+    for plugin in plm.getPluginList():
+        if plugin.plugin_path is None:
+            continue
+        paths += [str(plugin.plugin_path)]
+
+    for path in paths:
+        cmd = ["isort", path]
+
+        cwd = path
+        subprocess.run(cmd, check=True, cwd=cwd)
+
+
 @SakCmd("all", helpmsg="Execute all the QA commands.")
 def execute_all() -> None:
+    print(80 * "=")
+    print("Isort")
+    print(80 * "=")
+    isort()
+
     print(80 * "=")
     print("Black")
     print(80 * "=")
@@ -195,9 +219,10 @@ def execute_all() -> None:
 
 EXPOSE = {
     "all": execute_all,
-    "mypy": mypy,
-    "flake8": flake8,
     "black": black,
-    "test": test,
     "coverage": {"report": coverage_report},
+    "flake8": flake8,
+    "isort": isort,
+    "mypy": mypy,
+    "test": test,
 }
