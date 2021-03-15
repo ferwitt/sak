@@ -285,6 +285,18 @@ class SakPlugin(object):
                     cwd=path,
                 )
 
+    @property
+    def __doc__(self):
+        v = self._config.get("__doc__") or ""
+        return v.strip()
+
+    @property
+    def helpmsg(self):
+        l = self.__doc__.splitlines()
+        if l:
+            return l[0]
+        return ""
+
 
 class SakPluginManager(object):
     def __init__(self) -> None:

@@ -411,6 +411,10 @@ class SakCmdWrapper:
                 return d["__doc__"]
 
         if isinstance(d, SakPlugin):
+            plugin_helpmsg = d.helpmsg
+            if plugin_helpmsg:
+                return plugin_helpmsg
+
             docstring = inspect.getdoc(d)
             if docstring:
                 return inspect.cleandoc(docstring)
