@@ -8,12 +8,16 @@ __license__ = "MIT"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
+from saklib.sak import plm
 from saklib.sakcmd import SakCmd
 from saklib.sakconfig import SAK_GLOBAL
 
 import re
 import sys
 import subprocess
+import unittest
+
+from pathlib import Path
 
 
 @SakCmd("mypy", helpmsg="Execute mypy for Sak and Plugins")
@@ -58,32 +62,24 @@ def black() -> None:
 
 
 @SakCmd("test", helpmsg="Execute tests for Sak and Plugins")
-def test(coverage: bool = False) -> None:
+def test(coverage=False) -> None:
     if SAK_GLOBAL is None:
         raise Exception("No SAK_GLOBAL defined")
 
-    cmd = []
+    cmd = ["pytest"]
 
     if coverage:
-        cmd += ["coverage", "run", "--source=saklib,plugins"]
-    else:
-        cmd += ["python"]
+        cmd += ["--cov-report=html", "--cov=saklib", "--cov=plugins"]
 
-    cmd += [
-        "-m",
-        "unittest",
-        "discover",
-        "-s",
-        str(SAK_GLOBAL / "saklib"),
-        "-s",
-        str(SAK_GLOBAL / "plugins"),
-        "-p",
-        "*_test.py",
-    ]
+    cmd += [str(x) for x in (SAK_GLOBAL / "saklib").rglob("*_test.py")]
+    for plugin in plm.getPluginList():
+        if plugin.plugin_path is None:
+            continue
+        cmd += [str(x) for x in Path(plugin.plugin_path).rglob("*_test.py")]
 
     cwd = SAK_GLOBAL
 
-    normalize_file_path = True
+    normalize_file_path = False
     if normalize_file_path:
         p = subprocess.Popen(
             cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
@@ -114,7 +110,7 @@ def test(coverage: bool = False) -> None:
 
 
 @SakCmd("report", helpmsg="Show the coverage report")
-def coverage_report(html: bool = False) -> None:
+def coverage_report(html=False) -> None:
     if SAK_GLOBAL is None:
         raise Exception("No SAK_GLOBAL defined")
 
