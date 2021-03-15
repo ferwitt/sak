@@ -268,29 +268,44 @@ class SakWebCmdArg:
         ret = []
 
         if req_arg is not None:
+            if arg_type is list:
+                tmp_ret = []
+                tmp_ret.append("--%s" % name)
 
-            if arg_type is bool:
-                if "store_true" == arg_action:
-                    if req_arg not in ["yes", "true", "1", True]:
-                        return []
-                if "store_false" == arg_action:
-                    if req_arg not in ["false", "no", "0", False]:
-                        return []
-            else:
-                if req_arg == "":
-                    return []
+                tmp_ret_value = []
 
-            ret.append("--%s" % name)
-
-            if arg_type is not bool:
                 if isinstance(req_arg, list):
-                    ret += req_arg
-                else:
-                    if arg_type is list:
+                    tmp_ret_value += req_arg
+                elif isinstance(req_arg, str):
+                    if req_arg.strip():
                         if "\n" in req_arg:
-                            ret += req_arg.split("\n")
+                            tmp_ret_value += req_arg.split("\n")
                         else:
-                            ret += req_arg.split(",")
+                            tmp_ret_value += req_arg.split(",")
+                else:
+                    raise Exception("No known way of handling list parameter")
+
+                if tmp_ret_value:
+                    ret += tmp_ret
+                    ret += tmp_ret_value
+
+            else:
+                if arg_type is bool:
+                    if "store_true" == arg_action:
+                        if req_arg not in ["yes", "true", "1", True]:
+                            return []
+                    if "store_false" == arg_action:
+                        if req_arg not in ["false", "no", "0", False]:
+                            return []
+                else:
+                    if req_arg == "":
+                        return []
+
+                ret.append("--%s" % name)
+
+                if arg_type is not bool:
+                    if isinstance(req_arg, list):
+                        ret += req_arg
                     else:
                         ret.append(req_arg)
 
