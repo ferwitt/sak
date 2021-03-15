@@ -19,6 +19,8 @@ import unittest
 
 from pathlib import Path
 
+from typing import Optional
+
 
 @SakCmd("mypy", helpmsg="Execute mypy for Sak and Plugins")
 def mypy() -> None:
@@ -62,7 +64,7 @@ def black() -> None:
 
 
 @SakCmd("test", helpmsg="Execute tests for Sak and Plugins")
-def test(coverage=False) -> None:
+def test(coverage: bool = False, filefilter: Optional[str] = None) -> None:
     if SAK_GLOBAL is None:
         raise Exception("No SAK_GLOBAL defined")
 
@@ -71,11 +73,23 @@ def test(coverage=False) -> None:
     if coverage:
         cmd += ["--cov-report=html", "--cov=saklib", "--cov=plugins"]
 
-    cmd += [str(x) for x in (SAK_GLOBAL / "saklib").rglob("*_test.py")]
+    test_files = []
+
+    test_files += [str(x) for x in (SAK_GLOBAL / "saklib").rglob("*_test.py")]
     for plugin in plm.getPluginList():
         if plugin.plugin_path is None:
             continue
-        cmd += [str(x) for x in Path(plugin.plugin_path).rglob("*_test.py")]
+        test_files += [str(x) for x in Path(plugin.plugin_path).rglob("*_test.py")]
+
+    filtered_files = []
+    if filefilter is not None:
+        for test_file in test_files:
+            if filefilter in test_file:
+                filtered_files.append(test_file)
+    else:
+        filtered_files = test_files
+
+    cmd += filtered_files
 
     cwd = SAK_GLOBAL
 
@@ -110,7 +124,7 @@ def test(coverage=False) -> None:
 
 
 @SakCmd("report", helpmsg="Show the coverage report")
-def coverage_report(html=False) -> None:
+def coverage_report(html: bool = False) -> None:
     if SAK_GLOBAL is None:
         raise Exception("No SAK_GLOBAL defined")
 
