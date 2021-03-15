@@ -5,21 +5,49 @@ This folder should contain dynamically installed plugins
 The structure for a plugin is:
 
     plugin folder
+        - requirements.txt
+        - sak_config.py
         - __init__.py
-        - plugin.py
+        - <plugin_code>.py
+        - test/<plugin_code>_test.py
 
-The plugin.py should contain a class that specialized SakPlugin. For example
+The `sak_config.py` is a description of the plugin and which files contain the plugin implementation.
+For example:
 
 ```Python
 # -*- coding: UTF-8 -*-
 
-class SakCowsay(SakPlugin):
-    '''Cowsay demo.'''
-    @SakCmd()
-    @SakArg('message', short_name='m', helpmsg='The message to be printed.')
-    def dogsay(self, message='Bye world'):
-        '''Dog say something.'''
-        return f'''\
+"""
+Simple demonstration plugin
+"""
+from typing import List
+
+PLUGIN_NAME = "cowsay"
+PLUGIN_VERSION = "0.1.0"
+
+# Specify a list of plugins that we depend and the version
+DEPENDS: List[str] = []
+
+EXPOSE_FILES = "cowsay.py"
+```
+
+The `<plugin_code>.py` should contain the plugin entry points. Using the `cowsay.py` example:
+
+Note that the EXPOSE variable should contain all the functions to expose on the command line.
+
+```Python
+# -*- coding: UTF-8 -*-
+
+"""Cowsay demo."""
+
+from saklib.sakcmd import SakArg, SakCmd
+
+
+@SakCmd()
+@SakArg("message", short_name="m", helpmsg="The message to be printed.")
+def dogsay(message: str = "Bye world") -> str:
+    """Dog say something."""
+    return f"""\
  _____________
 < {message} >
  -------------
@@ -32,13 +60,14 @@ class SakCowsay(SakPlugin):
         |._  _____  |
         | | (    \\| (
         | | |    || |
-'''
+"""
 
-    @SakCmd()
-    @SakArg('message', short_name='m', helpmsg='The message to be printed.')
-    def __call__(self, message='Hello world'):
-        '''Cow say something.'''
-        return f'''\
+
+@SakCmd()
+@SakArg("message", short_name="m", helpmsg="The message to be printed.")
+def cowsay(message: str = "Hello world") -> str:
+    """Cow say something."""
+    return f"""\
  _____________
 < {message} >
  -------------
@@ -47,32 +76,33 @@ class SakCowsay(SakPlugin):
             (__)\\       )\\/\\
                 ||----w |
                 ||     ||
-'''
+"""
+
+
+EXPOSE = [dogsay, cowsay]
 ```
 
 This will generate:
 
 ```
-usage: sak cowsay [-h] [--message MESSAGE]
-                  {dogsay}
-                  ...
+usage: sak cowsay [-h]
+                  {dogsay,cowsay} ...
 
-Cowsay demo.
+Simple demonstration plugin
 
 positional arguments:
-  {dogsay,get_ontology,has_context,has_plugin_path,name,onto_declare,onto_impl,plugin_path,update}
+  {dogsay,cowsay,has_context,helpmsg,name,plugin_path,update}
     dogsay              Dog say something.
+    cowsay              Cow say something.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --message MESSAGE, -m MESSAGE
-                        The message to be printed.
 ```
 
-And callong the command subcommand will generate:
+And calling the command subcommand will generate:
 
 ```
-$ sak cowsay
+$ sak cowsay cowsay
  _____________
 < Hello world >
  -------------
@@ -81,4 +111,5 @@ $ sak cowsay
             (__)\       )\/\
                 ||----w |
                 ||     ||
+
 ```
