@@ -669,15 +669,10 @@ def sak_arg_parser(root: Any, args: Optional[List[str]] = None) -> Dict[str, Any
                 continue
 
             success = True
-        except Exception as e:
+        except SystemExit:
             # Parse failed, show error message only if it is not help command
             if not sak_show_help:
                 ret["argparse"]["error"] = f.getvalue()
-            else:
-                print(
-                    "ERROR! Something bad happened while iterating in the command tree.",
-                    str(e),
-                )
 
         # Here we have consumed all the arguments and completly built the parser
         # Register auto completion
