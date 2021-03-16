@@ -270,7 +270,10 @@ class SakPlugin:
 
     @property
     def plugin_path(self) -> Optional[Path]:
-        """Plugin path."""
+        """Plugin path.
+
+        :returns: The plugin path.
+        """
         if self._has_plugin_path is not None:
             return Path(self._has_plugin_path)
         return None
@@ -313,6 +316,8 @@ class SakPlugin:
     def helpmsg(self) -> str:
         """
         Show help message.
+
+        :returns: The help message.
         """
         lines = self.__doc__.splitlines()
         if lines:

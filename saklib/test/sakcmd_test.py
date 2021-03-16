@@ -81,9 +81,9 @@ class SakCmdWrapperFunctionDocTest(unittest.TestCase):
 
             Long description, this is a long description.
 
-            :arg_int: This is an int param.
-            :arg_str: This is an string param.
-            :arg_list: This is an list param.
+            :param arg_int: This is an int param.
+            :param arg_str: This is an string param.
+            :param arg_list: This is an list param.
             :returns: This is an bool return.
 
             """
@@ -134,8 +134,8 @@ class SakCmdWrapperFunctionDocTest(unittest.TestCase):
 
             Long description, this is a long description.
 
-            :arg_int: This is an int param.
-            :arg_str: This is an optional string param.
+            :param arg_int: This is an int param.
+            :param arg_str: This is an optional string param.
             :returns: This is an bool return.
 
             """
@@ -181,9 +181,10 @@ class SakArgParser(unittest.TestCase):
 
             Long description, this is a long description.
 
-            :arg_int: This is an int param.
-            :arg_str: This is an string param.
-            :arg_list: This is an list param.
+            :param arg_int: This is an int param.
+            :param arg_str: This is an string param.
+            :param arg_list: This is an list param.
+            :returns: Tuple with the input argument.
             """
             return (arg_int, arg_str, arg_list)
 
@@ -213,7 +214,8 @@ class SakCmdWrapperFunctionDocAndDecoratorTest(unittest.TestCase):
 
             Long description, this is a long description.
 
-            :arg_int: This is an int param.
+            :param arg_int: This is an int param.
+            :returns: Nothing.
             """
             return None
 
@@ -248,7 +250,8 @@ class SakCmdWrapperFunctionDocAndDecoratorTest(unittest.TestCase):
 
             Long description, this is a long description.
 
-            :arg_int: This is an int param.
+            :param arg_int: This is an int param.
+            :returns: Nothing.
             """
             return None
 
@@ -283,7 +286,8 @@ class SakCmdWrapperFunctionDocAndDecoratorTest(unittest.TestCase):
 
             Long description, this is a long description.
 
-            :arg_int: This is an int param.
+            :param arg_int: This is an int param.
+            :returns: Nothing.
             """
             return None
 
@@ -317,7 +321,8 @@ class SakCmdWrapperFunctionDocAndDecoratorTest(unittest.TestCase):
 
             Long description, this is a long description.
 
-            :arg_int: This is an int param.
+            :param arg_int: This is an int param.
+            :returns: Nothing.
             """
             return None
 

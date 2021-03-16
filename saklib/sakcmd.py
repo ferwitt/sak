@@ -57,33 +57,31 @@ class SakCompleterArg(object):
         parser: Optional[Any],  # TODO: Restrict Any
         parsed_args: Optional[Namespace],
     ):
-        """
-        Example of parameters from argcomplete
-        {
-            'prefix': '',
-            'action': IntrospectAction(
-                            option_strings=['--account', '-a'],
-                            dest='account',
-                            nargs=None,
-                            const=None,
-                            default=None,
-                            type=None,
-                            choices=None,
-                            help='',
-                            metavar=None),
-            'parser': MonkeyPatchedIntrospectiveArgumentParser(
-                            prog='sak fin total',
-                            usage=None,
-                            description=None,
-                            formatter_class=<class 'argparse.HelpFormatter'>,
-                            conflict_handler='error', add_help=True),
-            'parsed_args': Namespace(
-                            account=None,
-                            currency=None,
-                            sak_callback=<bound method SakFin.total of <...>>
-                            )
-        }
-        """
+        # Example of parameters from argcomplete
+        # {
+        #    'prefix': '',
+        #    'action': IntrospectAction(
+        #                    option_strings=['--account', '-a'],
+        #                    dest='account',
+        #                    nargs=None,
+        #                    const=None,
+        #                    default=None,
+        #                    type=None,
+        #                    choices=None,
+        #                    help='',
+        #                    metavar=None),
+        #    'parser': MonkeyPatchedIntrospectiveArgumentParser(
+        #                    prog='sak fin total',
+        #                    usage=None,
+        #                    description=None,
+        #                    formatter_class=<class 'argparse.HelpFormatter'>,
+        #                    conflict_handler='error', add_help=True),
+        #    'parsed_args': Namespace(
+        #                    account=None,
+        #                    currency=None,
+        #                    sak_callback=<bound method SakFin.total of <...>>
+        #                    )
+        # }
         super(SakCompleterArg, self).__init__()
         self.prefix = prefix
         self.action = action
