@@ -290,6 +290,11 @@ class SakPlugin:
                 subprocess.run(
                     ["git", "pull", "origin", "master"], check=True, cwd=path
                 )
+                subprocess.run(
+                    ["git", "submodule", "update", "--init", "--recursive"],
+                    check=True,
+                    cwd=path,
+                )
 
             if (path / "requirements.txt").exists():
                 print("Updating pip dependencies for %s" % self.name)

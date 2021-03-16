@@ -22,7 +22,9 @@ def install(url: str) -> None:
     if ctx.sak_global is not None:
         name = url.split("/")[-1].replace(".git", "").replace("-", "_")
         subprocess.run(
-            ["git", "clone", url, name], check=True, cwd=(ctx.sak_global / "plugins")
+            ["git", "clone", "--recurse-submodules", url, name],
+            check=True,
+            cwd=(ctx.sak_global / "plugins"),
         )
 
 
@@ -31,6 +33,10 @@ def update_all() -> None:
     print("Update plugins")
     if ctx.has_plugin_manager is None:
         raise Exception("No plugin manager specifief")
+
+    print("Update pip")
+    subprocess.run(["pip", "install", "--upgrade", "pip"], check=True)
+
     for plugin in ctx.has_plugin_manager.getPluginList():
         if plugin.name == "plugins":
             continue
