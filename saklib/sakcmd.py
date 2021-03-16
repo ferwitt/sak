@@ -10,12 +10,13 @@ __email__ = "ferawitt@gmail.com"
 import functools
 import inspect
 import os
-import re
 from argparse import ArgumentParser, Namespace, RawTextHelpFormatter
 from collections.abc import Iterable
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from typing import Any, Callable, Dict, List, Optional, Union, get_args, get_origin
+
+import docstring_parser
 
 from saklib.sakplugin import SakPlugin
 
@@ -367,13 +368,11 @@ class SakCmdWrapper:
 
                 _params = {}
 
-                _docs = {}
-
+                parsed_docs = None
                 docstring = inspect.getdoc(d)
                 if docstring:
                     docs = inspect.cleandoc(docstring)
-                    for name, doc in re.findall(r"^:(\S+): ([\S \t]+)$", docs, re.M):
-                        _docs[name] = doc.strip()
+                    parsed_docs = docstring_parser.parse(docs)
 
                 for _d in d_list:
                     # Instrospect the function signature
@@ -388,8 +387,12 @@ class SakCmdWrapper:
 
                         if param_name not in _params:
                             _helpmsg = ""
-                            if param_name in _docs:
-                                _helpmsg = _docs[param_name]
+
+                            if parsed_docs is not None:
+                                for _doc_param in parsed_docs.params:
+                                    if _doc_param.arg_name == param_name:
+                                        _helpmsg = _doc_param.description
+
                             _params[param_name] = SakArg(
                                 name=param_name, helpmsg=_helpmsg
                             )

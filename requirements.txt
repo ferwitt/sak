@@ -1,2 +1,3 @@
 argcomplete
 lazy-import
+docstring-parser
