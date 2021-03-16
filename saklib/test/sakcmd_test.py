@@ -1,5 +1,5 @@
 import unittest
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from saklib.sakcmd import SakCmd, SakCmdWrapper, sak_arg_parser
 
@@ -169,3 +169,36 @@ class SakCmdWrapperFunctionDocTest(unittest.TestCase):
         self.assertEqual(wrap.args[1].vargs["type"], Optional[str])
         self.assertEqual(wrap.args[1].vargs["default"], "Hello world")
         self.assertEqual(wrap.args[1].completercb, None)
+
+
+class SakArgParser(unittest.TestCase):
+    def test_sak_arg_parse_func_docstring(self) -> None:
+        # GIVEN.
+        def func(
+            arg_int: int, arg_str: str, arg_list: List[str]
+        ) -> Tuple[int, str, List[str]]:
+            """Brief description.
+
+            Long description, this is a long description.
+
+            :arg_int: This is an int param.
+            :arg_str: This is an string param.
+            :arg_list: This is an list param.
+            """
+            return (arg_int, arg_str, arg_list)
+
+        arglist = "--arg_int 1 --arg_str foo --arg_list hello --arg_list world".split(
+            " "
+        )
+
+        # WHEN.
+        ret = sak_arg_parser(func, arglist)
+
+        # THEN.
+        self.assertEqual(ret["cmd"].callback, func)
+        self.assertEqual("help" not in ret["argparse"], True)
+        self.assertEqual("error" not in ret["argparse"], True)
+        self.assertEqual(ret["value"][0], 1)
+        self.assertEqual(ret["value"][1], "foo")
+        self.assertEqual(ret["value"][2][0], "hello")
+        self.assertEqual(ret["value"][2][1], "world")

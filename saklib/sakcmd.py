@@ -117,7 +117,9 @@ class SakArg(SakDecorator):
         vargs = {}
         vargs.update(self.vargs)
         if "type" in vargs:
-            vargs.pop("type")
+            _type = vargs.pop("type")
+            if _type is not bool:
+                vargs["type"] = _type
 
         aux = parser.add_argument(*pargs, help=self.helpmsg, **vargs)
 
@@ -566,10 +568,10 @@ def argcomplete_args() -> List[str]:
     return args
 
 
-def sak_arg_parser(
-    base_cmd: SakCmd, args: Optional[List[str]] = None
-) -> Dict[str, Any]:
+def sak_arg_parser(root: Any, args: Optional[List[str]] = None) -> Dict[str, Any]:
     args = args or argcomplete_args()
+
+    base_cmd = SakCmdWrapper(wrapped_content=root)
 
     # Remove the help flag from args and set show_help
     args = args or []
@@ -588,7 +590,7 @@ def sak_arg_parser(
     # Prepare the variables for the tree decend
     cmd: Union[SakCmd, SakCmdWrapper] = base_cmd
     parser = root_parser
-    base_cmd_callback = None  # base_cmd.callback
+    base_cmd_callback = base_cmd.callback
     nm = Namespace(sak_callback=base_cmd_callback, sak_cmd=base_cmd, sak_parser=parser)
 
     ret: Dict[str, Any] = {"argparse": {}, "ret": None}
