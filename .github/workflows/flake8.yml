@@ -19,4 +19,4 @@ jobs:
         pip install flake8
     - name: Analysing the code with flake8
       run: |
-        pylint saklib plugins
+        flake8 saklib plugins
