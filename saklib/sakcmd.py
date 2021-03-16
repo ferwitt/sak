@@ -10,11 +10,12 @@ __email__ = "ferawitt@gmail.com"
 import functools
 import inspect
 import os
+import re
 from argparse import ArgumentParser, Namespace, RawTextHelpFormatter
 from collections.abc import Iterable
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, get_args, get_origin
 
 from saklib.sakplugin import SakPlugin
 
@@ -366,6 +367,14 @@ class SakCmdWrapper:
 
                 _params = {}
 
+                _docs = {}
+
+                docstring = inspect.getdoc(d)
+                if docstring:
+                    docs = inspect.cleandoc(docstring)
+                    for name, doc in re.findall(r"^:(\S+): ([\S \t]+)$", docs, re.M):
+                        _docs[name] = doc.strip()
+
                 for _d in d_list:
                     # Instrospect the function signature
                     signature = inspect.signature(_d)
@@ -378,11 +387,17 @@ class SakCmdWrapper:
                             continue
 
                         if param_name not in _params:
-                            _params[param_name] = SakArg(name=param_name)
+                            _helpmsg = ""
+                            if param_name in _docs:
+                                _helpmsg = _docs[param_name]
+                            _params[param_name] = SakArg(
+                                name=param_name, helpmsg=_helpmsg
+                            )
 
                         # TODO(witt): Fix this ignore?
                         if param.default is not inspect._empty:  # type: ignore
                             _params[param_name].vargs["default"] = param.default
+                            _params[param_name].vargs["required"] = False
                         else:
                             _params[param_name].vargs["required"] = True
 
@@ -390,15 +405,26 @@ class SakCmdWrapper:
                         if param.annotation is not inspect._empty:  # type: ignore
                             _params[param_name].vargs["type"] = param.annotation
 
-                        if _params[param_name].vargs.get(
-                            "type", None
-                        ) is bool or isinstance(
-                            _params[param_name].vargs.get("default", None), bool
-                        ):
-                            dft = _params[param_name].vargs.get("default", None)
+                        _type = _params[param_name].vargs.get("type", None)
+                        _default = _params[param_name].vargs.get("default", None)
+
+                        if _type is bool or isinstance(_default, bool):
                             _params[param_name].vargs["action"] = "store_true"
-                            if dft is True:
+                            if _default is True:
                                 _params[param_name].vargs["action"] = "store_false"
+
+                        if _type is list or isinstance(_default, list):
+                            _params[param_name].vargs.get("default", [])
+                            _params[param_name].vargs["action"] = "append"
+
+                        if get_origin(_type) is list:
+                            _params[param_name].vargs["action"] = "append"
+                            # TODO(witt): What to do when we have more then one argument?
+                            _params[param_name].vargs["type"] = get_args(_type)[0]
+                            if len(get_args(_type)) > 1:
+                                raise Exception(
+                                    "Sak does not support multiple type annotation?!"
+                                )
 
                     # Check if there are decorators and override the info from the decorator.
                     if hasattr(_d, "_sak_dec_chain"):
@@ -455,13 +481,17 @@ class SakCmdWrapper:
 
             docstring = inspect.getdoc(d)
             if docstring:
-                return inspect.cleandoc(docstring)
+                lines = inspect.cleandoc(docstring).strip().splitlines()
+                if lines:
+                    return lines[0]
 
         # TODO(witt): How about __call__?
         if inspect.ismethod(d) or inspect.isfunction(d):
             docstring = inspect.getdoc(d)
             if docstring:
-                return inspect.cleandoc(docstring)
+                lines = inspect.cleandoc(docstring).strip().splitlines()
+                if lines:
+                    return lines[0]
 
         # TODO(witt): I did my best to get the help message, but no success
         return ""
@@ -480,7 +510,17 @@ class SakCmdWrapper:
         if inspect.ismethod(d) or inspect.isfunction(d):
             docstring = inspect.getdoc(d)
             if docstring:
-                return docstring
+                lines = inspect.cleandoc(docstring).strip().splitlines()
+
+                _description_lines = []
+                for line in lines:
+                    if line.startswith(":"):
+                        break
+
+                    _description_lines.append(line)
+
+                if _description_lines:
+                    return ("\n".join(_description_lines)).strip()
 
         return None
 
