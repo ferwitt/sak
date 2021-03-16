@@ -112,7 +112,6 @@ def main() -> None:
         sys.exit(0)
 
     if ret["value"] is not None:
-        print(type(ret["value"]))
 
         if hasattr(ret["value"], "show"):
             ret["value"].show()
