@@ -5,7 +5,7 @@ __author__ = "Fernando Witt"
 __credits__ = ["Fernando Witt"]
 
 __license__ = "MIT"
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
@@ -26,17 +26,14 @@ try:
     lazy_import.lazy_module("bokeh")
     lazy_import.lazy_module("bokeh.server.server")
     lazy_import.lazy_module("bokeh.embed")
-    # lazy_import.lazy_module('bokeh.models')
     lazy_import.lazy_module("panel")
     lazy_import.lazy_module("pandas")
-    # lazy_import.lazy_module('pandas_bokeh')
     lazy_import.lazy_module("matplotlib")
     lazy_import.lazy_module("matplotlib.pyplot")
     lazy_import.lazy_module("matplotlib.animation")
     lazy_import.lazy_module("matplotlib.widgets")
     lazy_import.lazy_module("pylab")
     lazy_import.lazy_module("tornado")
-    # lazy_import.lazy_module('pymovies')
     lazy_import.lazy_module("numpy")
     lazy_import.lazy_module("scipy.optimize")
     lazy_import.lazy_module("scipy.spatial.transform")
