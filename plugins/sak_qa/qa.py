@@ -85,11 +85,14 @@ def black() -> None:
 
 
 @SakCmd("test", helpmsg="Execute tests for Sak and Plugins")
-def test(coverage: bool = False) -> None:
+def test(coverage: bool = False, pdb: bool = False) -> None:
     if SAK_GLOBAL is None:
         raise Exception("No SAK_GLOBAL defined")
 
     cmd = ["pytest"]
+
+    if pdb:
+        cmd += ["--pdb"]
 
     if coverage:
         cmd += ["--cov-report=html", "--cov=saklib", "--cov=plugins"]
