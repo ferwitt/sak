@@ -4,6 +4,7 @@ import subprocess
 
 from saklib.sak import ctx
 from saklib.sakcmd import SakArg, SakCmd
+from saklib.sakconfig import SAK_GLOBAL
 
 
 @SakCmd("show", helpmsg="Show the list of plugins.")
@@ -30,13 +31,40 @@ def install(url: str) -> None:
 
 @SakCmd(helpmsg="Update SAK and all the plugins.")
 def update_all() -> None:
-    print("Update plugins")
-    if ctx.has_plugin_manager is None:
-        raise Exception("No plugin manager specifief")
 
+    if SAK_GLOBAL is None:
+        raise Exception("Could not define Sak location.")
+
+    if ctx.has_plugin_manager is None:
+        raise Exception("No plugin manager specified.")
+
+    print(80 * "-" + "\n")
     print("Update pip")
     subprocess.run(["pip", "install", "--upgrade", "pip"], check=True)
 
+    print(80 * "-" + "\n")
+    print("Update sak core")
+    path = SAK_GLOBAL
+    if (path / ".git").exists():
+        print("Updating repository for Sak global")
+        subprocess.run(["git", "remote", "update"], check=True, cwd=path)
+        subprocess.run(["git", "pull", "origin", "master"], check=True, cwd=path)
+        subprocess.run(
+            ["git", "submodule", "update", "--init", "--recursive"],
+            check=True,
+            cwd=path,
+        )
+
+    if (path / "requirements.txt").exists():
+        print("Updating pip dependencies for Sak global")
+        subprocess.run(
+            ["pip", "install", "--upgrade", "-r", "requirements.txt"],
+            check=True,
+            cwd=path,
+        )
+
+    print(80 * "-" + "\n")
+    print("Update plugins")
     for plugin in ctx.has_plugin_manager.getPluginList():
         if plugin.name == "plugins":
             continue
