@@ -1,7 +1,7 @@
 import unittest
 from typing import List, Optional, Tuple
 
-from saklib.sakcmd import SakCmd, SakCmdWrapper, sak_arg_parser
+from saklib.sakcmd import SakArg, SakCmd, SakCmdWrapper, sak_arg_parser
 
 
 class SakCmdTest(unittest.TestCase):
@@ -202,3 +202,142 @@ class SakArgParser(unittest.TestCase):
         self.assertEqual(ret["value"][1], "foo")
         self.assertEqual(ret["value"][2][0], "hello")
         self.assertEqual(ret["value"][2][1], "world")
+
+
+class SakCmdWrapperFunctionDocAndDecoratorTest(unittest.TestCase):
+    def test_wrap_func_docstring_and_cmd_decorator(self) -> None:
+        # GIVEN.
+        @SakCmd("func", helpmsg="Higher precedence description.")
+        def func(arg_int: int) -> None:
+            """Brief description.
+
+            Long description, this is a long description.
+
+            :arg_int: This is an int param.
+            """
+            return None
+
+        # WHEN.
+        wrap = SakCmdWrapper(func)
+
+        # THEN.
+        self.assertEqual(wrap.name, "func")
+        self.assertEqual(wrap.helpmsg, "Higher precedence description.")
+        self.assertEqual(
+            wrap.description,
+            "Brief description.\n\nLong description, this is a long description.",
+        )
+        self.assertEqual(wrap.callback, func)
+        self.assertEqual(wrap.subcmds, [])
+        self.assertEqual(len(wrap.args), 1)
+
+        self.assertEqual(wrap.args[0].name, "arg_int")
+        self.assertEqual(wrap.args[0].helpmsg, "This is an int param.")
+        self.assertEqual(wrap.args[0].short_name, None)
+        self.assertEqual(wrap.args[0].vargs["required"], True)
+        self.assertEqual(wrap.args[0].vargs["type"], int)
+        self.assertEqual(wrap.args[0].completercb, None)
+
+    def test_wrap_func_docstring_and_arg_doc_decorator(self) -> None:
+        # GIVEN.
+        @SakArg(
+            "arg_int", type=int, helpmsg="Higher precedence description for int param."
+        )
+        def func(arg_int):  # type: ignore
+            """Brief description.
+
+            Long description, this is a long description.
+
+            :arg_int: This is an int param.
+            """
+            return None
+
+        # WHEN.
+        wrap = SakCmdWrapper(func)
+
+        # THEN.
+        self.assertEqual(wrap.name, "func")
+        self.assertEqual(wrap.helpmsg, "Brief description.")
+        self.assertEqual(
+            wrap.description,
+            "Brief description.\n\nLong description, this is a long description.",
+        )
+        self.assertEqual(wrap.callback, func)
+        self.assertEqual(wrap.subcmds, [])
+        self.assertEqual(len(wrap.args), 1)
+
+        self.assertEqual(wrap.args[0].name, "arg_int")
+        self.assertEqual(
+            wrap.args[0].helpmsg, "Higher precedence description for int param."
+        )
+        self.assertEqual(wrap.args[0].short_name, None)
+        self.assertEqual(wrap.args[0].vargs["required"], True)
+        self.assertEqual(wrap.args[0].vargs["type"], int)
+        self.assertEqual(wrap.args[0].completercb, None)
+
+    def test_wrap_func_docstring_and_arg_default_decorator(self) -> None:
+        # GIVEN.
+        @SakArg("arg_int", default=10)
+        def func(arg_int):  # type: ignore
+            """Brief description.
+
+            Long description, this is a long description.
+
+            :arg_int: This is an int param.
+            """
+            return None
+
+        # WHEN.
+        wrap = SakCmdWrapper(func)
+
+        # THEN.
+        self.assertEqual(wrap.name, "func")
+        self.assertEqual(wrap.helpmsg, "Brief description.")
+        self.assertEqual(
+            wrap.description,
+            "Brief description.\n\nLong description, this is a long description.",
+        )
+        self.assertEqual(wrap.callback, func)
+        self.assertEqual(wrap.subcmds, [])
+        self.assertEqual(len(wrap.args), 1)
+
+        self.assertEqual(wrap.args[0].name, "arg_int")
+        self.assertEqual(wrap.args[0].helpmsg, "This is an int param.")
+        self.assertEqual(wrap.args[0].short_name, None)
+        self.assertEqual(wrap.args[0].vargs["required"], True)
+        self.assertEqual(wrap.args[0].vargs["type"], int)
+        self.assertEqual(wrap.args[0].completercb, None)
+
+    def test_wrap_func_docstring_and_cmd_arg_decorator(self) -> None:
+        # GIVEN.
+        @SakCmd("func", helpmsg="Higher precedence description.")
+        @SakArg("arg_int", default=10)
+        def func(arg_int: int) -> None:
+            """Brief description.
+
+            Long description, this is a long description.
+
+            :arg_int: This is an int param.
+            """
+            return None
+
+        # WHEN.
+        wrap = SakCmdWrapper(func)
+
+        # THEN.
+        self.assertEqual(wrap.name, "func")
+        self.assertEqual(wrap.helpmsg, "Higher precedence description.")
+        self.assertEqual(
+            wrap.description,
+            "Brief description.\n\nLong description, this is a long description.",
+        )
+        self.assertEqual(wrap.callback, func)
+        self.assertEqual(wrap.subcmds, [])
+        self.assertEqual(len(wrap.args), 1)
+
+        self.assertEqual(wrap.args[0].name, "arg_int")
+        self.assertEqual(wrap.args[0].helpmsg, "This is an int param.")
+        self.assertEqual(wrap.args[0].short_name, None)
+        self.assertEqual(wrap.args[0].vargs["required"], True)
+        self.assertEqual(wrap.args[0].vargs["type"], int)
+        self.assertEqual(wrap.args[0].completercb, None)

@@ -436,13 +436,20 @@ class SakCmdWrapper:
                                 if chain.name not in _params:
                                     _params[chain.name] = chain
 
-                                if chain.helpmsg is not None:
+                                if chain.helpmsg:
                                     _params[chain.name].helpmsg = chain.helpmsg
                                 if chain.short_name:
                                     _params[chain.name].short_name = chain.short_name
                                 if chain.completercb is not None:
                                     _params[chain.name].completercb = chain.completercb
+
                                 _params[chain.name].vargs.update(chain.vargs)
+
+                                if "default" in chain.vargs:
+                                    if "type" not in _params[chain.name].vargs:
+                                        _params[chain.name].vargs["type"] = type(
+                                            chain.vargs["default"]
+                                        )
 
                             if hasattr(chain._sak_func, "_sak_dec_chain"):
                                 chain = chain._sak_func._sak_dec_chain
