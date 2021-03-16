@@ -6,7 +6,7 @@ Centralized support for Quality Assurance.
 from typing import List
 
 PLUGIN_NAME = "qa"
-PLUGIN_VERSION = "0.2.0"
+PLUGIN_VERSION = "0.2.2"
 
 # Specify a list of plugins that we depend and the version
 DEPENDS: List[str] = []

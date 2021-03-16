@@ -5,7 +5,7 @@ __author__ = "Fernando Witt"
 __credits__ = ["Fernando Witt"]
 
 __license__ = "MIT"
-__version__ = "0.2.0"
+__version__ = "0.2.2"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
