@@ -1,9 +1,10 @@
+autoflake
 black
-flake8
-mypy
 coverage
+darglint
+flake8
+isort
+mypy
 pytest
 pytest-cov
 pytest-html
-isort
-autoflake
