@@ -97,7 +97,9 @@ def run() -> None:
         cmd = [SAK_PYTHON_BIN, os.path.join(SAK_GLOBAL, "saklib", "sak.py")] + sys.argv[
             1:
         ]
-        sys.exit(os.system(" ".join(['"%s"' % x for x in cmd])))
+        ret = os.system(" ".join(['"%s"' % x for x in cmd]))
+        if ret:
+            sys.exit(-1)
     else:
         sys.path.append(os.path.join(SAK_GLOBAL, "saklib"))
         from saklib import sak
