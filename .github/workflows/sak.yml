@@ -1,0 +1,35 @@
+name: Sak
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements.txt
+        SAK_USE_MINICONDA=NO SAK_GLOBAL=$(pwd) ./sak plugins update_all --disable_repo_update
+    - name: Analysing the code with SAK QA (black)
+      run: |
+        SAK_USE_MINICONDA=NO SAK_GLOBAL=$(pwd) ./sak qa black --check
+    - name: Analysing the code with SAK QA (isort)
+      run: |
+        SAK_USE_MINICONDA=NO SAK_GLOBAL=$(pwd) ./sak qa isort --check
+    - name: Analysing the code with SAK QA (flake8)
+      run: |
+        SAK_USE_MINICONDA=NO SAK_GLOBAL=$(pwd) ./sak qa flake8
+    - name: Analysing the code with SAK QA (mypy)
+      run: |
+        SAK_USE_MINICONDA=NO SAK_GLOBAL=$(pwd) ./sak qa mypy
+    - name: Analysing the code with SAK QA (test)
+      run: |
+        SAK_USE_MINICONDA=NO SAK_GLOBAL=$(pwd) ./sak qa test

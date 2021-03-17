@@ -30,7 +30,7 @@ def install(url: str) -> None:
 
 
 @SakCmd(helpmsg="Update SAK and all the plugins.")
-def update_all() -> None:
+def update_all(disable_repo_update: bool = False) -> None:
 
     if SAK_GLOBAL is None:
         raise Exception("Could not define Sak location.")
@@ -45,15 +45,17 @@ def update_all() -> None:
     print(80 * "-" + "\n")
     print("Update sak core")
     path = SAK_GLOBAL
-    if (path / ".git").exists():
-        print("Updating repository for Sak global")
-        subprocess.run(["git", "remote", "update"], check=True, cwd=path)
-        subprocess.run(["git", "pull", "origin", "master"], check=True, cwd=path)
-        subprocess.run(
-            ["git", "submodule", "update", "--init", "--recursive"],
-            check=True,
-            cwd=path,
-        )
+
+    if not disable_repo_update:
+        if (path / ".git").exists():
+            print("Updating repository for Sak global")
+            subprocess.run(["git", "remote", "update"], check=True, cwd=path)
+            subprocess.run(["git", "pull", "origin", "master"], check=True, cwd=path)
+            subprocess.run(
+                ["git", "submodule", "update", "--init", "--recursive"],
+                check=True,
+                cwd=path,
+            )
 
     if (path / "requirements.txt").exists():
         print("Updating pip dependencies for Sak global")

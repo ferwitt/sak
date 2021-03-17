@@ -33,10 +33,7 @@ else:
 class SakContext(object):
     """Sak plugins context."""
 
-    def __init__(
-        self
-        # , **kwargs
-    ) -> None:
+    def __init__(self) -> None:
         super(SakContext, self).__init__()
         self.sak_global = SAK_GLOBAL
         self.sak_local = SAK_LOCAL

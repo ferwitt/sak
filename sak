@@ -13,7 +13,11 @@ import sys
 import subprocess
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
-SAK_GLOBAL = os.path.abspath(os.path.join(os.environ.get("HOME"), ".sak"))
+if 'SAK_GLOBAL' not in os.environ:
+    SAK_GLOBAL = os.path.abspath(os.path.join(os.environ["HOME"], ".sak"))
+    os.environ["SAK_GLOBAL"] = SAK_GLOBAL
+else:
+    SAK_GLOBAL = os.environ["SAK_GLOBAL"]
 
 sys.path.append(SAK_GLOBAL)
 

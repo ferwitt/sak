@@ -337,14 +337,16 @@ class SakCmdWrapper:
                         continue
                     except Exception as e:
                         # TODO(witt): Just does not add because of failure.
-                        print("skip", k, str(e))
-                        import sys
-                        import traceback
+                        verbose = False
+                        if verbose:
+                            print("skip", k, str(e))
+                            import sys
+                            import traceback
 
-                        print("Exception in user code:")
-                        print("-" * 60)
-                        traceback.print_exc(file=sys.stdout)
-                        print("-" * 60)
+                            print("Exception in user code:")
+                            print("-" * 60)
+                            traceback.print_exc(file=sys.stdout)
+                            print("-" * 60)
                         continue
 
                 if subcmds:
@@ -725,7 +727,7 @@ def sak_arg_parser(root: Any, args: Optional[List[str]] = None) -> Dict[str, Any
                 ret["value"] = callback(**nm_dict)
             except Exception as e:
                 # TODO(witt): Implement some verbose option that allows to view the whole stack call
-                verbose = True
+                verbose = False
                 if verbose:
                     import sys
                     import traceback
@@ -734,6 +736,6 @@ def sak_arg_parser(root: Any, args: Optional[List[str]] = None) -> Dict[str, Any
                     print("-" * 60)
                     traceback.print_exc(file=sys.stdout)
                     print("-" * 60)
-                print(e)
+                ret["argparse"]["error"] = str(e)
 
         return ret
