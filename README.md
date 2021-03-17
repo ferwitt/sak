@@ -1,3 +1,5 @@
+[![Sak](https://github.com/ferwitt/sak/actions/workflows/sak.yml/badge.svg)](https://github.com/ferwitt/sak/actions/workflows/sak.yml)
+
 # SAK
 
                          _____  ___   _   __
