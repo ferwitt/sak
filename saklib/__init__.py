@@ -13,9 +13,12 @@ import subprocess
 import sys
 
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
-SAK_GLOBAL = os.path.abspath(os.path.join(os.environ["HOME"], ".sak"))
 
-os.environ["SAK_GLOBAL"] = SAK_GLOBAL
+if "SAK_GLOBAL" not in os.environ:
+    SAK_GLOBAL = os.path.abspath(os.path.join(os.environ["HOME"], ".sak"))
+    os.environ["SAK_GLOBAL"] = SAK_GLOBAL
+else:
+    SAK_GLOBAL = os.environ["SAK_GLOBAL"]
 
 
 # SAK will not use the system python, but will download miniconda
@@ -78,11 +81,14 @@ def install_python(ask_confirm: bool = True) -> None:
 def install() -> None:
     if "x86" in platform.machine():
         # Only try to run inside miniconda if is in x86
-        install_python(ask_confirm=True)
+        ask_confirm = os.environ.get("SAK_ASK_CONFIRM", "YES") == "YES"
+        install_python(ask_confirm=ask_confirm)
 
 
 def run() -> None:
-    if "x86" in platform.machine():
+    use_miniconda_flag = os.environ.get("SAK_USE_MINICONDA", "YES") == "YES"
+
+    if use_miniconda_flag and ("x86" in platform.machine()):
         # Only try to run inside miniconda if is in x86
         install()
 

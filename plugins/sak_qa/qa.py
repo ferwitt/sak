@@ -66,7 +66,7 @@ def flake8() -> None:
 
 
 @SakCmd("black", helpmsg="Execute black format for Sak and Plugins")
-def black() -> None:
+def black(check: bool = False) -> None:
     if SAK_GLOBAL is None:
         raise Exception("No SAK_GLOBAL defined")
 
@@ -78,7 +78,12 @@ def black() -> None:
         paths += [str(plugin.plugin_path)]
 
     for path in paths:
-        cmd = ["black", path]
+        cmd = ["black"]
+
+        if check:
+            cmd += ["--check", "--diff"]
+
+        cmd += [path]
 
         cwd = path
         subprocess.run(cmd, check=True, cwd=cwd)
@@ -161,7 +166,7 @@ def coverage_report(html: bool = False) -> None:
 
 
 @SakCmd("isort", helpmsg="Execute isort on Sak core and plugins.")
-def isort() -> None:
+def isort(check: bool = False) -> None:
     if SAK_GLOBAL is None:
         raise Exception("No SAK_GLOBAL defined")
 
@@ -173,7 +178,12 @@ def isort() -> None:
         paths += [str(plugin.plugin_path)]
 
     for path in paths:
-        cmd = ["isort", path]
+        cmd = ["isort"]
+
+        if check:
+            cmd += ["--check", "--diff"]
+
+        cmd += [path]
 
         cwd = path
         subprocess.run(cmd, check=True, cwd=cwd)
