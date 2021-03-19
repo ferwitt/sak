@@ -419,11 +419,23 @@ class SakCmdWrapper:
                                 _params[param_name].vargs["action"] = "store_false"
 
                         if _type is list or isinstance(_default, list):
-                            _params[param_name].vargs.get("default", [])
-                            _params[param_name].vargs["action"] = "append"
+                            if (
+                                _params[param_name].vargs.get("default", None)
+                                is not None
+                            ):
+                                _params[param_name].vargs["nargs"] = "*"
+                            else:
+                                _params[param_name].vargs["nargs"] = "+"
 
                         if get_origin(_type) is list:
-                            _params[param_name].vargs["action"] = "append"
+                            if (
+                                _params[param_name].vargs.get("default", None)
+                                is not None
+                            ):
+                                _params[param_name].vargs["nargs"] = "*"
+                            else:
+                                _params[param_name].vargs["nargs"] = "+"
+
                             # TODO(witt): What to do when we have more then one argument?
                             _params[param_name].vargs["type"] = get_args(_type)[0]
                             if len(get_args(_type)) > 1:
