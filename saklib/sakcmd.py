@@ -16,7 +16,13 @@ from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from typing import Any, Callable, Dict, List, Optional, Union, get_args, get_origin
 
-import docstring_parser
+try:
+    import docstring_parser
+except ImportError as e:
+    print(e)
+    from saklib.sakconfig import install_core_requirements  # noqa: E402
+
+    install_core_requirements()
 
 from saklib.sakplugin import SakPlugin
 
