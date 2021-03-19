@@ -122,7 +122,8 @@ class SakCmdWrapperFunctionDocTest(unittest.TestCase):
         self.assertEqual(wrap.args[2].short_name, None)
         self.assertEqual(wrap.args[2].vargs["required"], True)
         self.assertEqual(wrap.args[2].vargs["type"], str)
-        self.assertEqual(wrap.args[2].vargs["action"], "append")
+        self.assertEqual(wrap.args[2].vargs["nargs"], "+")
+        self.assertEqual("action" in wrap.args[2].vargs, False)
         self.assertEqual(wrap.args[2].completercb, None)
 
     def test_wrap_func_docstring_optional_param(self) -> None:
@@ -188,9 +189,7 @@ class SakArgParser(unittest.TestCase):
             """
             return (arg_int, arg_str, arg_list)
 
-        arglist = "--arg_int 1 --arg_str foo --arg_list hello --arg_list world".split(
-            " "
-        )
+        arglist = "--arg_int 1 --arg_str foo --arg_list hello world".split(" ")
 
         # WHEN.
         ret = sak_arg_parser(func, arglist)
