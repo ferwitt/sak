@@ -6,7 +6,7 @@ Simple webapp for SAK.
 from typing import List
 
 PLUGIN_NAME = "webapp"
-PLUGIN_VERSION = "0.2.2"
+PLUGIN_VERSION = "0.2.3"
 
 # Specify a list of plugins that we depend and the version
 DEPENDS: List[str] = []
