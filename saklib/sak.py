@@ -123,10 +123,19 @@ def main() -> None:
             print(ret["value"])
 
 
+def run_pdb() -> None:
+    if os.environ.get("SAK_PDB", False):
+        import pdb
+
+        pdb.run("main()")
+    else:
+        main()
+
+
 if __name__ == "__main__":
     if True:
-        main()
+        run_pdb()
     else:
         import cProfile
 
-        cProfile.run("main()", "/tmp/sak.profile")
+        cProfile.run("run_pdb()", "/tmp/sak.profile")
