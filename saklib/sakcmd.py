@@ -237,6 +237,10 @@ class SakCmdWrapper:
             if inspect.ismethod(d) or inspect.isfunction(d):
                 return d.__name__
 
+        if isinstance(d, dict):
+            if "__name__" in d:
+                return d["__name__"]
+
         return None
 
     @property
@@ -745,7 +749,7 @@ def sak_arg_parser(root: Any, args: Optional[List[str]] = None) -> Dict[str, Any
                 ret["value"] = callback(**nm_dict)
             except Exception as e:
                 # TODO(witt): Implement some verbose option that allows to view the whole stack call
-                verbose = False
+                verbose = os.environ.get("SAK_VERBOSE", False)
                 if verbose:
                     import sys
                     import traceback
