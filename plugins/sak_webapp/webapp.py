@@ -42,125 +42,6 @@ except Exception as e:
 SCRIPT_PATH = Path(__file__).resolve()
 RESOURCES_PATH = SCRIPT_PATH.parent / "web"
 
-template = """
-{%% extends base %%}
-<!-- goes in body -->
-{%% block contents %%}
-{%% set context = '%s' %%}
-{%% if context == 'notebook' %%}
-    {%% set slicer_id = get_id() %%}
-    <div id='{{slicer_id}}'></div>
-{%% endif %%}
-
-<script>
-var config = {
-    settings: {
-        hasHeaders: false,
-        constrainDragToContainer: true,
-        reorderEnabled: true,
-        selectionEnabled: false,
-        popoutWholeStack: false,
-        blockedPopoutsThrowError: true,
-        closePopoutsOnUnload: true,
-        showPopoutIcon: false,
-        showMaximiseIcon: false,
-        showCloseIcon: false
-    },
-    content: [{
-        type: 'row',
-        content:[
-            {
-                type : 'column',
-                content: [
-                {
-                    type: 'component',
-                    componentName: 'view',
-                    componentState: { model: '{{ embed(roots.controller) }}',
-                                      title: 'Controls',
-                                      width: 350,
-                                      css_classes:['scrollable']},
-                    isClosable: false,
-                    width: 20,
-                },
-                {
-                    type: 'component',
-                    componentName: 'view',
-                    componentState: { model: '{{ embed(roots.parameters) }}',
-                                      title: 'Parameters',
-                                      width: 350,
-                                      css_classes:['scrollable']},
-                    isClosable: false,
-                    width: 20,
-                }],
-                width: 20
-            },
-            {
-                type : 'column',
-                content: [
-                {
-                    type: 'component',
-                    componentName: 'view',
-                    componentState: { model: '{{ embed(roots.content) }}',
-                                      title: 'Content',
-                                      css_classes:['scrollable']},
-                    isClosable: false,
-                },
-                {
-                    type: 'component',
-                    componentName: 'view',
-                    componentState: { model: '{{ embed(roots.stdout) }}',
-                                      title: 'Stdout',
-                                      css_classes:['scrollable']},
-                    isClosable: false,
-                    height: 25,
-                }
-                ]
-            }
-        ]
-    }]
-};
-
-var myLayout;
-var savedState = localStorage.getItem( 'savedLayout' );
-
-if( false && savedState !== null ) {
-    var savedStateObj = JSON.parse( savedState );
-    savedStateObj.content[0].content[0].content[0].componentState.model = '{{ embed(roots.controller) }}';
-    savedStateObj.content[0].content[0].content[1].componentState.model = '{{ embed(roots.parameters) }}';
-    savedStateObj.content[0].content[1].content[0].componentState.model = '{{ embed(roots.content) }}';
-    savedStateObj.content[0].content[1].content[1].componentState.model = '{{ embed(roots.stdout) }}';
-    myLayout = new GoldenLayout( savedStateObj );
-} else {
-{%% if context == 'notebook' %%}
-    myLayout = new GoldenLayout( config, '#' + '{{slicer_id}}' );
-    $('#' + '{{slicer_id}}').css({width: '100%%', height: '800px', margin: '0px'})
-{%% else %%}
-    myLayout = new GoldenLayout( config );
-{%% endif %%}
-}
-
-//myLayout.on( 'stateChanged', function(){
-//    console.log("Update state");
-//    var state = JSON.stringify( myLayout.config );
-//    localStorage.setItem( 'savedLayout', state );
-//});
-
-myLayout.registerComponent('view', function( container, componentState ){
-    const {width, css_classes} = componentState
-    if(width)
-      container.on('open', () => container.setSize(width, container.height))
-    if (css_classes)
-      css_classes.map((item) => container.getElement().addClass(item))
-    container.setTitle(componentState.title)
-    container.getElement().html(componentState.model);
-    container.on('resize', () => window.dispatchEvent(new Event('resize')))
-});
-
-myLayout.init();
-</script>
-{%% endblock %%}
-"""
-
 
 class StopableThread(threading.Thread):
     def get_id(self) -> Optional[int]:
@@ -391,12 +272,7 @@ class CallbackObject:
         self.args = args
         self.cmd = cmd
 
-        self.output = pn.Column(
-            # pn.layout.VSpacer(),
-            # pn.pane.GIF('https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif')
-            # height=900,
-            sizing_mode="stretch_both"
-        )
+        self.output = pn.Column(sizing_mode="stretch_both")
 
         self.run_button = pn.widgets.Button(
             name="Run", button_type="primary", width=250
@@ -473,11 +349,7 @@ class CallbackObject:
         new_output = None
 
         # TODO: Get from my resources here
-        loading = pn.pane.GIF(
-            "https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif",
-            sizing_mode="stretch_both",
-        )
-        # loading = pni.LoadingSpinner()
+        loading = pn.indicators.LoadingSpinner(value=True, width=100, height=100)
         self.doc.add_next_tick_callback(
             partial(self.update_doc, new_output=loading, stdout_str=None)
         )
@@ -575,9 +447,6 @@ class CallbackObject:
 
 
 class SakDoc(param.Parameterized):  # type: ignore
-
-    # command = param.ObjectSelector()
-
     def __init__(self, doc: bokeh.document.document.Document) -> None:
         self.doc = doc
         super().__init__()
@@ -594,39 +463,15 @@ class SakDoc(param.Parameterized):  # type: ignore
         # Filter empty fields
         self._args = [x for x in path.split("/") if x]
 
-    # def view(self):
-    #    content = CallbackObject(self.doc, self._curr_cmd, self._args)
-    #    return pn.Column(
-    #            pn.pane.Markdown('''# SAK'''),
-    #            #pn.Row(
-    #                #self.param,
-    #                content.view()
-    #                #)
-    #
-    #
-    #            )
-
     def server_doc(self) -> bokeh.document.document.Document:
         content = CallbackObject(self.doc, self._curr_cmd, self._args)
 
-        # from panel.template import DarkTheme
-
-        # tmpl = pn.Template(template=(template % 'server'), nb_template=(template % 'notebook'))
-        # tmpl = pn.template.GoldenTemplate(title='SAK' #, theme=DarkTheme)
-        # tmpl = pn.template.VanillaTemplate(title='SAK', header_background="#357ebd") #, theme=DarkTheme)
-        tmpl = pn.template.BootstrapTemplate(
-            title="SAK", header_background="#357ebd"
-        )  # , theme=DarkTheme)
-        # tmpl.nb_template.globals['get_id'] = make_globally_unique_id
+        tmpl = pn.template.BootstrapTemplate(title="SAK", header_background="#357ebd")
 
         toc_md = ""
-        # toc_md += f'''[HOME &#127968;](./)'''
+        toc_md += "[HOME &#127968;](./)\n\n"
         if content.path:
-            toc_md += f"""[PARENT  &#8593;](./?path={os.path.dirname(content.path)})"""
-
-        # toc_md += f'''
-        # ---
-        # '''
+            toc_md += f"[PARENT  &#8593;](./?path={os.path.dirname(content.path)})\n"
 
         subcmds_md = ""
         if content.cmd.subcmds:
@@ -638,9 +483,6 @@ class SakDoc(param.Parameterized):  # type: ignore
             subcmds_md += f"""
         [{subcmd.name.upper()}](./?path={os.path.join(content.path, subcmd.name)})
         """
-        # toc_md += '''
-        # ---
-        # '''
 
         controller = pn.Column(
             # pn.Row(
@@ -648,36 +490,19 @@ class SakDoc(param.Parameterized):  # type: ignore
             #    pn.pane.Markdown('# SAK')
             # ),
             pn.pane.Markdown(toc_md, sizing_mode="stretch_width"),
-            pn.pane.Markdown(
-                subcmds_md, sizing_mode="stretch_width"
-            ),  # , style={'font-size': '12px'}),
+            pn.pane.Markdown(subcmds_md, sizing_mode="stretch_width"),
             content.parameters_view(),
-            # pn.layout.VSpacer(),
-            # css_classes=['panel-widget-box', 'custom-wbox'],
             sizing_mode="stretch_both",
         )
-
-        # parameters = content.parameters_view()
 
         content_pane = pn.Tabs(
             ("output", content.view()),
             ("stdout", content.stdout_view()),
-            # height=900,
-            # css_classes=['panel-widget-box', 'custom-wbox'],
             sizing_mode="stretch_both",
         )
-        # content_pane = content.view()
 
         tmpl.sidebar.append(controller)
         tmpl.main.append(content_pane)
-
-        # tmpl.add_panel('controller', controller)
-        # tmpl.add_panel('parameters', parameters)
-        # tmpl.add_panel('content', content_pane)
-        # tmpl.add_panel('stdout', content.stdout_view())
-
-        # tmpl.modal.append(pn.pane.Markdown('This is a modal test'))
-        # tmpl.open_modal()
 
         ret = tmpl.server_doc(self.doc)
         return ret

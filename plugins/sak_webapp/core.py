@@ -28,38 +28,6 @@ from saklib.sakplugin import load_file
 
 def set_extensions() -> None:
     pass
-    # css = '''
-    # .custom-wbox > div.bk {
-    #     padding-right: 10px;
-    # }
-    # .scrollable {
-    #     overflow: auto !important;
-    # }
-
-    # a:link, a:visited {
-    #   background-color: #428bca;
-    #   color: white;
-    #   padding: 4px 5px;
-    #   text-align: center;
-    #   text-decoration: none;
-    #   display: inline-block;
-    #   width: 85%;
-    # }
-
-    # '''
-
-    # # TODO(witt): Maybe embed those CSSs inside SAK?!
-    # js_files = {'jquery': 'https://code.jquery.com/jquery-1.11.1.min.js',
-    #             'goldenlayout': 'https://golden-layout.com/files/latest/js/goldenlayout.min.js'}
-    # css_files = ['https://golden-layout.com/files/latest/css/goldenlayout-base.css',
-    #              'https://golden-layout.com/files/latest/css/goldenlayout-light-theme.css']
-
-    # pn.extension(
-    #         #'vtk',
-    #         js_files=js_files, raw_css=[css], css_files=css_files)
-
-    # #hv.renderer('bokeh').theme = 'dark_minimal'
-    # hv.opts.defaults(hv.opts.Image(responsive=True, tools=['hover']))
 
 
 def modify_doc(doc: bokeh.document.document.Document) -> None:
