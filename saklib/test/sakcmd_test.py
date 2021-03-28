@@ -203,6 +203,72 @@ class SakArgParser(unittest.TestCase):
         self.assertEqual(ret["value"][2][0], "hello")
         self.assertEqual(ret["value"][2][1], "world")
 
+    def test_sak_arg_parse_func_docstring_and_decorator(self) -> None:
+        # GIVEN.
+        @SakArg("arg_int", short_name="i")
+        @SakArg("arg_str", short_name="s")
+        @SakArg("arg_list", short_name="l")
+        def func(
+            arg_int: int, arg_str: str, arg_list: List[str]
+        ) -> Tuple[int, str, List[str]]:
+            """Brief description.
+
+            Long description, this is a long description.
+
+            :param arg_int: This is an int param.
+            :param arg_str: This is an string param.
+            :param arg_list: This is an list param.
+            :returns: Tuple with the input argument.
+            """
+            return (arg_int, arg_str, arg_list)
+
+        arglist = "--arg_int 1 --arg_str foo --arg_list hello world".split(" ")
+
+        # WHEN.
+        ret = sak_arg_parser(func, arglist)
+
+        # THEN.
+        self.assertEqual(ret["cmd"].callback, func)
+        self.assertEqual("help" not in ret["argparse"], True)
+        self.assertEqual("error" not in ret["argparse"], True)
+        self.assertEqual(ret["value"][0], 1)
+        self.assertEqual(ret["value"][1], "foo")
+        self.assertEqual(ret["value"][2][0], "hello")
+        self.assertEqual(ret["value"][2][1], "world")
+
+    def test_sak_arg_parse_func_docstring_and_decorator_and_default(self) -> None:
+        # GIVEN.
+        @SakArg("arg_int", short_name="i")
+        @SakArg("arg_str", short_name="s")
+        @SakArg("arg_list", short_name="l")
+        def func(
+            arg_int: int = 0, arg_str: str = "", arg_list: List[str] = []
+        ) -> Tuple[int, str, List[str]]:
+            """Brief description.
+
+            Long description, this is a long description.
+
+            :param arg_int: This is an int param.
+            :param arg_str: This is an string param.
+            :param arg_list: This is an list param.
+            :returns: Tuple with the input argument.
+            """
+            return (arg_int, arg_str, arg_list)
+
+        arglist = "--arg_int 1 --arg_str foo --arg_list hello world".split(" ")
+
+        # WHEN.
+        ret = sak_arg_parser(func, arglist)
+
+        # THEN.
+        self.assertEqual(ret["cmd"].callback, func)
+        self.assertEqual("help" not in ret["argparse"], True)
+        self.assertEqual("error" not in ret["argparse"], True)
+        self.assertEqual(ret["value"][0], 1)
+        self.assertEqual(ret["value"][1], "foo")
+        self.assertEqual(ret["value"][2][0], "hello")
+        self.assertEqual(ret["value"][2][1], "world")
+
 
 class SakCmdWrapperFunctionDocAndDecoratorTest(unittest.TestCase):
     def test_wrap_func_docstring_and_cmd_decorator(self) -> None:

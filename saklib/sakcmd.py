@@ -112,6 +112,9 @@ class SakArg(SakDecorator):
         self.vargs = vargs
         self.completercb = completercb
 
+        # Store the original type when a type_init is specified.
+        self.orig_type: Optional[type] = None
+
     def addToArgParser(self, parser: ArgumentParser) -> None:
         pargs = []
         pargs += ["--%s" % self.name]
@@ -476,7 +479,17 @@ class SakCmdWrapper:
                                 if chain.completercb is not None:
                                     _params[chain.name].completercb = chain.completercb
 
-                                _params[chain.name].vargs.update(chain.vargs)
+                                vargs = dict(chain.vargs)
+                                if "type_init" in vargs:
+                                    orig_type = _params[chain.name].vargs.get(
+                                        "type", None
+                                    )
+                                    type_init = vargs.pop("type_init")
+
+                                    vargs["type"] = type_init
+                                    _params[chain.name].orig_type = orig_type
+
+                                _params[chain.name].vargs.update(vargs)
 
                                 if "default" in chain.vargs:
                                     if "type" not in _params[chain.name].vargs:
