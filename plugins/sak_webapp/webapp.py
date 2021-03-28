@@ -12,6 +12,7 @@ import ctypes
 import os
 import threading
 import time
+from datetime import date
 from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -94,12 +95,13 @@ class SakWebCmdArg:
             elif action == "store_false":
                 default = True
 
-        type_lut = {
+        type_lut: Dict[Any, str] = {
             bool: "bool",
             str: "string",
             list: "list",
             int: "int",
             float: "float",
+            date: "date",
         }
 
         # TODO(witt): Should I override the default or give another value?
@@ -115,22 +117,26 @@ class SakWebCmdArg:
             "choices": choices,
             "nargs": nargs,
             "action": action,
+            "orig_type": type_lut.get(self.arg.orig_type, None),
         }
         # ret.update(self.vargs)
         return ret
 
     def getRequestArgList(self, request: Dict[str, Any]) -> List[str]:
-        type_lut = {
+        type_lut: Dict[str, Any] = {
             "bool": bool,
             "string": str,
             "list": list,
             "int": int,
             "float": float,
+            "date": date,
         }
         cfg = self.getAsDict()
 
         name = cfg["name"]
-        arg_type = type_lut.get(cfg["type"], "string")
+        arg_type = type_lut.get(cfg["orig_type"], None) or type_lut.get(
+            cfg["type"], "string"
+        )
         arg_action = cfg["action"]
 
         req_arg = request.get(name, None)
@@ -145,7 +151,7 @@ class SakWebCmdArg:
                 tmp_ret_value = []
 
                 if isinstance(req_arg, list):
-                    tmp_ret_value += req_arg
+                    tmp_ret_value += [str(x) for x in req_arg]
                 elif isinstance(req_arg, str):
                     if req_arg.strip():
                         if "\n" in req_arg:
@@ -158,7 +164,18 @@ class SakWebCmdArg:
                 if tmp_ret_value:
                     ret += tmp_ret
                     ret += tmp_ret_value
-
+            elif arg_type is float:
+                if req_arg:
+                    ret.append("--%s" % name)
+                    ret.append(str(req_arg))
+            elif arg_type is int:
+                if req_arg:
+                    ret.append("--%s" % name)
+                    ret.append(str(req_arg))
+            elif arg_type is date:
+                if req_arg:
+                    ret.append("--%s" % name)
+                    ret.append(str(req_arg))
             else:
                 if arg_type is bool:
                     if "store_true" == arg_action:
@@ -213,7 +230,11 @@ class CallbackObject:
             default = webarg["default"]
             choices = webarg["choices"]
 
-            if webarg["type"] in ["int", "float", "string"]:
+            arg_type = webarg["type"]
+            if webarg["orig_type"] is not None:
+                arg_type = webarg["orig_type"]
+
+            if arg_type in ["string"]:
                 _params = {}
                 if choices:
                     if default is not None:
@@ -221,13 +242,34 @@ class CallbackObject:
                     params[name] = pn.widgets.Select(
                         name=name, options=choices, **_params
                     )
+                elif arg.completercb is not None:
+                    completer_args = SakCompleterArg(None, None, None, None)
+                    choices = arg.completercb(completer_args)
+                    params[name] = pn.widgets.Select(
+                        name=name, options=choices, **_params
+                    )
                 else:
                     if default is not None:
                         _params["value"] = str(default)
                     params[name] = pn.widgets.TextInput(name=name, **_params)
-            elif webarg["type"] in ["bool"]:
+            elif arg_type in ["date"]:
+                _params = {}
+                if default is not None:
+                    _params["value"] = default
+                params[name] = pn.widgets.DatePicker(name=name, **_params)
+            elif arg_type in ["int"]:
+                _params = {}
+                if default is not None:
+                    _params["value"] = default
+                params[name] = pn.widgets.IntInput(name=name, **_params)
+            elif arg_type in ["float"]:
+                _params = {}
+                if default is not None:
+                    _params["value"] = default
+                params[name] = pn.widgets.FloatInput(name=name, **_params)
+            elif arg_type in ["bool"]:
                 params[name] = pn.widgets.Checkbox(name=name, value=default)
-            elif webarg["type"] in ["list"]:
+            elif arg_type in ["list"]:
 
                 if name not in params:
                     _params = {}
