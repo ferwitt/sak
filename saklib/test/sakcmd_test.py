@@ -167,7 +167,7 @@ class SakCmdWrapperFunctionDocTest(unittest.TestCase):
         self.assertEqual(wrap.args[1].helpmsg, "This is an optional string param.")
         self.assertEqual(wrap.args[1].short_name, None)
         self.assertEqual(wrap.args[1].vargs["required"], False)
-        self.assertEqual(wrap.args[1].vargs["type"], Optional[str])
+        self.assertEqual(wrap.args[1].vargs["type"], str)
         self.assertEqual(wrap.args[1].vargs["default"], "Hello world")
         self.assertEqual(wrap.args[1].completercb, None)
 

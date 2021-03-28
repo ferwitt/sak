@@ -453,6 +453,14 @@ class SakCmdWrapper:
                                     "Sak does not support multiple type annotation?!"
                                 )
 
+                        if get_origin(_type) is Union and type(None) in get_args(_type):
+                            # TODO(witt): What to do when we have more then one argument?
+                            _params[param_name].vargs["type"] = [
+                                x
+                                for x in get_args(_type)
+                                if x is not type(None)  # noqa: E721
+                            ][0]
+
                     # Check if there are decorators and override the info from the decorator.
                     if hasattr(_d, "_sak_dec_chain"):
                         chain = _d._sak_dec_chain  # type: ignore
