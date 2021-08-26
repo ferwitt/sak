@@ -103,6 +103,7 @@ def load_file(fpath: Path, environ: Optional[Dict[str, Any]] = None) -> Any:
                 if PYTHON_VERSION_MAJOR == 3:
                     if PYTHON_VERSION_MINOR >= 6:
                         spec = importlib.util.spec_from_file_location(name, fpath)
+                        assert spec is not None, f"Failed to import {name} in {fpath}"
                         imported_module = importlib.util.module_from_spec(
                             spec
                         )  # TODO: Fix this!
@@ -111,7 +112,7 @@ def load_file(fpath: Path, environ: Optional[Dict[str, Any]] = None) -> Any:
                         # TODO: Fix this!
                         imported_module = SourceFileLoader(
                             name, str(fpath)
-                        ).load_module()  # type: ignore
+                        ).load_module()
                 elif PYTHON_VERSION_MAJOR == 2:
                     imported_module = imp.load_source(name, str(fpath))
 
