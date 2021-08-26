@@ -406,7 +406,7 @@ class SakCmdWrapper:
                             if parsed_docs is not None:
                                 for _doc_param in parsed_docs.params:
                                     if _doc_param.arg_name == param_name:
-                                        _helpmsg = _doc_param.description
+                                        _helpmsg = _doc_param.description or ""
 
                             _params[param_name] = SakArg(
                                 name=param_name, helpmsg=_helpmsg
