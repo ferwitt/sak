@@ -32,7 +32,6 @@ def mypy() -> None:
 
     cmd = [
         "mypy",
-        "--strict",
         "--exclude",
         "python",
         "--ignore-missing-imports",
@@ -40,6 +39,26 @@ def mypy() -> None:
         "--pretty",
     ]
 
+    # Instead of adding --strict directly, I will add the optional flags manually.
+    strict_options = [
+        "--warn-unused-configs",
+        "--disallow-any-generics",
+        "--disallow-subclassing-any",
+        # "--disallow-untyped-calls",
+        "--disallow-untyped-defs",
+        "--disallow-incomplete-defs",
+        "--check-untyped-defs",
+        "--disallow-untyped-decorators",
+        "--no-implicit-optional",
+        "--warn-redundant-casts",
+        "--warn-unused-ignores",
+        "--warn-return-any",
+        "--no-implicit-reexport",
+        "--strict-equality",
+    ]
+    cmd += strict_options
+
+    # Add paths to check.
     cmd += paths
 
     cwd = SAK_GLOBAL
