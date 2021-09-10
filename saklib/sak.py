@@ -16,42 +16,6 @@ import sys
 sys.path.append(os.environ["SAK_GLOBAL"])
 
 
-try:
-    import lazy_import
-
-    lazy_import.lazy_module("param")
-    lazy_import.lazy_module("panel")
-    lazy_import.lazy_module("flask")
-    lazy_import.lazy_module("wrappers")
-    lazy_import.lazy_module("bokeh")
-    lazy_import.lazy_module("bokeh.server.server")
-    lazy_import.lazy_module("bokeh.embed")
-    lazy_import.lazy_module("panel")
-    lazy_import.lazy_module("pandas")
-    lazy_import.lazy_module("matplotlib")
-    lazy_import.lazy_module("matplotlib.pyplot")
-    lazy_import.lazy_module("matplotlib.animation")
-    lazy_import.lazy_module("matplotlib.widgets")
-    lazy_import.lazy_module("pylab")
-    lazy_import.lazy_module("tornado")
-    lazy_import.lazy_module("numpy")
-    lazy_import.lazy_module("scipy.optimize")
-    lazy_import.lazy_module("scipy.spatial.transform")
-    lazy_import.lazy_module("git")
-except ImportError:
-    import sys
-    import traceback
-
-    print("Exception in user code:")
-    print("-" * 60)
-    traceback.print_exc(file=sys.stdout)
-    print("-" * 60)
-
-    # If import fails, then ask if the user wants to try to update the requirements
-    from saklib.sakconfig import install_core_requirements  # noqa: E402
-
-    install_core_requirements()
-
 from saklib.sakcmd import SakCmd, sak_arg_parser  # noqa: E402
 from saklib.sakplugin import SakContext, SakPlugin, SakPluginManager  # noqa: E402
 
@@ -104,7 +68,7 @@ def main() -> None:
     ret = sak_arg_parser(root, args)
 
     if "error" in ret["argparse"]:
-        sys.stderr.write(ret["argparse"]["error"])
+        sys.stderr.write(f'ERROR: {ret["argparse"]["error"]}\n')
         sys.exit(-1)
 
     if "help" in ret["argparse"]:
