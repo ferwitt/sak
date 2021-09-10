@@ -68,7 +68,7 @@ def main() -> None:
     ret = sak_arg_parser(root, args)
 
     if "error" in ret["argparse"]:
-        sys.stderr.write(ret["argparse"]["error"])
+        sys.stderr.write(f'ERROR: {ret["argparse"]["error"]}\n')
         sys.exit(-1)
 
     if "help" in ret["argparse"]:
