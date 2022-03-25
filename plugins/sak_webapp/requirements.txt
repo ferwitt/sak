@@ -1,2 +1,2 @@
-panel
-holoviews
+panel==0.12.6
+holoviews==1.14.8
