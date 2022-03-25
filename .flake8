@@ -3,6 +3,7 @@ ignore = E402, # module level import not at top of file
          W503, # line break before binary operator
          W504, # line break after binary operator
          C901,
+         E203, # White space before ':', this is how the auto format wants it
 max-line-length = 120
 exclude = *_test.py
 max-complexity = 10
