@@ -14,6 +14,7 @@ import subprocess
 import sys
 
 sys.path.append(os.environ["SAK_GLOBAL"])
+os.environ["NUMEXPR_MAX_THREADS"] = "8"
 
 
 from saklib.sakcmd import SakCmd, sak_arg_parser  # noqa: E402
