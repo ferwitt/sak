@@ -412,15 +412,13 @@ class SakCmdWrapper:
                                 name=param_name, helpmsg=_helpmsg
                             )
 
-                        # TODO(witt): Fix this ignore?
-                        if param.default is not inspect._empty:  # type: ignore
+                        if param.default is not inspect._empty:
                             _params[param_name].vargs["default"] = param.default
                             _params[param_name].vargs["required"] = False
                         else:
                             _params[param_name].vargs["required"] = True
 
-                        # TODO(witt): Fix this ignore?
-                        if param.annotation is not inspect._empty:  # type: ignore
+                        if param.annotation is not inspect._empty:
                             _params[param_name].vargs["type"] = param.annotation
 
                         _type = _params[param_name].vargs.get("type", None)
