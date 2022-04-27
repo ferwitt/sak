@@ -50,7 +50,9 @@ def update_all(disable_repo_update: bool = False) -> None:
         if (path / ".git").exists():
             print("Updating repository for Sak global")
             subprocess.run(["git", "remote", "update"], check=True, cwd=path)
-            subprocess.run(["git", "pull", "origin", "master"], check=True, cwd=path)
+            subprocess.run(
+                ["git", "pull", "origin", "master", "--rebase"], check=True, cwd=path
+            )
             subprocess.run(
                 ["git", "submodule", "update", "--init", "--recursive"],
                 check=True,
