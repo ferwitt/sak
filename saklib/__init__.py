@@ -34,6 +34,13 @@ def pip_install() -> None:
     pass
 
 
+MINICONDA_LINKS = {
+    "x86": "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86.sh",
+    "x86_64": "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh",
+    "i686": "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86.sh",
+}
+
+
 def install_python(ask_confirm: bool = True) -> None:
     if " ".join(sys.argv[1:]) == "show argcomp":
         return
@@ -52,10 +59,12 @@ def install_python(ask_confirm: bool = True) -> None:
 
     miniconda_installer = os.path.join(SAK_PYTHON, "miniconda.sh")
     if not os.path.exists(miniconda_installer):
+        current_platform = platform.machine()
+        link = MINICONDA_LINKS[current_platform]
         subprocess.check_call(
             [
                 "wget",
-                "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh",
+                link,
                 "-O",
                 miniconda_installer,
             ]
@@ -79,8 +88,8 @@ def install_python(ask_confirm: bool = True) -> None:
 
 
 def install() -> None:
-    if "x86" in platform.machine():
-        # Only try to run inside miniconda if is in x86
+    if platform.machine() in MINICONDA_LINKS:
+        # Only try to run inside miniconda if in the suppoted platforms.
         ask_confirm = os.environ.get("SAK_ASK_CONFIRM", "YES") == "YES"
         install_python(ask_confirm=ask_confirm)
 
@@ -88,8 +97,10 @@ def install() -> None:
 def run() -> None:
     use_miniconda_flag = os.environ.get("SAK_USE_MINICONDA", "YES") == "YES"
 
-    if use_miniconda_flag and ("x86" in platform.machine()):
-        # Only try to run inside miniconda if is in x86
+    current_platform = platform.machine()
+    is_supported_env = current_platform in MINICONDA_LINKS
+
+    if use_miniconda_flag and is_supported_env:
         install()
 
         os.environ["PATH"] = os.path.dirname(SAK_PYTHON_BIN) + ":" + os.environ["PATH"]

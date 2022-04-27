@@ -1,5 +1,5 @@
 import unittest
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from saklib.sakcmd import SakArg, SakCmd, SakCmdWrapper, sak_arg_parser
 
@@ -310,7 +310,7 @@ class SakCmdWrapperFunctionDocAndDecoratorTest(unittest.TestCase):
         @SakArg(
             "arg_int", type=int, helpmsg="Higher precedence description for int param."
         )
-        def func(arg_int):  # type: ignore
+        def func(arg_int: Any) -> Any:
             """Brief description.
 
             Long description, this is a long description.
