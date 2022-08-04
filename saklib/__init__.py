@@ -36,7 +36,7 @@ def pip_install() -> None:
 
 MINICONDA_LINKS = {
     "x86": "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86.sh",
-    "x86_64": "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh",
+    "x86_64": "https://repo.anaconda.com/miniconda/Miniconda3-py38_4.12.0-Linux-x86_64.sh",
     "i686": "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86.sh",
 }
 

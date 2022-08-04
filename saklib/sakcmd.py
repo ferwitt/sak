@@ -17,18 +17,18 @@ from io import StringIO
 from typing import Any, Callable, Dict, List, Optional, Union
 
 try:
-    from typing import get_args  # type: ignore
+    from typing import get_args
 except ImportError:
 
-    def get_args(t: Any) -> Any:
+    def get_args(t: Any) -> Any:  # type: ignore
         return t.__args__
 
 
 try:
-    from typing import get_origin  # type: ignore
+    from typing import get_origin
 except ImportError:
 
-    def get_origin(t: Any) -> Any:
+    def get_origin(t: Any) -> Any:  # type: ignore
         try:
             return t.__origin__
         except AttributeError:
