@@ -358,7 +358,7 @@ class CallbackObject:
     def view(self) -> pn.Column:
         return self.output
 
-    @tornado.gen.coroutine  # type: ignore
+    @tornado.gen.coroutine
     def update_doc(self, new_output: pn.pane.PaneBase, stdout_str: pn.pane.Str) -> None:
         # TODO(witt): This coroutine is the one that will actually update the content
         # source.stream(dict(x=[x], y=[y]))
@@ -367,7 +367,7 @@ class CallbackObject:
         # print(stdout_str)
         self.stdout.object = stdout_str
 
-    @tornado.gen.coroutine  # type: ignore
+    @tornado.gen.coroutine
     def update_stdout(self, stdout_str: str) -> None:
         # TODO(witt): This coroutine is the one that will actually update the content
         # print(stdout_str)
