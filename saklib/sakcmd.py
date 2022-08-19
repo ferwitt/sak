@@ -431,13 +431,13 @@ class SakCmdWrapper:
                                 name=param_name, helpmsg=_helpmsg
                             )
 
-                        if param.default is not inspect._empty:
+                        if param.default is not inspect._empty:  # type: ignore
                             _params[param_name].vargs["default"] = param.default
                             _params[param_name].vargs["required"] = False
                         else:
                             _params[param_name].vargs["required"] = True
 
-                        if param.annotation is not inspect._empty:
+                        if param.annotation is not inspect._empty:  # type: ignore
                             _params[param_name].vargs["type"] = param.annotation
 
                         _type = _params[param_name].vargs.get("type", None)

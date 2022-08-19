@@ -276,8 +276,11 @@ class SakPlugin:
             return Path(self._has_plugin_path)
         return None
 
-    def update(self) -> None:
-        """Update the plugin."""
+    def update(self, disable_repo_update: bool = False) -> None:
+        """Update the plugin.
+
+        :param disable_repo_update: Whether should disable the plugin repository pull.
+        """
         path = self.plugin_path
 
         if path is None:
@@ -285,17 +288,18 @@ class SakPlugin:
             return
 
         if path is not None:
-            if (path / ".git").exists():
-                print("Updating repository for %s" % self.name)
-                subprocess.run(["git", "remote", "update"], check=True, cwd=path)
-                subprocess.run(
-                    ["git", "pull", "origin", "master"], check=True, cwd=path
-                )
-                subprocess.run(
-                    ["git", "submodule", "update", "--init", "--recursive"],
-                    check=True,
-                    cwd=path,
-                )
+            if not disable_repo_update:
+                if (path / ".git").exists():
+                    print("Updating repository for %s" % self.name)
+                    subprocess.run(["git", "remote", "update"], check=True, cwd=path)
+                    subprocess.run(
+                        ["git", "pull", "origin", "master"], check=True, cwd=path
+                    )
+                    subprocess.run(
+                        ["git", "submodule", "update", "--init", "--recursive"],
+                        check=True,
+                        cwd=path,
+                    )
 
             if (path / "requirements.txt").exists():
                 print("Updating pip dependencies for %s" % self.name)
