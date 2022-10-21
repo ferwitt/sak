@@ -77,7 +77,7 @@ def flake8() -> None:
             continue
         paths += [str(plugin.plugin_path)]
 
-    cmd = ["flake8"]
+    cmd = ["flake8", "--config=" + str(SAK_GLOBAL / ".flake8")]
     cmd += paths
 
     cwd = SAK_GLOBAL
