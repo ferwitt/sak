@@ -34,6 +34,8 @@ def mypy() -> None:
         "mypy",
         "--exclude",
         "python",
+        "--exclude",
+        ".*_pb2.py$",
         "--ignore-missing-imports",
         "--show-absolute-path",
         "--pretty",
