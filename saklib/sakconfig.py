@@ -51,7 +51,9 @@ def install_core_requirements(ask_confirm: bool = True) -> None:
             sys.exit(-1)
 
     subprocess.check_call(
-        ["/usr/bin/env", "pip", "install", "-r", str(SAK_GLOBAL / "requirements.txt")]
+        ["/usr/bin/env", "pip", "install", "-r", str(SAK_GLOBAL / "requirements.txt")],
+        stdout=sys.stdout,
+        stderr=sys.stderr,
     )
 
 
