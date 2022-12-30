@@ -1,10 +1,10 @@
 # -*- coding: UTF-8 -*-
 
-import subprocess
 
 from saklib.sak import ctx
 from saklib.sakcmd import SakArg, SakCmd
 from saklib.sakconfig import SAK_GLOBAL
+from saklib.sakexec import run_cmd
 
 
 @SakCmd("show", helpmsg="Show the list of plugins.")
@@ -22,7 +22,7 @@ def show() -> str:
 def install(url: str) -> None:
     if ctx.sak_global is not None:
         name = url.split("/")[-1].replace(".git", "").replace("-", "_")
-        subprocess.run(
+        run_cmd(
             ["git", "clone", "--recurse-submodules", url, name],
             check=True,
             cwd=(ctx.sak_global / "plugins"),
@@ -40,7 +40,10 @@ def update_all(disable_repo_update: bool = False) -> None:
 
     print(80 * "-" + "\n")
     print("Update pip")
-    subprocess.run(["pip", "install", "--upgrade", "pip"], check=True)
+    run_cmd(
+        ["pip", "install", "--upgrade", "pip"],
+        check=True,
+    )
 
     print(80 * "-" + "\n")
     print("Update sak core")
@@ -49,11 +52,17 @@ def update_all(disable_repo_update: bool = False) -> None:
     if not disable_repo_update:
         if (path / ".git").exists():
             print("Updating repository for Sak global")
-            subprocess.run(["git", "remote", "update"], check=True, cwd=path)
-            subprocess.run(
-                ["git", "pull", "origin", "master", "--rebase"], check=True, cwd=path
+            run_cmd(
+                ["git", "remote", "update"],
+                check=True,
+                cwd=path,
             )
-            subprocess.run(
+            run_cmd(
+                ["git", "pull", "origin", "master", "--rebase"],
+                check=True,
+                cwd=path,
+            )
+            run_cmd(
                 ["git", "submodule", "update", "--init", "--recursive"],
                 check=True,
                 cwd=path,
@@ -61,7 +70,7 @@ def update_all(disable_repo_update: bool = False) -> None:
 
     if (path / "requirements.txt").exists():
         print("Updating pip dependencies for Sak global")
-        subprocess.run(
+        run_cmd(
             ["pip", "install", "--upgrade", "-r", "requirements.txt"],
             check=True,
             cwd=path,

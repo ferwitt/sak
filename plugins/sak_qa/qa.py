@@ -16,6 +16,7 @@ from pathlib import Path
 from saklib.sak import plm
 from saklib.sakcmd import SakCmd
 from saklib.sakconfig import SAK_GLOBAL
+from saklib.sakexec import run_cmd
 
 
 @SakCmd("mypy", helpmsg="Execute mypy for Sak and Plugins")
@@ -64,7 +65,11 @@ def mypy() -> None:
     cmd += paths
 
     cwd = SAK_GLOBAL
-    subprocess.run(cmd, check=True, cwd=cwd)
+    run_cmd(
+        cmd,
+        check=True,
+        cwd=cwd,
+    )
 
 
 @SakCmd("flake8", helpmsg="Execute flake8 for Sak and Plugins")
@@ -83,7 +88,11 @@ def flake8() -> None:
     cmd += paths
 
     cwd = SAK_GLOBAL
-    subprocess.run(cmd, check=True, cwd=cwd)
+    run_cmd(
+        cmd,
+        check=True,
+        cwd=cwd,
+    )
 
 
 @SakCmd("black", helpmsg="Execute black format for Sak and Plugins")
@@ -107,7 +116,11 @@ def black(check: bool = False) -> None:
         cmd += [path]
 
         cwd = path
-        subprocess.run(cmd, check=True, cwd=cwd)
+        run_cmd(
+            cmd,
+            check=True,
+            cwd=cwd,
+        )
 
 
 @SakCmd("test", helpmsg="Execute tests for Sak and Plugins")
@@ -138,7 +151,10 @@ def test(coverage: bool = False, pdb: bool = False) -> None:
     normalize_file_path = False
     if normalize_file_path:
         p = subprocess.Popen(
-            cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            cmd,
+            cwd=cwd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
         if (p.stdout is None) or (p.stderr is None):
             raise Exception('Failed to execute "%s" ' % (" ".join(cmd)))
@@ -162,7 +178,11 @@ def test(coverage: bool = False, pdb: bool = False) -> None:
                 'Failed to execute "%s" ret core: %d' % (" ".join(cmd), p.returncode)
             )
     else:
-        subprocess.run(cmd, check=True, cwd=cwd)
+        run_cmd(
+            cmd,
+            check=True,
+            cwd=cwd,
+        )
 
 
 @SakCmd("report", helpmsg="Show the coverage report")
@@ -180,10 +200,18 @@ def coverage_report(html: bool = False) -> None:
         cmd += ["coverage", "report"]
 
     cwd = SAK_GLOBAL
-    subprocess.run(cmd, check=True, cwd=cwd)
+    run_cmd(
+        cmd,
+        check=True,
+        cwd=cwd,
+    )
 
     if html:
-        subprocess.run(["xdg-open", "htmlcov/index.html"], check=True, cwd=cwd)
+        run_cmd(
+            ["xdg-open", "htmlcov/index.html"],
+            check=True,
+            cwd=cwd,
+        )
 
 
 @SakCmd("isort", helpmsg="Execute isort on Sak core and plugins.")
@@ -207,7 +235,11 @@ def isort(check: bool = False) -> None:
         cmd += [path]
 
         cwd = path
-        subprocess.run(cmd, check=True, cwd=cwd)
+        run_cmd(
+            cmd,
+            check=True,
+            cwd=cwd,
+        )
 
 
 @SakCmd("autoflake", helpmsg="Execute autoflake on Sak core and plugins.")
@@ -236,7 +268,11 @@ def autoflake() -> None:
         ]
 
         cwd = path
-        subprocess.run(cmd, check=True, cwd=cwd)
+        run_cmd(
+            cmd,
+            check=True,
+            cwd=cwd,
+        )
 
 
 @SakCmd("all", helpmsg="Execute all the QA commands.")

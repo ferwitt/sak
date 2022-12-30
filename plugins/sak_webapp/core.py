@@ -11,6 +11,7 @@ __email__ = "ferawitt@gmail.com"
 import os
 import sys
 from pathlib import Path
+from typing import Any, Callable, List, Tuple
 
 import bokeh
 import bokeh.document
@@ -19,11 +20,40 @@ import bokeh.server.server
 import panel as pn
 import tornado
 import tornado.gen
+from webapp_cmd import register_commands
 
-from saklib.sak import ctx
+from saklib.sak import ctx, plm
 from saklib.sakcmd import SakArg, SakCmd
 from saklib.sakio import register_threaded_stderr_tee, register_threaded_stdout_tee
 from saklib.sakplugin import load_file
+
+SCRIPT_PATH = Path(__file__).resolve()
+SRC_PATH = SCRIPT_PATH.parent
+sys.path.append(str(SRC_PATH))
+
+
+class WebAppCtx:
+    def __init__(self) -> None:
+        self.panel_register_cbs: List[Tuple[str, str, Callable[[Any], None]]] = []
+
+    def panel_register(
+        self,
+        name: str,
+        path: str,
+        cb: Callable[[Any], Any],
+    ) -> None:
+        self.panel_register_cbs.append((name, path, cb))
+
+
+def panel_register(
+    name: str,
+    path: str,
+    cb: Callable[[Any], None],
+) -> None:
+    if "webapp" not in ctx.plugin_data:
+        ctx.plugin_data["webapp"] = WebAppCtx()
+    wac = ctx.plugin_data["webapp"]
+    wac.panel_register(name, path, cb)
 
 
 def set_extensions() -> None:
@@ -38,35 +68,6 @@ def modify_doc(doc: bokeh.document.document.Document) -> None:
     newdoc = webapp["SakDoc"](doc)
 
     newdoc.server_doc()
-
-    return
-    newdoc_layout = newdoc.view()
-
-    doc.add_root(newdoc_layout.get_root(doc))
-
-    return
-
-    args = doc.session_context.request.arguments
-
-    path = ""
-    try:
-        path = args["path"][0].decode("utf-8")
-    except Exception as e:
-        print("ERROR! Failed to get the path from the args", str(e))
-
-    # TODO(witt): Make some way to cache this and not reload the module all the time!
-    try:
-        webapp_file = Path(__file__).resolve().parent / "webapp.py"
-        webapp = load_file(webapp_file)
-
-        # Get the doc object
-        newdoc = webapp["get_callback_object"](doc, path)
-        newdoc_layout = newdoc.layout
-
-        doc.add_root(newdoc_layout.get_root(doc))
-    except Exception as e:
-        # TODO(witt): I could update the doc with some nice error message :)
-        print("ERROR! Failed to load the webapp or to execute the command.", str(e))
 
 
 def bk_worker(bokeh_port: int) -> None:
@@ -84,11 +85,19 @@ def bk_worker(bokeh_port: int) -> None:
 @SakCmd("start", helpmsg="Start webapp")
 @SakArg("port", short_name="p", helpmsg="The Bokeh server port (default: 5006)")
 def start(port: int = 2020) -> None:
-    set_extensions()
-
+    # Prepare stdout and sterr capture.
     register_threaded_stdout_tee()
     register_threaded_stderr_tee()
 
+    # Force loading plugins.
+    register_commands()
+    for plugin in plm.getPluginList():
+        dir(plugin)
+
+    # Set extensions.
+    set_extensions()
+
+    # Start server.
     print(f"Running on http://127.0.0.1:{port}/")
     bk_worker(port)
 
@@ -103,4 +112,8 @@ def jupyter() -> None:
     os.system("jupyter lab")
 
 
-EXPOSE = {"start": start, "jupyter": jupyter}
+EXPOSE = {
+    "start": start,
+    "jupyter": jupyter,
+    "panel_register": panel_register,
+}

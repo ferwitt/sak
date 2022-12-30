@@ -8,12 +8,12 @@ __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
 import os
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 from saklib.sakconfig import CURRENT_DIR, SAK_GLOBAL, SAK_LOCAL
+from saklib.sakexec import run_cmd
 
 PYTHON_VERSION_MAJOR = sys.version_info.major
 PYTHON_VERSION_MINOR = sys.version_info.minor
@@ -41,9 +41,7 @@ class SakContext(object):
 
         self.has_plugin_manager: Optional["SakPluginManager"] = None
 
-
-# _curronto = onto
-# def curronto(): return _curronto
+        self.plugin_data: Dict[str, Any] = {}
 
 
 class AddPath:
@@ -58,9 +56,6 @@ class AddPath:
             sys.path.remove(str(self.path))
         except ValueError:
             pass
-
-
-# import pickle
 
 
 def load_file(fpath: Path, environ: Optional[Dict[str, Any]] = None) -> Any:
@@ -115,8 +110,6 @@ def load_file(fpath: Path, environ: Optional[Dict[str, Any]] = None) -> Any:
                         ).load_module()
                 elif PYTHON_VERSION_MAJOR == 2:
                     imported_module = imp.load_source(name, str(fpath))
-
-            # import pdb; pdb.set_trace()
             ret = {}
             for k in dir(imported_module):
                 ret[k] = getattr(imported_module, k)
@@ -144,12 +137,7 @@ def load_file(fpath: Path, environ: Optional[Dict[str, Any]] = None) -> Any:
     return None
 
 
-class SakPluginExposedFile(object):
-    """docstring for SakPluginExposedFile"""
-
-    def __init__(self, file_path: Path) -> None:
-        super(SakPluginExposedFile, self).__init__()
-        self.file_path = file_path
+# class SakPluginExposedFile(object):
 
 
 class SakPlugin:
@@ -165,11 +153,6 @@ class SakPlugin:
 
         # TODO(witt): What is the value of exposed?
         self._exposed: Dict[str, Any] = {}
-        # self._load_exposes()
-
-        # self._ontology = None
-
-        # config_file = plugin_path / 'plugin.py'
 
         self._config_file = None
         if path is not None:
@@ -182,13 +165,6 @@ class SakPlugin:
         self._config = {}
         if self._config_file is not None and self._config_file.exists():
             self._config = load_file(self._config_file)
-        # if self._config is not None:
-        # pass
-
-        # global _curronto
-        # _curronto = local_onto
-
-        # self._onto_init()
 
     def _load_exposes(self) -> None:
 
@@ -261,10 +237,6 @@ class SakPlugin:
         if name in self._exposed:
             return self._exposed[name]
         return super(SakPlugin, self).__getattribute__(name)
-        # return super(SakPlugin, self).__getattr__(name)
-
-    # def get_namespace(self, namespace):
-    #    return self._get_ontology().get_namespace('http://sak.org/sak/%s' % namespace)
 
     @property
     def plugin_path(self) -> Optional[Path]:
@@ -291,11 +263,17 @@ class SakPlugin:
             if not disable_repo_update:
                 if (path / ".git").exists():
                     print("Updating repository for %s" % self.name)
-                    subprocess.run(["git", "remote", "update"], check=True, cwd=path)
-                    subprocess.run(
-                        ["git", "pull", "origin", "master"], check=True, cwd=path
+                    run_cmd(
+                        ["git", "remote", "update"],
+                        check=True,
+                        cwd=path,
                     )
-                    subprocess.run(
+                    run_cmd(
+                        ["git", "pull", "origin", "master"],
+                        check=True,
+                        cwd=path,
+                    )
+                    run_cmd(
                         ["git", "submodule", "update", "--init", "--recursive"],
                         check=True,
                         cwd=path,
@@ -303,7 +281,7 @@ class SakPlugin:
 
             if (path / "requirements.txt").exists():
                 print("Updating pip dependencies for %s" % self.name)
-                subprocess.run(
+                run_cmd(
                     ["pip", "install", "--upgrade", "-r", "requirements.txt"],
                     check=True,
                     cwd=path,
@@ -340,8 +318,6 @@ class SakPluginManager(object):
         return None
 
     def addPlugin(self, plugin: SakPlugin) -> None:
-        # print('Register plugin', plugin)
-        # plugin.has_context = self.has_context
         if plugin not in self.has_plugins:
             self.has_plugins.append(plugin)
 
@@ -370,6 +346,4 @@ class SakPluginManager(object):
                 raise Exception("No context defined")
 
             plugin = SakPlugin(self.has_context, name, plugin_path)
-            # plugin._has_plugin_path = str(plugin_path)
-            # plugin.has_context = self.has_context
             self.addPlugin(plugin)
