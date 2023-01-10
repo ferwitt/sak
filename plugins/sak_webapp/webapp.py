@@ -15,6 +15,7 @@ import panel as pn
 import param
 
 from saklib.sak import ctx
+from saklib.sakplugin import load_file
 
 has_pandas = False
 try:
@@ -66,7 +67,7 @@ class SakDoc(param.Parameterized):  # type: ignore
         if "webapp" in ctx.plugin_data:
             wac = ctx.plugin_data["webapp"]
             urls = {}
-            for name, path, _ in wac.panel_register_cbs:
+            for name, path, _, _ in wac.panel_register_cbs:
                 if name not in urls:
                     urls[name] = path
 
@@ -88,7 +89,9 @@ class SakDoc(param.Parameterized):  # type: ignore
         if "webapp" in ctx.plugin_data:
             wac = ctx.plugin_data["webapp"]
 
-            for name, path, cb in wac.panel_register_cbs:
+            for name, path, file_path, callback in wac.panel_register_cbs:
+                cb = load_file(file_path)[callback.__name__]
+
                 if name != self.args.get("name"):
                     continue
                 _path = [x for x in path.split("/") if x]

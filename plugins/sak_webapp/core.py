@@ -34,26 +34,35 @@ sys.path.append(str(SRC_PATH))
 
 class WebAppCtx:
     def __init__(self) -> None:
-        self.panel_register_cbs: List[Tuple[str, str, Callable[[Any], None]]] = []
+        self.panel_register_cbs: List[Tuple[str, str, Path, Callable[[Any], None]]] = []
 
     def panel_register(
         self,
         name: str,
         path: str,
-        cb: Callable[[Any], Any],
+        file_path: Path,
+        callback: Callable[[Any], None],
     ) -> None:
-        self.panel_register_cbs.append((name, path, cb))
+        for iname, ipath, _, icallback in self.panel_register_cbs:
+            if (
+                iname == name
+                and ipath == path
+                and icallback.__name__ == callback.__name__
+            ):
+                return
+        self.panel_register_cbs.append((name, path, file_path, callback))
 
 
 def panel_register(
     name: str,
     path: str,
-    cb: Callable[[Any], None],
+    file_path: Path,
+    callback: Callable[[Any], None],
 ) -> None:
     if "webapp" not in ctx.plugin_data:
         ctx.plugin_data["webapp"] = WebAppCtx()
     wac = ctx.plugin_data["webapp"]
-    wac.panel_register(name, path, cb)
+    wac.panel_register(name, path, file_path, callback)
 
 
 def set_extensions() -> None:

@@ -609,4 +609,4 @@ def register_commands() -> None:
     # Register web endpoints.
     webapp = plm.get_plugin("webapp")
     if webapp is not None:
-        webapp.panel_register("commands", "/", do_commands)
+        webapp.panel_register("commands", "/", Path(__file__).resolve(), do_commands)
