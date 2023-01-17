@@ -119,6 +119,7 @@ def load_file(fpath: Path, environ: Optional[Dict[str, Any]] = None) -> Any:
         print("Missing modules in plugin %s" % str(fpath))
         print(str(error))
         print("Please, update dependencies!")
+        print("Try to execute: sak plugins update_all")
 
         requirements_path = fpath / "requirements.txt"
 
