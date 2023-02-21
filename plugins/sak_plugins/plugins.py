@@ -84,7 +84,7 @@ def update_all(disable_repo_update: bool = False) -> None:
 
         print(80 * "-" + "\n")
         print("Updating %s\n" % plugin.name)
-        plugin.update()
+        plugin.update(disable_repo_update=disable_repo_update)
 
 
 EXPOSE = {"show": show, "install": install, "update_all": update_all}
