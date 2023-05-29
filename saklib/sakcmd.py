@@ -397,8 +397,7 @@ class SakCmdWrapper:
             if callable(d) and not isinstance(d, SakCmd):
                 d_list = [d]
                 if hasattr(d, "__call__"):
-                    # TODO(witt): Fix this ignore?
-                    d_list.append(d.__call__)  # type: ignore
+                    d_list.append(d.__call__)
 
                 _params = {}
 
@@ -431,13 +430,13 @@ class SakCmdWrapper:
                                 name=param_name, helpmsg=_helpmsg
                             )
 
-                        if param.default is not inspect._empty:  # type: ignore
+                        if param.default is not inspect._empty:
                             _params[param_name].vargs["default"] = param.default
                             _params[param_name].vargs["required"] = False
                         else:
                             _params[param_name].vargs["required"] = True
 
-                        if param.annotation is not inspect._empty:  # type: ignore
+                        if param.annotation is not inspect._empty:
                             _params[param_name].vargs["type"] = param.annotation
 
                         _type = _params[param_name].vargs.get("type", None)
@@ -483,7 +482,7 @@ class SakCmdWrapper:
 
                     # Check if there are decorators and override the info from the decorator.
                     if hasattr(_d, "_sak_dec_chain"):
-                        chain = _d._sak_dec_chain  # type: ignore
+                        chain = _d._sak_dec_chain
                         while chain is not None:
                             if isinstance(chain, SakArg):
                                 if chain.name not in _params:
@@ -610,7 +609,7 @@ class SakCmdWrapper:
             if inspect.ismethod(d) or inspect.isfunction(d):
                 if hasattr(d, "_sak_dec_chain"):
                     cmd = None
-                    chain = d._sak_dec_chain  # type: ignore
+                    chain = d._sak_dec_chain
                     while chain is not None:
                         if isinstance(chain, SakCmd):
                             cmd = chain
