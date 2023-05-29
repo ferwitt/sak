@@ -63,7 +63,7 @@ class SakConfig(object):
         self.path: List[Any] = []
 
     def get(self, key: str) -> str:
-        pass
+        return "NOT IMPLEMENTED"
 
     def set(self, key: str, value: str) -> str:
-        pass
+        return "NOT IMPLEMENTED"
