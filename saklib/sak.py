@@ -81,7 +81,7 @@ def main() -> None:
         if hasattr(ret["value"], "show"):
             ret["value"].show()
         elif "bokeh" in str(type(ret["value"])):
-            from bokeh.plotting import show
+            from bokeh.plotting import show  # type: ignore
 
             show(ret["value"])
         else:

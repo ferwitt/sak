@@ -13,10 +13,10 @@ import sys
 from pathlib import Path
 from typing import Any, Callable, List, Tuple
 
-import bokeh
-import bokeh.document
-import bokeh.embed
-import bokeh.server.server
+import bokeh  # type: ignore
+import bokeh.document  # type: ignore
+import bokeh.embed  # type: ignore
+import bokeh.server.server  # type: ignore
 import panel as pn
 import tornado
 import tornado.gen

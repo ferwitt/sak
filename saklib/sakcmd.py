@@ -47,7 +47,7 @@ from saklib.sakplugin import SakPlugin
 
 hasArgcomplete = False
 try:
-    import argcomplete
+    import argcomplete  # type: ignore
 
     hasArgcomplete = True
 except Exception as e:
