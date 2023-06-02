@@ -93,7 +93,13 @@ def _unregister_threaded_tee(
         stream.unregister_thread_id(thread_id)
 
 
-def register_threaded_stdout_tee() -> None:
+def register_threaded_stdout_and_stderr_tee(redirect_only: bool = False) -> None:
+    if not isinstance(sys.stdout, SakThreadedTee):
+        # TODO(witt): Check if the stdout should inherit TextIOWrapper.
+        sys.stdout = SakThreadedTee(sys.stdout, redirect_only=redirect_only)  # type: ignore
+        sys.stderr = sys.stdout
+
+
 def register_threaded_stdout_tee(redirect_only: bool = False) -> None:
     if not isinstance(sys.stdout, SakThreadedTee):
         # TODO(witt): Check if the stdout should inherit TextIOWrapper.
