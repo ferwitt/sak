@@ -31,13 +31,19 @@ def mypy() -> None:
             continue
         paths += [str(plugin.plugin_path)]
 
+
     cmd = [
         "mypy",
         "--exclude",
         "python",
         "--exclude",
+        "sak_config",
+        "--exclude",
+        "saklib.sak",
+        "--exclude",
         ".*_pb2.py$",
-        "--ignore-missing-imports",
+        "--explicit-package-bases",
+        "--follow-imports=normal",
         "--show-absolute-path",
         "--pretty",
     ]
