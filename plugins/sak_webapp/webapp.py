@@ -10,9 +10,9 @@ __email__ = "ferawitt@gmail.com"
 
 from pathlib import Path
 
-import bokeh
+import bokeh  # type: ignore
 import panel as pn
-import param
+import param  # type: ignore
 
 from saklib.sak import ctx
 from saklib.sakplugin import load_file

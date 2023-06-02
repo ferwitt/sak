@@ -17,9 +17,9 @@ from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import bokeh
+import bokeh  # type: ignore
 import panel as pn
-import param
+import param  # type: ignore
 import tornado
 import tornado.gen
 
@@ -34,7 +34,7 @@ from saklib.sakio import (
 
 has_pandas = False
 try:
-    import pandas as pd
+    import pandas as pd  # type: ignore
 
     has_pandas = True
 except Exception as e:

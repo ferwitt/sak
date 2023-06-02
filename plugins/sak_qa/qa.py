@@ -8,6 +8,7 @@ __license__ = "MIT"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
+import os
 import re
 import subprocess
 import sys
@@ -26,22 +27,44 @@ def mypy() -> None:
 
     paths = []
     paths += [str(SAK_GLOBAL / "saklib")]
+
+    plugins_paths = []
     for plugin in plm.getPluginList():
         if plugin.plugin_path is None:
             continue
-        paths += [str(plugin.plugin_path)]
+
+        mypy_modules = plugin.get_config().get("MYPY_MODULES", None)
+        if mypy_modules is not None and mypy_modules:
+            for mypy_module in mypy_modules:
+                plugins_paths += [str(plugin.plugin_path / mypy_module)]
+        else:
+            plugins_paths += [str(plugin.plugin_path)]
+
+    exclude_paths = []
+    for plugin in plm.getPluginList():
+        mypy_exclude = plugin.get_config().get("MYPY_EXCLUDE", None)
+        if mypy_exclude is not None and mypy_exclude:
+            for mypy_exclude in mypy_exclude:
+                exclude_paths += [mypy_exclude]
 
     cmd = [
         "mypy",
         "--exclude",
         "python",
         "--exclude",
+        "sak_config",
+        "--exclude",
+        "saklib.sak",
+        "--exclude",
         ".*_pb2.py$",
-        "--ignore-missing-imports",
+        "--explicit-package-bases",
+        "--follow-imports=normal",
         "--show-absolute-path",
         "--pretty",
     ]
 
+    for exclude_path in exclude_paths:
+        cmd += ["--exclude", exclude_path]
     # Instead of adding --strict directly, I will add the optional flags manually.
     strict_options = [
         "--warn-unused-configs",
@@ -63,6 +86,8 @@ def mypy() -> None:
 
     # Add paths to check.
     cmd += paths
+    cmd += plugins_paths
+    os.environ["MYPYPATH"] = ":".join(plugins_paths)
 
     cwd = SAK_GLOBAL
     run_cmd(
