@@ -167,6 +167,9 @@ class SakPlugin:
         if self._config_file is not None and self._config_file.exists():
             self._config = load_file(self._config_file)
 
+    def get_config(self) -> Dict[str, Any]:
+        return self._config
+
     def _load_exposes(self) -> None:
 
         # TODO: This loaded should be invalidated in case the stat is newer...
