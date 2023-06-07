@@ -119,9 +119,15 @@ class SakTask:
                     return "success" if status == "success" else "failure"
         return "pending"
 
+    def get_additional_data(self) -> Dict[str, Any]:
+        return {}
+
+    def has_to_rerun(self) -> bool:
+        return False
+
     def run(self, **kwargs: Any) -> None:
 
-        if self.get_status() == "success":
+        if (self.get_status() == "success") and (not self.has_to_rerun()):
             return
 
         with self.lock:
@@ -222,8 +228,9 @@ class SakTasksNamespace:
             row = {}
             row["_key"] = obj.key.get_hash()
             row["_nm"] = self.name
-            row.update(obj.key.data)
             row["_obj"] = obj
+            row.update(obj.key.data)
+            row.update(obj.get_additional_data())
             ret.append(row)
         return pd.DataFrame(ret)
 
