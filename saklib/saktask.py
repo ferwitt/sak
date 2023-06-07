@@ -1,6 +1,7 @@
 """
 Sak SE commands storage abstraction.
 """
+import enum
 import hashlib
 import io
 import json
@@ -13,7 +14,10 @@ from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional
 
 import lazy_import  # type: ignore
+import sqlalchemy as db
 from filelock import FileLock
+from sqlalchemy import DateTime, Enum, String, Text
+from sqlalchemy.orm import declarative_base, mapped_column, sessionmaker
 from tqdm import tqdm  # type: ignore
 
 from saklib.sakio import (
@@ -23,6 +27,7 @@ from saklib.sakio import (
 )
 
 lazy_import.lazy_module("pandas")
+
 
 import pandas as pd  # type: ignore
 
@@ -35,6 +40,32 @@ STDERR = sys.stderr
 # Redirect stdout and sterr for the threads.
 VERBOSE = os.environ.get("SAK_VERBOSE", False)
 register_threaded_stdout_and_stderr_tee(redirect_only=(not VERBOSE))
+
+
+Base = declarative_base()
+
+
+class TaskStatus(enum.Enum):
+    PENDING = 1
+    ABORTED = 2
+    FAIL = 3
+    SUCCESS = 4
+
+
+class TaskObject(Base):  # type: ignore
+    __tablename__ = "tasks"
+
+    key_hash = mapped_column(String(30), primary_key=True)
+
+    namespace = mapped_column(String(64))
+
+    key_data = mapped_column(Text)
+    user_data = mapped_column(Text)
+    log = mapped_column(Text)
+
+    status = mapped_column(Enum(TaskStatus))
+    start_time = mapped_column(DateTime)
+    end_time = mapped_column(DateTime)
 
 
 def make_hashable(o: Any) -> Any:
@@ -78,22 +109,33 @@ class SakTask:
         self.key = key
         self.namespace = namespace
 
-        self.lock = FileLock(str(self._get_lock_path()))
+        self.db_obj = self.namespace.get_task_db_obj(self.key.get_hash())
 
-        self.key_path = self.get_key_path()
-        if not self.key_path.exists():
-            with open(self.key_path, "w") as f:
-                json.dump(self.key.data, f, indent=2)
+        if self.db_obj is None:
+            self.db_obj = TaskObject(
+                key_hash=self.key.get_hash(),
+                namespace=self.namespace.name,
+                key_data=json.dumps(self.key.data),
+                user_data="{}",
+                log="",
+                status=TaskStatus.PENDING,
+            )
+            self.namespace.storage.session.add(self.db_obj)
+            self.namespace.storage.session.commit()
+
+        self._lock: Optional[FileLock] = None
+
+    @property
+    def lock(self) -> FileLock:
+        if self._lock is None:
+            self._lock = FileLock(str(self._get_lock_path()))
+        return self._lock
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__} key={self.key.get_hash()}>"
 
     def __call__(self, parameter: Dict[str, Any]) -> None:
         raise Exception("You should implement this method in the specialize class")
-
-    def get_key_path(self) -> Path:
-        ret = self._get_path() / "key.json"
-        return ret
 
     def _get_path(self) -> Path:
         key_hash = self.key.get_hash()
@@ -106,18 +148,34 @@ class SakTask:
         ret.mkdir(parents=True, exist_ok=True)
         return ret
 
+    def update_user_data(self, new_user_data: Dict[str, Any]) -> None:
+        assert (
+            self.db_obj is not None
+        ), f"Failed to get DB object for {self.key.get_hash()}"
+
+        user_data_str = self.db_obj.user_data
+        user_data = json.loads(user_data_str)
+        user_data.update(new_user_data)
+        self.db_obj.user_data = json.dumps(user_data)
+        self.namespace.storage.session.commit()
+
+    def get_user_data(self) -> Dict[str, Any]:
+        assert (
+            self.db_obj is not None
+        ), f"Failed to get DB object for {self.key.get_hash()}"
+
+        return json.loads(self.db_obj.user_data)  # type: ignore
+
     def _get_lock_path(self) -> Path:
         ret = self._get_path() / "obj.lock"
         return ret
 
-    def get_status(self) -> str:
-        with self.lock:
-            status_path = self._get_path() / "status.txt"
-            if status_path.exists():
-                with open(status_path, "r") as f:
-                    status = f.read()
-                    return "success" if status == "success" else "failure"
-        return "pending"
+    def get_status(self) -> TaskStatus:
+        assert (
+            self.db_obj is not None
+        ), f"Failed to get DB object for {self.key.get_hash()}"
+
+        return self.db_obj.status  # type: ignore
 
     def get_additional_data(self) -> Dict[str, Any]:
         return {}
@@ -127,58 +185,61 @@ class SakTask:
 
     def run(self, **kwargs: Any) -> None:
 
-        if (self.get_status() == "success") and (not self.has_to_rerun()):
+        if (self.get_status() == TaskStatus.SUCCESS) and (not self.has_to_rerun()):
             return
 
-        with self.lock:
-            with open(self._get_path() / "start_time.txt", "w") as f:
-                f.write(datetime.now().isoformat())
+        assert (
+            self.db_obj is not None
+        ), f"Failed to get DB object for {self.key.get_hash()}"
 
-            if VERBOSE:
-                tqdm.write(
-                    f"Running {type(self).__name__} {self.key.get_hash()}", file=STDOUT
-                )
+        self.db_obj.start_time = datetime.now()
+        self.namespace.storage.session.commit()
 
-            # TODO(witt): This is a work around. Try to remove.
-            # Make sure will start from a clean buffer.
+        if VERBOSE:
+            tqdm.write(
+                f"Running {type(self).__name__} {self.key.get_hash()}", file=STDOUT
+            )
+
+        # TODO(witt): This is a work around. Try to remove.
+        # Make sure will start from a clean buffer.
+        unregister_stdout_thread_id()
+
+        has_error = False
+        exception = None
+        error_message = io.StringIO("")
+
+        try:
+            self(kwargs)
+        except Exception as e:
+            has_error = True
+            exception = e
+            traceback.print_exc(file=error_message)
+
+            print(80 * "=")
+            print(e)
+            print(80 * "=")
+            print(error_message.getvalue())
+        finally:
+            stdout_strio = get_stdout_buffer_for_thread(threading.get_ident())
+            if stdout_strio is not None:
+                self.db_obj.log = stdout_strio.getvalue()
+                self.namespace.storage.session.commit()
+
+            self.db_obj.end_time = datetime.now()
+            self.namespace.storage.session.commit()
+
             unregister_stdout_thread_id()
 
-            has_error = False
-            exception = None
-            error_message = io.StringIO("")
+        self.db_obj.status = TaskStatus.SUCCESS if not has_error else TaskStatus.FAIL
+        self.namespace.storage.session.commit()
 
-            try:
-                self(kwargs)
-            except Exception as e:
-                has_error = True
-                exception = e
-                traceback.print_exc(file=error_message)
-
-                print(80 * "=")
-                print(e)
-                print(80 * "=")
-                print(error_message.getvalue())
-            finally:
-                with open(self._get_path() / "log.txt", "a") as f:
-                    stdout_strio = get_stdout_buffer_for_thread(threading.get_ident())
-                    if stdout_strio is not None:
-                        f.write(stdout_strio.getvalue())
-
-                with open(self._get_path() / "end_time.txt", "w") as f:
-                    f.write(datetime.now().isoformat())
-
-                unregister_stdout_thread_id()
-
-            with open(self._get_path() / "status.txt", "w") as f:
-                f.write("success" if not has_error else "failure")
-
-            if has_error:
-                print(80 * "-")
-                print("Found something wrong")
-                print(80 * "-")
-                STDERR.write(error_message.getvalue() + "\n")
-                if exception is not None:
-                    raise exception
+        if has_error:
+            print(80 * "-")
+            print("Found something wrong")
+            print(80 * "-")
+            STDERR.write(error_message.getvalue() + "\n")
+            if exception is not None:
+                raise exception
 
 
 class SakTasksNamespace:
@@ -192,8 +253,7 @@ class SakTasksNamespace:
         self.obj_class = obj_class
 
     def set_volatile(self) -> None:
-        with open(self.get_namespace_path() / ".gitignore", "w") as f:
-            f.write("*\n")
+        pass
 
     def get_namespace_path(self) -> Path:
         ret = self.storage.get_path() / "nm" / self.name
@@ -201,26 +261,33 @@ class SakTasksNamespace:
         return ret
 
     def get_keys(self) -> List[str]:
-        return [
-            x.parent.name
-            for x in self.get_namespace_path().glob("obj/*/*/key.json")
-            if x.exists()
-        ]
+        query = self.storage.session.query(TaskObject).filter_by(namespace=self.name)
+        return [x.key_hash for x in query.all()]
+
+    def get_task_db_obj(self, hash_str: str) -> Optional[TaskObject]:
+        query = self.storage.session.query(TaskObject).filter_by(
+            namespace=self.name, key_hash=hash_str
+        )
+        return query.first()
 
     def get_task(self, hash_str: str) -> Optional[SakTask]:
-        obj_path = self.get_namespace_path() / "obj" / hash_str[:3] / hash_str
-        obj_key = obj_path / "key.json"
+        db_obj = self.get_task_db_obj(hash_str=hash_str)
+        if db_obj is None:
+            return None
 
-        if obj_key.exists():
-            with open(obj_key, "rb") as f:
-                param_obj = self.param_class(**json.load(f))
-                return self.obj_class(param_obj, hash_str=hash_str)  # type: ignore
+        key_data: str = db_obj.key_data
+        param_obj = self.param_class(**json.loads(key_data))
+        return self.obj_class(param_obj, hash_str=hash_str)  # type: ignore
 
-        return None
+    def get_task_db_objs(self) -> List[TaskObject]:
+        query = self.storage.session.query(TaskObject).filter_by(namespace=self.name)
+        return query.all()
 
     def get_tasks(self) -> Generator[Any, None, None]:
-        for key in self.get_keys():
-            yield self.get_task(key)
+        for db_obj in self.get_task_db_objs():
+            key_data: str = db_obj.key_data
+            param_obj = self.param_class(**json.loads(key_data))
+            yield self.obj_class(param_obj, hash_str=db_obj.key_hash)
 
     def get_tasks_df(self) -> pd.DataFrame:
         ret = []
@@ -238,6 +305,14 @@ class SakTasksNamespace:
 class SakStasksSotorage:
     def __init__(self, path: Path):
         self.path = Path(path)
+
+        self.get_path()
+
+        db_url = f"sqlite:///{self.path.resolve()}/db.sqlite"
+
+        self.engine = db.create_engine(db_url)
+        self.session = sessionmaker(bind=self.engine)()
+        Base.metadata.create_all(self.engine)
 
     def get_path(self) -> Path:
         ret = self.path
