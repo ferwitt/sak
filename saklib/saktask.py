@@ -110,7 +110,6 @@ class SakTask:
         self.namespace = namespace
 
         db_obj = self.namespace.get_task_db_obj(self.key.get_hash())
-        assert db_obj is not None, f"Failed to get db_obj for {self.key.get_hash()}"
 
         if db_obj is None:
             db_obj = TaskObject(
