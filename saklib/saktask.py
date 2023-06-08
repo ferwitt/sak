@@ -17,7 +17,7 @@ import lazy_import  # type: ignore
 import sqlalchemy as db
 from filelock import FileLock
 from sqlalchemy import DateTime, Enum, String, Text
-from sqlalchemy.orm import declarative_base, mapped_column, sessionmaker
+from sqlalchemy.orm import declarative_base, mapped_column, scoped_session, sessionmaker
 from tqdm import tqdm  # type: ignore
 
 from saklib.sakio import (
@@ -109,10 +109,11 @@ class SakTask:
         self.key = key
         self.namespace = namespace
 
-        self.db_obj = self.namespace.get_task_db_obj(self.key.get_hash())
+        db_obj = self.namespace.get_task_db_obj(self.key.get_hash())
+        assert db_obj is not None, f"Failed to get db_obj for {self.key.get_hash()}"
 
-        if self.db_obj is None:
-            self.db_obj = TaskObject(
+        if db_obj is None:
+            db_obj = TaskObject(
                 key_hash=self.key.get_hash(),
                 namespace=self.namespace.name,
                 key_data=json.dumps(self.key.data),
@@ -120,8 +121,11 @@ class SakTask:
                 log="",
                 status=TaskStatus.PENDING,
             )
-            self.namespace.storage.session.add(self.db_obj)
-            self.namespace.storage.session.commit()
+            session = self.namespace.storage.scoped_session_obj()
+            session.add(db_obj)
+            session.commit()
+            session.flush()
+            # self.namespace.storage.scoped_session_obj.remove()
 
         self._lock: Optional[FileLock] = None
 
@@ -149,33 +153,37 @@ class SakTask:
         return ret
 
     def update_user_data(self, new_user_data: Dict[str, Any]) -> None:
-        assert (
-            self.db_obj is not None
-        ), f"Failed to get DB object for {self.key.get_hash()}"
 
-        user_data_str = self.db_obj.user_data
+        session = self.namespace.storage.scoped_session_obj()
+
+        db_obj = self.namespace.get_task_db_obj(self.key.get_hash())
+        assert db_obj is not None, f"Failed to get db_obj for {self.key.get_hash()}"
+
+        user_data_str = db_obj.user_data
         user_data = json.loads(user_data_str)
         user_data.update(new_user_data)
-        self.db_obj.user_data = json.dumps(user_data)
-        self.namespace.storage.session.commit()
+        db_obj.user_data = json.dumps(user_data)
+
+        session.commit()
+        session.flush()
+
+        # self.namespace.storage.scoped_session_obj.remove()
 
     def get_user_data(self) -> Dict[str, Any]:
-        assert (
-            self.db_obj is not None
-        ), f"Failed to get DB object for {self.key.get_hash()}"
+        db_obj = self.namespace.get_task_db_obj(self.key.get_hash())
+        assert db_obj is not None, f"Failed to get db_obj for {self.key.get_hash()}"
 
-        return json.loads(self.db_obj.user_data)  # type: ignore
+        return json.loads(db_obj.user_data)  # type: ignore
 
     def _get_lock_path(self) -> Path:
         ret = self._get_path() / "obj.lock"
         return ret
 
     def get_status(self) -> TaskStatus:
-        assert (
-            self.db_obj is not None
-        ), f"Failed to get DB object for {self.key.get_hash()}"
+        db_obj = self.namespace.get_task_db_obj(self.key.get_hash())
+        assert db_obj is not None, f"Failed to get db_obj for {self.key.get_hash()}"
 
-        return self.db_obj.status  # type: ignore
+        return db_obj.status  # type: ignore
 
     def get_additional_data(self) -> Dict[str, Any]:
         return {}
@@ -188,12 +196,14 @@ class SakTask:
         if (self.get_status() == TaskStatus.SUCCESS) and (not self.has_to_rerun()):
             return
 
-        assert (
-            self.db_obj is not None
-        ), f"Failed to get DB object for {self.key.get_hash()}"
+        db_obj = self.namespace.get_task_db_obj(self.key.get_hash())
+        assert db_obj is not None, f"Failed to get db_obj for {self.key.get_hash()}"
 
-        self.db_obj.start_time = datetime.now()
-        self.namespace.storage.session.commit()
+        session = self.namespace.storage.scoped_session_obj()
+
+        db_obj.start_time = datetime.now()
+        session.commit()
+        session.flush()
 
         if VERBOSE:
             tqdm.write(
@@ -222,16 +232,21 @@ class SakTask:
         finally:
             stdout_strio = get_stdout_buffer_for_thread(threading.get_ident())
             if stdout_strio is not None:
-                self.db_obj.log = stdout_strio.getvalue()
-                self.namespace.storage.session.commit()
+                db_obj.log = stdout_strio.getvalue()
+                session.commit()
+                session.flush()
 
-            self.db_obj.end_time = datetime.now()
-            self.namespace.storage.session.commit()
+            db_obj.end_time = datetime.now()
+            session.commit()
+            session.flush()
 
             unregister_stdout_thread_id()
 
-        self.db_obj.status = TaskStatus.SUCCESS if not has_error else TaskStatus.FAIL
-        self.namespace.storage.session.commit()
+        db_obj.status = TaskStatus.SUCCESS if not has_error else TaskStatus.FAIL
+        session.commit()
+        session.flush()
+
+        self.namespace.storage.scoped_session_obj.remove()
 
         if has_error:
             print(80 * "-")
@@ -261,17 +276,30 @@ class SakTasksNamespace:
         return ret
 
     def get_keys(self) -> List[str]:
-        query = self.storage.session.query(TaskObject).filter_by(namespace=self.name)
+        session = self.storage.scoped_session_obj()
+
+        with session.no_autoflush:
+            query = session.query(TaskObject).filter_by(namespace=self.name)
+
+        # self.storage.scoped_session_obj.remove()
+
         return [x.key_hash for x in query.all()]
 
     def get_task_db_obj(self, hash_str: str) -> Optional[TaskObject]:
-        query = self.storage.session.query(TaskObject).filter_by(
-            namespace=self.name, key_hash=hash_str
-        )
+        session = self.storage.scoped_session_obj()
+
+        with session.no_autoflush:
+            query = session.query(TaskObject).filter_by(
+                namespace=self.name, key_hash=hash_str
+            )
+
+        # self.storage.scoped_session_obj.remove()
+
         return query.first()
 
     def get_task(self, hash_str: str) -> Optional[SakTask]:
         db_obj = self.get_task_db_obj(hash_str=hash_str)
+
         if db_obj is None:
             return None
 
@@ -280,7 +308,13 @@ class SakTasksNamespace:
         return self.obj_class(param_obj, hash_str=hash_str)  # type: ignore
 
     def get_task_db_objs(self) -> List[TaskObject]:
-        query = self.storage.session.query(TaskObject).filter_by(namespace=self.name)
+        session = self.storage.scoped_session_obj()
+
+        with session.no_autoflush:
+            query = session.query(TaskObject).filter_by(namespace=self.name)
+
+        # self.storage.scoped_session_obj.remove()
+
         return query.all()
 
     def get_tasks(self) -> Generator[Any, None, None]:
@@ -311,7 +345,9 @@ class SakStasksSotorage:
         db_url = f"sqlite:///{self.path.resolve()}/db.sqlite"
 
         self.engine = db.create_engine(db_url)
-        self.session = sessionmaker(bind=self.engine)()
+        self.session_factory = sessionmaker(bind=self.engine)
+        self.scoped_session_obj = scoped_session(self.session_factory)
+
         Base.metadata.create_all(self.engine)
 
     def get_path(self) -> Path:
