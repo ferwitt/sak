@@ -245,7 +245,7 @@ class SakTask:
         session.commit()
         session.flush()
 
-        self.namespace.storage.scoped_session_obj.remove()
+        # self.namespace.storage.scoped_session_obj.remove()
 
         if has_error:
             print(80 * "-")
@@ -277,8 +277,7 @@ class SakTasksNamespace:
     def get_keys(self) -> List[str]:
         session = self.storage.scoped_session_obj()
 
-        with session.no_autoflush:
-            query = session.query(TaskObject).filter_by(namespace=self.name)
+        query = session.query(TaskObject).filter_by(namespace=self.name)
 
         # self.storage.scoped_session_obj.remove()
 
@@ -287,10 +286,9 @@ class SakTasksNamespace:
     def get_task_db_obj(self, hash_str: str) -> Optional[TaskObject]:
         session = self.storage.scoped_session_obj()
 
-        with session.no_autoflush:
-            query = session.query(TaskObject).filter_by(
-                namespace=self.name, key_hash=hash_str
-            )
+        query = session.query(TaskObject).filter_by(
+            namespace=self.name, key_hash=hash_str
+        )
 
         # self.storage.scoped_session_obj.remove()
 
@@ -309,8 +307,7 @@ class SakTasksNamespace:
     def get_task_db_objs(self) -> List[TaskObject]:
         session = self.storage.scoped_session_obj()
 
-        with session.no_autoflush:
-            query = session.query(TaskObject).filter_by(namespace=self.name)
+        query = session.query(TaskObject).filter_by(namespace=self.name)
 
         # self.storage.scoped_session_obj.remove()
 
