@@ -286,13 +286,11 @@ class SakTasksNamespace:
     def get_task_db_obj(self, hash_str: str) -> Optional[TaskObject]:
         session = self.storage.scoped_session_obj()
 
-        query = session.query(TaskObject).filter_by(
-            namespace=self.name, key_hash=hash_str
-        )
-
-        # self.storage.scoped_session_obj.remove()
-
-        return query.first()
+        ret = session.get(TaskObject, hash_str)
+        if ret is not None:
+            if ret.namespace == self.name:
+                return ret
+        return None
 
     def get_task(self, hash_str: str) -> Optional[SakTask]:
         db_obj = self.get_task_db_obj(hash_str=hash_str)
@@ -304,25 +302,49 @@ class SakTasksNamespace:
         param_obj = self.param_class(**json.loads(key_data))
         return self.obj_class(param_obj, hash_str=hash_str)  # type: ignore
 
-    def get_task_db_objs(self) -> List[TaskObject]:
+    def get_task_df(self, hash_str: str) -> pd.DataFrame:
+        ret = []
+
+        obj = self.get_task(hash_str=hash_str)
+
+        if obj is not None:
+            row: Dict[str, Any] = {}
+            row["_key"] = obj.key.get_hash()
+            row["_nm"] = self.name
+            row["_obj"] = obj
+            row.update(obj.key.data)
+            row.update(obj.get_additional_data())
+            ret.append(row)
+
+        return pd.DataFrame(ret)
+
+    def get_task_db_objs(
+        self, query: Optional[db.sql.elements.BooleanClauseList] = None
+    ) -> List[TaskObject]:
         session = self.storage.scoped_session_obj()
 
-        query = session.query(TaskObject).filter_by(namespace=self.name)
+        if query is None:
+            do_query = session.query(TaskObject).filter_by(namespace=self.name)
+        else:
+            do_query = session.query(TaskObject).filter(query)
 
         # self.storage.scoped_session_obj.remove()
+        return do_query.all()
 
-        return query.all()
-
-    def get_tasks(self) -> Generator[Any, None, None]:
-        for db_obj in self.get_task_db_objs():
+    def get_tasks(
+        self, query: Optional[db.sql.elements.BooleanClauseList] = None
+    ) -> Generator[Any, None, None]:
+        for db_obj in self.get_task_db_objs(query=query):
             key_data: str = db_obj.key_data
             param_obj = self.param_class(**json.loads(key_data))
             yield self.obj_class(param_obj, hash_str=db_obj.key_hash)
 
-    def get_tasks_df(self) -> pd.DataFrame:
+    def get_tasks_df(
+        self, query: Optional[db.sql.elements.BooleanClauseList] = None
+    ) -> pd.DataFrame:
         ret = []
-        for obj in self.get_tasks():
-            row = {}
+        for obj in self.get_tasks(query=query):
+            row: Dict[str, Any] = {}
             row["_key"] = obj.key.get_hash()
             row["_nm"] = self.name
             row["_obj"] = obj
