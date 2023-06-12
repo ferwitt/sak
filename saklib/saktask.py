@@ -16,7 +16,8 @@ from typing import Any, Dict, Generator, List, Optional
 import lazy_import  # type: ignore
 import sqlalchemy as db
 from filelock import FileLock
-from sqlalchemy import DateTime, Enum, String, Text
+from sqlalchemy import DateTime, Enum, String, and_
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.orm import declarative_base, mapped_column, scoped_session, sessionmaker
 from tqdm import tqdm  # type: ignore
 
@@ -55,13 +56,13 @@ class TaskStatus(enum.Enum):
 class TaskObject(Base):  # type: ignore
     __tablename__ = "tasks"
 
-    key_hash = mapped_column(String(30), primary_key=True)
+    key_hash = mapped_column(String(65), primary_key=True)
 
     namespace = mapped_column(String(64))
 
-    key_data = mapped_column(Text)
-    user_data = mapped_column(Text)
-    log = mapped_column(Text)
+    key_data = mapped_column(LONGTEXT)
+    user_data = mapped_column(LONGTEXT)
+    log = mapped_column(LONGTEXT)
 
     status = mapped_column(Enum(TaskStatus))
     start_time = mapped_column(DateTime)
@@ -274,14 +275,23 @@ class SakTasksNamespace:
         ret.mkdir(parents=True, exist_ok=True)
         return ret
 
-    def get_keys(self) -> List[str]:
+    def count_tasks(self) -> int:
         session = self.storage.scoped_session_obj()
 
-        query = session.query(TaskObject).filter_by(namespace=self.name)
+        query = session.query(TaskObject.key_hash).filter_by(namespace=self.name)
 
         # self.storage.scoped_session_obj.remove()
 
-        return [x.key_hash for x in query.all()]
+        return query.count()  # type: ignore
+
+    def get_keys(self) -> List[str]:
+        session = self.storage.scoped_session_obj()
+
+        query = session.query(TaskObject.key_hash).filter_by(namespace=self.name)
+
+        # self.storage.scoped_session_obj.remove()
+
+        return [x for x in query.all()]
 
     def get_task_db_obj(self, hash_str: str) -> Optional[TaskObject]:
         session = self.storage.scoped_session_obj()
@@ -319,22 +329,33 @@ class SakTasksNamespace:
         return pd.DataFrame(ret)
 
     def get_task_db_objs(
-        self, query: Optional[db.sql.elements.BooleanClauseList] = None
+        self,
+        limit: Optional[int] = None,
+        query: Optional[db.sql.elements.BooleanClauseList] = None,
     ) -> List[TaskObject]:
         session = self.storage.scoped_session_obj()
 
-        if query is None:
-            do_query = session.query(TaskObject).filter_by(namespace=self.name)
-        else:
-            do_query = session.query(TaskObject).filter(query)
+        namespace_objs = session.query(TaskObject.key_hash).filter(
+            TaskObject.namespace == self.name
+        )
+        _query = TaskObject.key_hash.in_(namespace_objs)
+        if query is not None:
+            _query = and_(_query, query)  # type: ignore
+
+        do_query = session.query(TaskObject).filter(_query)
 
         # self.storage.scoped_session_obj.remove()
-        return do_query.all()
+        if limit is not None:
+            return do_query.limit(limit).all()
+        else:
+            return do_query.all()
 
     def get_tasks(
-        self, query: Optional[db.sql.elements.BooleanClauseList] = None
+        self,
+        limit: Optional[int] = None,
+        query: Optional[db.sql.elements.BooleanClauseList] = None,
     ) -> Generator[Any, None, None]:
-        for db_obj in self.get_task_db_objs(query=query):
+        for db_obj in self.get_task_db_objs(limit=limit, query=query):
             key_data: str = db_obj.key_data
             param_obj = self.param_class(**json.loads(key_data))
             yield self.obj_class(param_obj, hash_str=db_obj.key_hash)
@@ -360,9 +381,11 @@ class SakStasksSotorage:
 
         self.get_path()
 
-        db_url = f"sqlite:///{self.path.resolve()}/db.sqlite"
+    def db_connect(self) -> None:
 
-        self.engine = db.create_engine(db_url)
+        db_url = "mysql+pymysql://root@localhost:3306/sak"
+
+        self.engine = db.create_engine(db_url, echo=False)
         self.session_factory = sessionmaker(bind=self.engine)
         self.scoped_session_obj = scoped_session(self.session_factory)
 
