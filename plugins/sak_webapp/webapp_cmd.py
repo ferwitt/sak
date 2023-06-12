@@ -17,7 +17,7 @@ from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import bokeh  # type: ignore
+import bokeh
 import panel as pn
 import param  # type: ignore
 import tornado
@@ -417,7 +417,7 @@ class CallbackObject:
         self.doc.add_next_tick_callback(
             partial(
                 self.update_doc, new_output=loading, stdout_str=None, stderr_str=None
-            )
+            )  # type: ignore
         )
 
         # TODO(witt): This is a work around. Try to remove.
@@ -447,7 +447,7 @@ class CallbackObject:
                     if self.stdout.object != stdout_str:
                         # loading = pn.pane.GIF('https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif')
                         self.doc.add_next_tick_callback(
-                            partial(self.update_stdout, stdout_str=stdout_str)
+                            partial(self.update_stdout, stdout_str=stdout_str)  # type: ignore
                         )
                     if do_update_stdout:
                         time.sleep(UPDATE_PERIOD)
@@ -469,7 +469,7 @@ class CallbackObject:
                     if self.stderr.object != stderr_str:
                         # loading = pn.pane.GIF('https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif')
                         self.doc.add_next_tick_callback(
-                            partial(self.update_stderr, stderr_str=stderr_str)
+                            partial(self.update_stderr, stderr_str=stderr_str)  # type: ignore
                         )
                     if do_update_stderr:
                         time.sleep(UPDATE_PERIOD)
@@ -512,7 +512,7 @@ class CallbackObject:
                     new_output=new_output,
                     stdout_str=stdout_str + "\nDONE!",
                     stderr_str=stderr_str + "\nDONE!",
-                )
+                )  # type: ignore
             )
 
             # Clean the thread buffers.

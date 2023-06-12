@@ -10,7 +10,7 @@ __email__ = "ferawitt@gmail.com"
 
 from pathlib import Path
 
-import bokeh  # type: ignore
+import bokeh
 import panel as pn
 import param  # type: ignore
 
@@ -35,8 +35,8 @@ class SakDoc(param.Parameterized):  # type: ignore
         self.doc = doc
         super().__init__()
 
-        # TODO(witt): I dont know if I want to receive the path here.
-        args = self.doc.session_context.request.arguments
+        args = self.doc.session_context.request.arguments  # type: ignore
+
         self.args = {}
         for k, v in args.items():
             self.args[k] = v[0].decode("utf-8")
