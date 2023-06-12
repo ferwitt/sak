@@ -33,7 +33,7 @@ lazy_import.lazy_module("pandas")
 import pandas as pd  # type: ignore
 
 # Store global state.
-STORAGE: Dict[str, "SakStasksSotorage"] = {}
+STORAGE: Dict[str, "SakTaskStorage"] = {}
 NAMESPACE: Dict[str, "SakTasksNamespace"] = {}
 STDOUT = sys.stdout
 STDERR = sys.stderr
@@ -263,7 +263,7 @@ class SakTask:
 
 class SakTasksNamespace:
     def __init__(
-        self, name: str, storage: "SakStasksSotorage", param_class: Any, obj_class: Any
+        self, name: str, storage: "SakTaskStorage", param_class: Any, obj_class: Any
     ) -> None:
         self.name = name
         self.storage = storage
@@ -303,7 +303,7 @@ class SakTasksNamespace:
         ret = session.get(TaskObject, hash_str)
         if ret is not None:
             if ret.namespace == self.name:
-                return ret
+                return ret  # type: ignore
         return None
 
     def get_task(self, hash_str: str) -> Optional[SakTask]:
@@ -350,9 +350,9 @@ class SakTasksNamespace:
 
         # self.storage.scoped_session_obj.remove()
         if limit is not None:
-            return do_query.limit(limit).all()
+            return do_query.limit(limit).all()  # type: ignore
         else:
-            return do_query.all()
+            return do_query.all()  # type: ignore
 
     def get_tasks(
         self,
@@ -379,21 +379,47 @@ class SakTasksNamespace:
         return pd.DataFrame(ret)
 
 
-class SakStasksSotorage:
+class SakTaskStorage:
     def __init__(self, path: Path):
         self.path = Path(path)
 
         self.get_path()
 
-    def db_connect(self) -> None:
+        self._engine: Optional[db.engine.base.Engine] = None
+        self._session_factory: Optional[db.orm.session.sessionmaker] = None  # type: ignore
+        self._scoped_session_obj: Optional[db.orm.scoping.scoped_session] = None  # type: ignore
 
+    @property
+    def engine(self) -> db.engine.base.Engine:
+        if self._engine is None:
+            self.db_connect()
+        assert self._engine is not None, "Failed to create DB engine"
+        return self._engine
+
+    @property
+    def session_factory(self) -> db.orm.session.sessionmaker:  # type: ignore
+        if self._session_factory is None:
+            self.db_connect()
+        assert self._session_factory is not None, "Failed to create DB session factory"
+        return self._session_factory
+
+    @property
+    def scoped_session_obj(self) -> db.orm.scoping.scoped_session:  # type: ignore
+        if self._scoped_session_obj is None:
+            self.db_connect()
+        assert (
+            self._scoped_session_obj is not None
+        ), "Failed to create DB scoped session factory"
+        return self._scoped_session_obj
+
+    def db_connect(self) -> None:
         db_url = "mysql+pymysql://root@localhost:3306/sak"
 
-        self.engine = db.create_engine(db_url, echo=False)
-        self.session_factory = sessionmaker(bind=self.engine)
-        self.scoped_session_obj = scoped_session(self.session_factory)
+        self._engine = db.create_engine(db_url, echo=False)
+        self._session_factory = sessionmaker(bind=self._engine)
+        self._scoped_session_obj = scoped_session(self._session_factory)
 
-        Base.metadata.create_all(self.engine)
+        Base.metadata.create_all(self._engine)
 
     def get_path(self) -> Path:
         ret = self.path
@@ -401,7 +427,7 @@ class SakStasksSotorage:
         return ret
 
 
-def get_storage(name: str = "global") -> SakStasksSotorage:
+def get_storage(name: str = "global") -> SakTaskStorage:
     return STORAGE[name]
 
 
@@ -409,7 +435,7 @@ def set_storage(
     path: Path,
     name: str = "global",
 ) -> None:
-    STORAGE[name] = SakStasksSotorage(path)
+    STORAGE[name] = SakTaskStorage(path)
     path.mkdir(parents=True, exist_ok=True)
 
 
