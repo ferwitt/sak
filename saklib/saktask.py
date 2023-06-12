@@ -44,6 +44,7 @@ register_threaded_stdout_and_stderr_tee(redirect_only=(not VERBOSE))
 
 
 Base = declarative_base()
+TABLES: Dict[str, Any] = {}
 
 
 class TaskStatus(enum.Enum):
@@ -67,6 +68,9 @@ class TaskObject(Base):  # type: ignore
     status = mapped_column(Enum(TaskStatus))
     start_time = mapped_column(DateTime)
     end_time = mapped_column(DateTime)
+
+
+TABLES["tasks"] = TaskObject
 
 
 def make_hashable(o: Any) -> Any:
