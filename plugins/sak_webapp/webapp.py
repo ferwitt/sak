@@ -50,8 +50,9 @@ class SakDoc(param.Parameterized):  # type: ignore
         self._args = [x for x in path.split("/") if x]
 
     def server_doc(self) -> bokeh.document.document.Document:
-        tmpl = pn.template.BootstrapTemplate(
-            title="SAK",
+        tmpl = pn.template.MaterialTemplate(
+            title="Sak",
+            favicon=str(RESOURCES_PATH / "static/sak_white.png"),
             header_background="#000000",
             logo=str(RESOURCES_PATH / "static/sak_white.png"),
             site_name="Sak",
