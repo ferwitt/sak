@@ -11,7 +11,7 @@ import threading
 import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional
+from typing import Any, Dict, Generator, Iterable, List, Optional
 
 import lazy_import  # type: ignore
 import sqlalchemy as db
@@ -261,6 +261,25 @@ class SakTask:
                 raise exception
 
 
+def tasks_to_df(
+    objs: Iterable[SakTask], namespace: Optional[str] = None
+) -> pd.DataFrame:
+    ret = []
+    for obj in objs:
+        row: Dict[str, Any] = {}
+
+        row["_key"] = obj.key.get_hash()
+
+        if namespace is not None:
+            row["_nm"] = namespace
+
+        row["_obj"] = obj
+        row.update(obj.key.data)
+        row.update(obj.get_additional_data())
+        ret.append(row)
+    return pd.DataFrame(ret)
+
+
 class SakTasksNamespace:
     def __init__(
         self, name: str, storage: "SakTaskStorage", param_class: Any, obj_class: Any
@@ -317,20 +336,11 @@ class SakTasksNamespace:
         return self.obj_class(param_obj, hash_str=hash_str)  # type: ignore
 
     def get_task_df(self, hash_str: str) -> pd.DataFrame:
-        ret = []
-
         obj = self.get_task(hash_str=hash_str)
+        if obj is None:
+            return pd.DataFrame()
 
-        if obj is not None:
-            row: Dict[str, Any] = {}
-            row["_key"] = obj.key.get_hash()
-            row["_nm"] = self.name
-            row["_obj"] = obj
-            row.update(obj.key.data)
-            row.update(obj.get_additional_data())
-            ret.append(row)
-
-        return pd.DataFrame(ret)
+        return tasks_to_df([obj], namespace=self.name)
 
     def get_task_db_objs(
         self,
@@ -367,16 +377,7 @@ class SakTasksNamespace:
     def get_tasks_df(
         self, query: Optional[db.sql.elements.BooleanClauseList] = None
     ) -> pd.DataFrame:
-        ret = []
-        for obj in self.get_tasks(query=query):
-            row: Dict[str, Any] = {}
-            row["_key"] = obj.key.get_hash()
-            row["_nm"] = self.name
-            row["_obj"] = obj
-            row.update(obj.key.data)
-            row.update(obj.get_additional_data())
-            ret.append(row)
-        return pd.DataFrame(ret)
+        return tasks_to_df(self.get_tasks(query=query), namespace=self.name)
 
 
 class SakTaskStorage:
