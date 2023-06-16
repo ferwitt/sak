@@ -26,6 +26,8 @@ plm = SakPluginManager()
 ctx.has_plugin_manager = plm
 plm.has_context = ctx
 
+IS_ARGCOMP_COMMAND = " ".join(sys.argv[1:]) == "show argcomp"
+
 
 class SakShow(SakPlugin):
     """General information about SAK."""
@@ -98,9 +100,16 @@ def run_pdb() -> None:
 
 
 if __name__ == "__main__":
-    if True:
+    profile = os.environ.get("SAK_PROFILE", False) is not False
+    if not profile:
         run_pdb()
     else:
         import cProfile
 
         cProfile.run("run_pdb()", "/tmp/sak.profile")
+
+        if not IS_ARGCOMP_COMMAND:
+            print(80 * "-")
+            print(
+                "To visualize the profiling result, please execute:\n\t$ pyprof2calltree -i /tmp/sak.profile -k"
+            )

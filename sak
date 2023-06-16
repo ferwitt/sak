@@ -21,9 +21,10 @@ else:
 
 sys.path.append(SAK_GLOBAL)
 
+IS_ARGCOMP_COMMAND = " ".join(sys.argv[1:]) == "show argcomp"
 
 def install_sak():
-    if " ".join(sys.argv[1:]) == "show argcomp":
+    if IS_ARGCOMP_COMMAND:
         return
 
     if not os.path.exists(SAK_GLOBAL):
