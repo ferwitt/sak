@@ -19,7 +19,7 @@ from typing import Any, Callable, Dict, Generator, Iterable, List, Optional
 import lazy_import  # type: ignore
 import sqlalchemy as db
 from filelock import FileLock
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import declarative_base, mapped_column, scoped_session, sessionmaker
 from tqdm import tqdm  # type: ignore
 
@@ -71,9 +71,9 @@ class SakTaskDb(Base):  # type: ignore
     start_time = mapped_column(DateTime, index=True)
     end_time = mapped_column(DateTime, index=True)
 
-    key_data = mapped_column(Text)
-    user_data = mapped_column(Text)
-    log = mapped_column(Text)
+    # key_data = mapped_column(Text)
+    # user_data = mapped_column(Text)
+    # log = mapped_column(Text)
 
 
 TABLES[SAK_TASK_DB] = SakTaskDb
@@ -315,9 +315,9 @@ class SakTask:
             db_obj.end_time = ga_data.end_time
 
             # Dump addition info into cache.
-            db_obj.key_data = json.dumps(ga_data.key_data)
-            db_obj.user_data = json.dumps(ga_data.user_data)
-            db_obj.log = json.dumps(ga_data.log)
+            # db_obj.key_data = json.dumps(ga_data.key_data)
+            # db_obj.user_data = json.dumps(ga_data.user_data)
+            # db_obj.log = json.dumps(ga_data.log)
 
             db_obj.last_changed = ga_data._last_changed
 
@@ -810,6 +810,11 @@ class SakTaskStorage:
                 with open(last_sync_commit_file) as f:
                     last_commit = f.read()
 
+            db_file = self.path.resolve() / "db.sqlite"
+            if not db_file.exists():
+                last_sync_commit_file.unlink()
+                last_commit = None
+
             if last_commit != current_commit:
                 pass
 
@@ -819,7 +824,7 @@ class SakTaskStorage:
             if all_keys is None:
                 return
 
-            for key in all_keys:
+            for key in tqdm(all_keys):
                 metadata = self.ga_drv.git_annex_get_metada(key=key)
                 if metadata.namespace is None:
                     continue
@@ -835,11 +840,7 @@ class SakTaskStorage:
                         metadata.key_data is not None
                     ), f"Object {metadata.key_hash} in namespace {metadata.namespace} has no valid data."
 
-                    obj = nm_obj.load_from_git_annex(
-                        metadata.key_hash, metadata.key_data
-                    )
-
-                    print("Synced", obj)
+                    nm_obj.load_from_git_annex(metadata.key_hash, metadata.key_data)
 
             with open(last_sync_commit_file, "w") as f:
                 f.write(current_commit)
