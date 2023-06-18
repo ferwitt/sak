@@ -810,6 +810,11 @@ class SakTaskStorage:
                 with open(last_sync_commit_file) as f:
                     last_commit = f.read()
 
+            db_file = self.path.resolve() / "db.sqlite"
+            if not db_file.exists():
+                last_sync_commit_file.unlink()
+                last_commit = None
+
             if last_commit != current_commit:
                 pass
 
@@ -819,7 +824,7 @@ class SakTaskStorage:
             if all_keys is None:
                 return
 
-            for key in all_keys:
+            for key in tqdm(all_keys):
                 metadata = self.ga_drv.git_annex_get_metada(key=key)
                 if metadata.namespace is None:
                     continue
@@ -839,7 +844,6 @@ class SakTaskStorage:
                         metadata.key_hash, metadata.key_data
                     )
 
-                    print("Synced", obj)
 
             with open(last_sync_commit_file, "w") as f:
                 f.write(current_commit)
