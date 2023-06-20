@@ -131,6 +131,14 @@ class SakGitAnnexDriver:
         self.repo = pygit2.Repository(self.repo_path)
         self.metada_p: Optional[subprocess.Popen[bytes]] = None
 
+    def sync(self) -> None:
+        cmd = ["git", "annex", "sync"]
+        subprocess.run(
+            cmd,
+            cwd=self.repo_path,
+            check=True,
+        )
+
     def ga_key_metadata_hash(self, key: str) -> Optional[str]:
         fname = ga_key_to_key_file(key)
 

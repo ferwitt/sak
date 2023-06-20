@@ -527,6 +527,9 @@ class SakTaskStorage:
         self._session_factory: Optional[db.orm.session.sessionmaker] = None  # type: ignore
         self._scoped_session_obj: Optional[db.orm.scoping.scoped_session] = None  # type: ignore
 
+    def sync_ga(self) -> None:
+        self.ga_drv.sync()
+
     def sync_db(self) -> None:
         git_dir = self.path / ".git"
         assert (
