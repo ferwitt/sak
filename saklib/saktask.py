@@ -1,17 +1,18 @@
-"""
-Sak SE commands storage abstraction.
-"""
-import enum
-import hashlib
+# -*- coding: UTF-8 -*-
+
+__author__ = "Fernando Witt"
+__credits__ = ["Fernando Witt"]
+
+__license__ = "MIT"
+__maintainer__ = "Fernando Witt"
+__email__ = "ferawitt@gmail.com"
+
 import io
 import json
 import os
-import re
-import subprocess
 import sys
 import threading
 import traceback
-from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional
@@ -19,15 +20,19 @@ from typing import Any, Callable, Dict, Generator, Iterable, List, Optional
 import lazy_import  # type: ignore
 import sqlalchemy as db
 from filelock import FileLock
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String
-from sqlalchemy.orm import declarative_base, mapped_column, scoped_session, sessionmaker
+from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy.orm import mapped_column, scoped_session, sessionmaker
 from tqdm import tqdm  # type: ignore
 
+from saklib.sakhash import make_hash_sha256
 from saklib.sakio import (
     get_stdout_buffer_for_thread,
     register_threaded_stdout_and_stderr_tee,
     unregister_stdout_thread_id,
 )
+from saklib.sakstr import camel_to_snake
+from saklib.saktask_ga import SakGitAnnexDriver, SakTaskGitAnnexData
+from saklib.saktask_model import SAK_TASK_DB, TABLES, Base, SakTaskDb, SakTaskStatus
 
 lazy_import.lazy_module("pandas")
 
@@ -45,127 +50,20 @@ VERBOSE = os.environ.get("SAK_VERBOSE", False)
 register_threaded_stdout_and_stderr_tee(redirect_only=(not VERBOSE))
 
 
-Base = declarative_base()
-TABLES: Dict[str, Any] = {}
+class SakTaskKey:
+    def __init__(self, **data: Any) -> None:
+        self.data = data
+        self._hash_str: Optional[str] = None
 
+    def get_hash(self) -> str:
+        if self._hash_str is not None:
+            return self._hash_str
 
-class SakTaskStatus(enum.Enum):
-    PENDING = 1
-    ABORTED = 2
-    FAIL = 3
-    SUCCESS = 4
+        self._hash_str = make_hash_sha256(self.data)
+        return self._hash_str
 
-
-SAK_TASK_DB = "sak_tasks"
-
-
-class SakTaskDb(Base):  # type: ignore
-    __tablename__ = SAK_TASK_DB
-
-    last_changed = mapped_column(String, index=True)
-
-    key_hash = mapped_column(String(256), primary_key=True)
-    namespace = mapped_column(String(64), index=True)
-
-    status = mapped_column(Enum(SakTaskStatus), index=True)
-    start_time = mapped_column(DateTime, index=True)
-    end_time = mapped_column(DateTime, index=True)
-
-    # key_data = mapped_column(Text)
-    # user_data = mapped_column(Text)
-    # log = mapped_column(Text)
-
-
-TABLES[SAK_TASK_DB] = SakTaskDb
-
-
-def camel_to_enum(text: str) -> str:
-    """Convert camel case to ENUM case.
-
-    :param text: CamelCase text to be converted.
-    :returns: The DEFINE_CASE text.
-    """
-    text = text[0].upper() + text[1:]
-    return "_".join(re.findall("[A-Z][a-z0-9_]*", text)).upper()
-
-
-def camel_to_snake(text: str) -> str:
-    return camel_to_enum(text).lower()
-
-
-@dataclass
-class SakTaskGitAnnexData:
-    key_hash: Optional[str] = None
-    _key_hash: Optional[str] = None
-
-    namespace: Optional[str] = None
-    _namespace: Optional[str] = None
-
-    status: Optional[SakTaskStatus] = None
-    _status: Optional[str] = None
-
-    start_time: Optional[datetime] = None
-    _start_time: Optional[str] = None
-
-    end_time: Optional[datetime] = None
-    _end_time: Optional[str] = None
-
-    key_data: Optional[Dict[str, Any]] = None
-    _key_data: Optional[str] = None
-
-    user_data: Optional[Dict[str, Any]] = None
-    _user_data: Optional[str] = None
-
-    log: Optional[str] = None
-    _log: Optional[str] = None
-
-    _last_changed: Optional[str] = None
-
-
-def _git_annex_metadata_update_hashes(out: SakTaskGitAnnexData) -> SakTaskGitAnnexData:
-    out2 = SakTaskGitAnnexData(**asdict(out))
-
-    out2._key_hash = make_hash_sha1(out.key_hash)
-    out2._namespace = make_hash_sha1(out.namespace)
-    out2._status = make_hash_sha1(out.status)
-    out2._start_time = make_hash_sha1(out.start_time)
-    out2._end_time = make_hash_sha1(out.end_time)
-    out2._key_data = make_hash_sha1(out.key_data)
-    out2._user_data = make_hash_sha1(out.user_data)
-    out2._log = make_hash_sha1(out.log)
-
-    return out2
-
-
-def _git_annex_parse_metadata(ga_metadata: Dict[str, Any]) -> SakTaskGitAnnexData:
-    out = SakTaskGitAnnexData()
-
-    fields = ga_metadata.get("fields")
-    if fields is not None:
-        out.key_hash = json.loads(fields.get("key_hash", ["null"])[0])
-        out.namespace = json.loads(fields.get("namespace", ["null"])[0])
-        out.key_data = json.loads(fields.get("key_data", ["null"])[0])
-        out.user_data = json.loads(fields.get("user_data", ["null"])[0])
-
-        status = json.loads(fields.get("status", ["null"])[0])
-        out.status = None
-        if status is not None:
-            out.status = SakTaskStatus[status]
-
-        out.log = json.loads(fields.get("log", ["null"])[0])
-
-        start_time = fields.get("start_time", [None])[0]
-        end_time = fields.get("end_time", [None])[0]
-
-        if start_time is not None:
-            out.start_time = datetime.fromisoformat(start_time)
-        if end_time is not None:
-            out.end_time = datetime.fromisoformat(end_time)
-
-        out._last_changed = fields.get("lastchanged", [None])[0]
-    out = _git_annex_metadata_update_hashes(out)
-
-    return out
+    def set_hash(self, hash_str: str) -> None:
+        self._hash_str = hash_str
 
 
 class SakTaskGitAnnex:
@@ -198,65 +96,12 @@ class SakTaskGitAnnex:
         return self.data
 
 
-def make_hashable(o: Any) -> Any:
-    if hasattr(o, "get_hash"):
-        return tuple(o.get_hash())
-
-    if isinstance(o, (tuple, list)):
-        return tuple((make_hashable(e) for e in o))
-
-    if isinstance(o, dict):
-        return tuple(sorted((k, make_hashable(v)) for k, v in o.items()))
-
-    if isinstance(o, (set, frozenset)):
-        return tuple(sorted(make_hashable(e) for e in o))
-
-    return o
-
-
-def make_hash_sha256(o: Any) -> str:
-    hasher = hashlib.sha256()
-    hasher.update(repr(make_hashable(o)).encode())
-    return hasher.hexdigest()
-
-
-def make_hash_sha1(o: Any) -> str:
-    hasher = hashlib.sha1()
-    hasher.update(repr(make_hashable(o)).encode())
-    return hasher.hexdigest()
-
-
-class SakTaskKey:
-    def __init__(self, **data: Any) -> None:
-        self.data = data
-        self._hash_str: Optional[str] = None
-
-    def get_hash(self) -> str:
-        if self._hash_str is not None:
-            return self._hash_str
-
-        self._hash_str = make_hash_sha256(self.data)
-        return self._hash_str
-
-    def set_hash(self, hash_str: str) -> None:
-        self._hash_str = hash_str
-
-
 class SakTask:
     def __init__(self, key: SakTaskKey, namespace: "SakTasksNamespace") -> None:
         self.key = key
         self.namespace = namespace
 
         key_hash = self.key.get_hash()
-
-        self.ga_obj = SakTaskGitAnnex(
-            nm_obj=self.namespace,
-            data=SakTaskGitAnnexData(
-                key_hash=key_hash,
-                namespace=self.namespace.name,
-                key_data=self.key.data,
-            ),
-        )
 
         session = self.namespace.storage.scoped_session_obj()
 
@@ -268,7 +113,6 @@ class SakTask:
                 status=SakTaskStatus.PENDING,
             )
             session.add(db_obj)
-            session.commit()
 
         param_obj = self.namespace.get_task_db_param(key_hash)
         if param_obj is None:
@@ -287,13 +131,46 @@ class SakTask:
                 **supported_params,
             )
             session.add(param_obj)
-            session.commit()
 
-        self.sync_db(self.ga_obj.data)
+        self._ga_obj: Optional[SakTaskGitAnnex] = None
+
+        metadata_hash = self.namespace.storage.ga_drv.ga_key_metadata_hash(key=key_hash)
+
+        if (
+            (db_obj.metadata_hash != metadata_hash)
+            or (metadata_hash is None)
+            or (db_obj.metadata_hash is None)
+        ):
+            ga_obj = self.ga_obj
+            self.sync_db(ga_obj.data, do_commit=False)
+
+        session.commit()
 
         self._lock: Optional[FileLock] = None
 
-    def sync_db(self, ga_data: SakTaskGitAnnexData) -> None:
+    @property
+    def ga_obj(self) -> SakTaskGitAnnex:
+        key_hash = self.key.get_hash()
+
+        self._ga_obj = SakTaskGitAnnex(
+            nm_obj=self.namespace,
+            data=SakTaskGitAnnexData(
+                key_hash=key_hash,
+                namespace=self.namespace.name,
+                key_data=self.key.data,
+            ),
+        )
+        return self._ga_obj
+
+    def drop(self) -> None:
+        session = self.namespace.storage.scoped_session_obj()
+
+        db_obj = self.namespace.get_task_db_obj(self.key.get_hash())
+        self.namespace.storage.ga_drv.git_annex_drop_key(self.key.get_hash())
+
+        session.delete(db_obj)
+
+    def sync_db(self, ga_data: SakTaskGitAnnexData, do_commit: bool = True) -> None:
         session = self.namespace.storage.scoped_session_obj()
 
         db_obj = self.namespace.get_task_db_obj(self.key.get_hash())
@@ -304,24 +181,20 @@ class SakTask:
 
         # TODO(witt): What if I call the sync but there is not object yet?
 
-        if (
-            (db_obj.last_changed is None)
-            or (ga_data._last_changed is None)
-            or (db_obj.last_changed < ga_data._last_changed)
+        metadata_file_hash = ga_data.get_hash(ga_drv=self.namespace.storage.ga_drv)
+        if (db_obj.metadata_hash is None) or (
+            db_obj.metadata_hash != metadata_file_hash
         ):
             db_obj.namespace = ga_data.namespace
             db_obj.status = ga_data.status
             db_obj.start_time = ga_data.start_time
             db_obj.end_time = ga_data.end_time
 
-            # Dump addition info into cache.
-            # db_obj.key_data = json.dumps(ga_data.key_data)
-            # db_obj.user_data = json.dumps(ga_data.user_data)
-            # db_obj.log = json.dumps(ga_data.log)
-
             db_obj.last_changed = ga_data._last_changed
+            db_obj.metadata_hash = metadata_file_hash
 
-            session.commit()
+            if do_commit:
+                session.commit()
 
     @property
     def lock(self) -> FileLock:
@@ -438,7 +311,7 @@ def tasks_to_df(
     objs: Iterable[SakTask], namespace: Optional[str] = None
 ) -> pd.DataFrame:
     ret = []
-    for obj in objs:
+    for obj in tqdm(objs, desc="Create DF", file=STDOUT):
         row: Dict[str, Any] = {}
 
         row["_key"] = obj.key.get_hash()
@@ -448,7 +321,16 @@ def tasks_to_df(
 
         row["_obj"] = obj
         row.update(obj.key.data)
-        row.update(obj.get_additional_data())
+
+        try:
+            row.update(obj.get_additional_data())
+        except Exception as e:
+            print(80 * "-")
+            traceback.print_exc(file=sys.stdout)
+            print(80 * "-")
+            print(e)
+            continue
+
         ret.append(row)
     return pd.DataFrame(ret)
 
@@ -493,6 +375,20 @@ class SakTasksNamespace:
     def set_volatile(self) -> None:
         pass
 
+    def sync_key_table(self) -> None:
+        session = self.storage.scoped_session_obj()
+
+        key_hash: str = self.param_table_class.key_hash  # type: ignore
+        key_table = set(session.query(key_hash).all())
+
+        tasks_table = set(
+            session.query(SakTaskDb.key_hash).filter_by(namespace=self.name).all()
+        )
+
+        for obj_key in tqdm(list(tasks_table - key_table), desc=f"Sync {self.name}"):
+            self.get_task(hash_str=obj_key[0])
+            session.commit()
+
     def get_namespace_path(self) -> Path:
         ret = self.storage.get_path() / "nm" / self.name
         ret.mkdir(parents=True, exist_ok=True)
@@ -516,10 +412,10 @@ class SakTasksNamespace:
 
         return [x for x in query.all()]
 
-    def get_task_db_param(self, hash_str: str) -> Optional[Base]:  # type: ignore
+    def get_task_db_param(self, hash_str: str) -> Optional[Base]:
         session = self.storage.scoped_session_obj()
         ret = session.get(self.param_table_class, hash_str)
-        return ret  # type: ignore
+        return ret
 
     def get_task_db_obj(self, hash_str: str) -> Optional[SakTaskDb]:
         session = self.storage.scoped_session_obj()
@@ -543,6 +439,11 @@ class SakTasksNamespace:
             return None
 
         metadata = self.storage.ga_drv.git_annex_get_metada(key=db_obj.key_hash)
+
+        if metadata.key_data is None:
+            # TODO(witt): Why is this None. Shouldn't I drop this key in this case?
+            return None
+
         param_obj = self.param_class(**metadata.key_data)
         return self.obj_class(param_obj, hash_str=hash_str)  # type: ignore
 
@@ -586,201 +487,45 @@ class SakTasksNamespace:
     ) -> Generator[Any, None, None]:
         for db_obj in self.get_task_db_objs(limit=limit, query=query):
             metadata = self.storage.ga_drv.git_annex_get_metada(key=db_obj.key_hash)
-            param_obj = self.param_class(**metadata.key_data)
-            yield self.obj_class(param_obj, hash_str=db_obj.key_hash)
+
+            if not isinstance(metadata.key_data, dict):
+                session = self.storage.scoped_session_obj()
+                session.delete(db_obj)
+                continue
+
+            try:
+                param_obj = self.param_class(**metadata.key_data)
+                value_to_yield = self.obj_class(param_obj, hash_str=db_obj.key_hash)
+            except Exception as e:
+                print(80 * "-")
+                traceback.print_exc(file=sys.stdout)
+                print(80 * "-")
+                print(e)
+                continue
+
+            yield value_to_yield
 
     def get_tasks_df(
         self,
         query: Optional[db.sql.elements.BooleanClauseList] = None,
         limit: Optional[int] = None,
     ) -> pd.DataFrame:
-        return tasks_to_df(
-            self.get_tasks(query=query, limit=limit), namespace=self.name
-        )
-
-
-class SakGitAnnexDriver:
-    def __init__(self, storage: "SakTaskStorage") -> None:
-        self.storage = storage
-        self.metada_p: Optional[subprocess.Popen[bytes]] = None
-
-    def git_annex_get_metada(self, key: str) -> SakTaskGitAnnexData:
-        return self.git_annex_set_metadata(key=key)
-
-    def git_annex_set_metadata(
-        self,
-        key: str,
-        data: Optional[SakTaskGitAnnexData] = None,
-        change_callback: Optional[Callable[[SakTaskGitAnnexData], None]] = None,
-    ) -> SakTaskGitAnnexData:
-        git_annex_repo = self.storage.path
-
-        # TODO(witt): Maybe this should be locked!!!!
-
-        if self.metada_p is None:
-            cmd = ["git", "annex", "metadata", "--json", "--batch", "--fast"]
-            self.metada_p = subprocess.Popen(
-                cmd,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                cwd=git_annex_repo,
-            )
-
-        p = self.metada_p
-
-        assert (
-            (p is not None) and (p.stdin is not None) and (p.stdout is not None)
-        ), f"Failed to write metadata for {key} in {str(git_annex_repo)}"
-
-        in_data: Dict[str, Any] = {
-            "key": "SHA256E-s0--" + key,
-            "fields": {},
-        }
-
-        if data is not None:
-            orig_data = self.git_annex_get_metada(key)
-
-            if data.key_hash is not None:
-                in_data["fields"]["key_hash"] = [json.dumps(data.key_hash)]
-            if data.namespace is not None:
-                in_data["fields"]["namespace"] = [json.dumps(data.namespace)]
-
-            if data.key_data is not None:
-                in_data["fields"]["key_data"] = [json.dumps(data.key_data)]
-            if data.user_data is not None:
-                in_data["fields"]["user_data"] = [json.dumps(data.user_data)]
-            if data.start_time is not None:
-                in_data["fields"]["start_time"] = [data.start_time.isoformat()]
-            if data.end_time is not None:
-                in_data["fields"]["end_time"] = [data.end_time.isoformat()]
-            if data.status is not None:
-                in_data["fields"]["status"] = [json.dumps(data.status.name)]
-            if data.log is not None:
-                in_data["fields"]["log"] = [json.dumps(data.log)]
-
-            data = _git_annex_parse_metadata(in_data)
-
-            if data.key_hash is not None:
-                if orig_data._key_hash == data._key_hash:
-                    in_data["fields"].pop("key_hash")
-
-            if data.namespace is not None:
-                if orig_data._namespace == data._namespace:
-                    in_data["fields"].pop("namespace")
-            if data.key_data is not None:
-                if orig_data._key_data == data._key_data:
-                    in_data["fields"].pop("key_data")
-            if data.user_data is not None:
-                if orig_data._user_data == data._user_data:
-                    in_data["fields"].pop("user_data")
-            if data.start_time is not None:
-                if orig_data._start_time == data._start_time:
-                    in_data["fields"].pop("start_time")
-            if data.end_time is not None:
-                if orig_data._end_time == data._end_time:
-                    in_data["fields"].pop("end_time")
-            if data.status is not None:
-                if orig_data._status == data._status:
-                    in_data["fields"].pop("status")
-            if data.log is not None:
-                if orig_data._log == data._log:
-                    in_data["fields"].pop("log")
-
-        in_data_str = json.dumps(in_data) + "\n"
-
-        p.stdin.write(bytes(in_data_str, "utf-8"))
-        p.stdin.flush()
-
-        out_data_bytes = p.stdout.readline()
-        out_data = json.loads(out_data_bytes.decode("utf-8"))
-
-        out = _git_annex_parse_metadata(out_data)
-
-        if in_data["fields"]:
-            if change_callback is not None:
-                change_callback(out)
-
-        return out
-
-    def close(self) -> None:
-        p = self.metada_p
-
-        if p is not None:
-            assert (
-                p.stdin is not None
-            ), "Something went wrong, the stdin should not be None"
-            p.stdin.close()
-            p.wait()
-
-        self.metada_p = None
+        objs = list(self.get_tasks(query=query, limit=limit))
+        print(len(objs))
+        return tasks_to_df(objs, namespace=self.name)
 
 
 class SakTaskStorage:
     def __init__(self, path: Path):
         self.path = Path(path)
 
-        self.get_path()
+        self.path.mkdir(parents=True, exist_ok=True)
 
-        self.ga_drv = SakGitAnnexDriver(self)
+        self.ga_drv = SakGitAnnexDriver(self.path)
 
         self._engine: Optional[db.engine.base.Engine] = None
         self._session_factory: Optional[db.orm.session.sessionmaker] = None  # type: ignore
         self._scoped_session_obj: Optional[db.orm.scoping.scoped_session] = None  # type: ignore
-
-    def _get_current_git_hash(self) -> Optional[str]:
-        bname = "git-annex"
-        try:
-            cmd = ["git", "log", "-1", bname]
-            p = subprocess.run(
-                cmd,
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-                cwd=self.path,
-            )
-            text = p.stdout.strip().decode("utf-8")
-            r: List[str] = re.findall("commit ([a-f0-9]+)", text)
-            if r:
-                return r[0]
-            else:
-                return None
-        except Exception as e:
-            print(
-                "ERROR! Failed to get the current commit. Are you in a git repository?",
-                str(e),
-            )
-            return None
-
-    def _get_all_keys(
-        self, current_commit: str, last_commit: Optional[str] = None
-    ) -> Optional[List[str]]:
-        try:
-            diff_hashes = ""
-            if last_commit is not None:
-                diff_hashes = last_commit + ".."
-            diff_hashes += current_commit
-
-            cmd = ["git", "diff", "--name-only", diff_hashes]
-
-            p = subprocess.run(
-                cmd,
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-                cwd=self.path,
-            )
-            text = p.stdout.strip().decode("utf-8")
-            return [
-                Path(x).name.replace("SHA256E-s0--", "").replace(".log.met", "")
-                for x in text.splitlines()
-                if x.endswith(".log.met")
-            ]
-        except Exception as e:
-            print(
-                "ERROR! Failed to get the current commit. Are you in a git repository?",
-                str(e),
-            )
-            return None
 
     def sync_db(self) -> None:
         git_dir = self.path / ".git"
@@ -799,7 +544,7 @@ class SakTaskStorage:
 
         with FileLock(str(last_sync_commit_file_lock)):
 
-            current_commit = self._get_current_git_hash()
+            current_commit = self.ga_drv.get_current_git_hash()
             assert (
                 current_commit is not None
             ), f"Failed to get current commit for git-annex branch in {str(git_dir)}."
@@ -818,13 +563,14 @@ class SakTaskStorage:
             if last_commit != current_commit:
                 pass
 
-            all_keys = self._get_all_keys(
+            all_keys = self.ga_drv.get_all_keys(
                 current_commit=current_commit, last_commit=last_commit
             )
             if all_keys is None:
                 return
 
-            for key in tqdm(all_keys):
+            session = self.scoped_session_obj()
+            for key in tqdm(all_keys, desc="Sync db", file=STDOUT):
                 metadata = self.ga_drv.git_annex_get_metada(key=key)
                 if metadata.namespace is None:
                     continue
@@ -841,9 +587,13 @@ class SakTaskStorage:
                     ), f"Object {metadata.key_hash} in namespace {metadata.namespace} has no valid data."
 
                     nm_obj.load_from_git_annex(metadata.key_hash, metadata.key_data)
+            session.commit()
 
             with open(last_sync_commit_file, "w") as f:
                 f.write(current_commit)
+
+        for namespace in NAMESPACE.values():
+            namespace.sync_key_table()
 
     @property
     def engine(self) -> db.engine.base.Engine:

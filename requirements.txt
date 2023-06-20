@@ -5,3 +5,4 @@ pandas==1.5.3
 filelock==3.12.0
 tqdm==4.65.0
 sqlalchemy==2.0.4
+pygit2==1.11.1
