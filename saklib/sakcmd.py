@@ -160,7 +160,7 @@ class SakArg(SakDecorator):
                     parser=vargs["parser"],
                     parsed_args=vargs["parsed_args"],
                 )
-                return completercb(arg)  # type: ignore
+                return completercb(arg)
 
             aux.completer = completercbWrapper  # type: ignore
 
