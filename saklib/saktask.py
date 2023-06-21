@@ -26,13 +26,10 @@ from sqlalchemy.orm import mapped_column, scoped_session, sessionmaker
 from tqdm import tqdm  # type: ignore
 
 from saklib.sakhash import make_hash_sha256
-from saklib.sakio import (
-    get_stdout_buffer_for_thread,
-    register_threaded_stdout_and_stderr_tee,
-    unregister_stdout_thread_id,
-)
+from saklib.sakio import get_stdout_buffer_for_thread, unregister_stdout_thread_id
 from saklib.sakstr import camel_to_snake
 from saklib.saktask_ga import SakGitAnnexDriver, SakTaskGitAnnexData
+from saklib.saktask_io import STDERR, STDOUT, VERBOSE
 from saklib.saktask_model import SAK_TASK_DB, TABLES, Base, SakTaskDb, SakTaskStatus
 
 lazy_import.lazy_module("pandas")
@@ -43,12 +40,6 @@ import pandas as pd  # type: ignore
 # Store global state.
 STORAGE: Dict[str, "SakTaskStorage"] = {}
 NAMESPACE: Dict[str, "SakTasksNamespace"] = {}
-STDOUT = sys.stdout
-STDERR = sys.stderr
-
-# Redirect stdout and sterr for the threads.
-VERBOSE = os.environ.get("SAK_VERBOSE", False)
-register_threaded_stdout_and_stderr_tee(redirect_only=(not VERBOSE))
 
 
 class SakTaskKey:
@@ -169,14 +160,15 @@ class SakTask:
     def ga_obj(self) -> SakTaskGitAnnex:
         key_hash = self.key.get_hash()
 
-        self._ga_obj = SakTaskGitAnnex(
-            nm_obj=self.namespace,
-            data=SakTaskGitAnnexData(
-                key_hash=key_hash,
-                namespace=self.namespace.name,
-                key_data=self.key.data,
-            ),
-        )
+        if self._ga_obj is None:
+            self._ga_obj = SakTaskGitAnnex(
+                nm_obj=self.namespace,
+                data=SakTaskGitAnnexData(
+                    key_hash=key_hash,
+                    namespace=self.namespace.name,
+                    key_data=self.key.data,
+                ),
+            )
         return self._ga_obj
 
     def drop(self) -> None:

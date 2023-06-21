@@ -131,6 +131,8 @@ class SakGitAnnexDriver:
         self.repo = pygit2.Repository(self.repo_path)
         self.metada_p: Optional[subprocess.Popen[bytes]] = None
 
+        self._cache: Dict[str, SakTaskGitAnnexData] = {}
+
     def sync(self) -> None:
         cmd = ["git", "annex", "sync"]
         subprocess.run(
@@ -155,38 +157,23 @@ class SakGitAnnexDriver:
             hasher.update(b"Blob " + f"{len(content)}".encode() + b"\0" + content)
             return hasher.hexdigest()
         else:
-            return self.git_annex_get_path_blob(fname)
+            return self._git_annex_get_path_blob(fname)
 
         raise Exception(f"Failed to get content for metadata {key}")
 
     def git_annex_get_metada(self, key: str) -> SakTaskGitAnnexData:
-        return self.git_annex_set_metadata(key=key)
+        ret = self.git_annex_set_metadata(key=key)
+        return ret
 
-    def git_annex_get_path_blob(self, path: str) -> Optional[str]:
+    def _git_annex_get_path_blob(self, path: str) -> Optional[str]:
         commit = self.repo.revparse_single("git-annex")
         tree = commit.tree
-        blob_id = None
 
-        for part in path.split("/"):
-            if not part:
-                continue
+        try:
+            blob = tree / path
+        except Exception:
+            return None
 
-            if part not in tree:
-                return None
-
-            entry = tree[part]
-            if entry.filemode == pygit2.GIT_FILEMODE_TREE:
-                tree = self.repo[entry.oid]
-            elif entry.filemode == pygit2.GIT_FILEMODE_BLOB:
-                blob_id = entry.oid
-            else:
-                raise ValueError(
-                    f"Invalid filemode for path part {part}: {entry.filemode}"
-                )
-        if blob_id is None:
-            raise ValueError(f"Blob not found for path: {path}")
-
-        blob = self.repo[blob_id]
         blob_hash = blob.hex
         return blob_hash  # type: ignore
 
@@ -237,7 +224,6 @@ class SakGitAnnexDriver:
             "fields": {},
         }
 
-        # import pdb; pdb.set_trace()
         if data is not None:
             orig_data = self.git_annex_get_metada(key)
 
@@ -288,6 +274,13 @@ class SakGitAnnexDriver:
                     if orig_data._hashes._log == data._hashes._log:
                         in_data["fields"].pop("log")
 
+        # Get from cache.
+        if not in_data["fields"]:
+            blob_hash = self.ga_key_metadata_hash(key)
+            if (blob_hash is not None) and (blob_hash in self._cache):
+                return self._cache[blob_hash]
+
+        # If has to set data, dispach to git annex.
         in_data_str = json.dumps(in_data) + "\n"
 
         p.stdin.write(bytes(in_data_str, "utf-8"))
@@ -298,9 +291,15 @@ class SakGitAnnexDriver:
 
         out = git_annex_parse_metadata(out_data)
 
-        if in_data["fields"]:
+        # Call metadata callback.
+        if not in_data["fields"]:
             if change_callback is not None:
                 change_callback(out)
+
+        # Set cache.
+        blob_hash = self.ga_key_metadata_hash(key)
+        if blob_hash is not None:
+            self._cache[blob_hash] = out
 
         return out
 
