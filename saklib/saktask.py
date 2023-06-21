@@ -402,9 +402,11 @@ class SakTasksNamespace:
             session.query(SakTaskDb.key_hash).filter_by(namespace=self.name).all()
         )
 
+        internal_param = SakTaskInternalParam(perform_commit=False)
+
         for obj_key in tqdm(list(tasks_table - key_table), desc=f"Sync {self.name}"):
-            self.get_task(hash_str=obj_key[0])
-            session.commit()
+            self.get_task(hash_str=obj_key[0], internal_param=internal_param)
+        session.commit()
 
     def get_namespace_path(self) -> Path:
         ret = self.storage.get_path() / "nm" / self.name
@@ -455,7 +457,9 @@ class SakTasksNamespace:
         )
         return ret  # type: ignore
 
-    def get_task(self, hash_str: str) -> Optional[SakTask]:
+    def get_task(
+        self, hash_str: str, internal_param: Optional[SakTaskInternalParam] = None
+    ) -> Optional[SakTask]:
         db_obj = self.get_task_db_obj(hash_str=hash_str)
 
         if db_obj is None:
@@ -468,10 +472,12 @@ class SakTasksNamespace:
             return None
 
         param_obj = self.param_class(**metadata.key_data)
-        return self.obj_class(param_obj, hash_str=hash_str)  # type: ignore
+        return self.obj_class(param_obj, hash_str=hash_str, internal_param=internal_param)  # type: ignore
 
-    def get_task_df(self, hash_str: str) -> pd.DataFrame:
-        obj = self.get_task(hash_str=hash_str)
+    def get_task_df(
+        self, hash_str: str, internal_param: Optional[SakTaskInternalParam] = None
+    ) -> pd.DataFrame:
+        obj = self.get_task(hash_str=hash_str, internal_param=internal_param)
         if obj is None:
             return pd.DataFrame()
 
