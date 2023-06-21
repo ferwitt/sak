@@ -13,6 +13,7 @@ import os
 import sys
 import threading
 import traceback
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional
@@ -96,10 +97,25 @@ class SakTaskGitAnnex:
         return self.data
 
 
+@dataclass
+class SakTaskInternalParam:
+    perform_commit: bool = True
+
+
 class SakTask:
-    def __init__(self, key: SakTaskKey, namespace: "SakTasksNamespace") -> None:
+    def __init__(
+        self,
+        key: SakTaskKey,
+        namespace: "SakTasksNamespace",
+        internal_param: Optional["SakTaskInternalParam"] = None,
+    ) -> None:
         self.key = key
         self.namespace = namespace
+        self.__internal_param = internal_param
+
+        do_commit = True
+        if self.__internal_param is not None:
+            do_commit = self.__internal_param.perform_commit
 
         key_hash = self.key.get_hash()
 
@@ -144,7 +160,8 @@ class SakTask:
             ga_obj = self.ga_obj
             self.sync_db(ga_obj.data, do_commit=False)
 
-        session.commit()
+        if do_commit:
+            session.commit()
 
         self._lock: Optional[FileLock] = None
 
@@ -427,10 +444,16 @@ class SakTasksNamespace:
         return None
 
     def load_from_git_annex(
-        self, hash_str: str, key_data: Dict[str, Any]
+        self,
+        hash_str: str,
+        key_data: Dict[str, Any],
+        internal_param: Optional[SakTaskInternalParam] = None,
     ) -> Optional[SakTask]:
         param_obj = self.param_class(**key_data)
-        return self.obj_class(param_obj, hash_str=hash_str)  # type: ignore
+        ret = self.obj_class(
+            param_obj, hash_str=hash_str, internal_param=internal_param
+        )
+        return ret  # type: ignore
 
     def get_task(self, hash_str: str) -> Optional[SakTask]:
         db_obj = self.get_task_db_obj(hash_str=hash_str)
@@ -573,6 +596,9 @@ class SakTaskStorage:
                 return
 
             session = self.scoped_session_obj()
+
+            internal_param = SakTaskInternalParam(perform_commit=False)
+
             for key in tqdm(all_keys, desc="Sync db", file=STDOUT):
                 metadata = self.ga_drv.git_annex_get_metada(key=key)
                 if metadata.namespace is None:
@@ -589,7 +615,12 @@ class SakTaskStorage:
                         metadata.key_data is not None
                     ), f"Object {metadata.key_hash} in namespace {metadata.namespace} has no valid data."
 
-                    nm_obj.load_from_git_annex(metadata.key_hash, metadata.key_data)
+                    nm_obj.load_from_git_annex(
+                        metadata.key_hash,
+                        metadata.key_data,
+                        internal_param=internal_param,
+                    )
+
             session.commit()
 
             with open(last_sync_commit_file, "w") as f:
