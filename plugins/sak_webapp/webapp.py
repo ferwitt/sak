@@ -91,7 +91,8 @@ class SakDoc(param.Parameterized):  # type: ignore
             wac = ctx.plugin_data["webapp"]
 
             for name, path, file_path, callback in wac.panel_register_cbs:
-                cb = load_file(file_path)[callback.__name__]
+                cb_name = callback if isinstance(callback, str) else callback.__name__
+                cb = load_file(file_path)[cb_name]
 
                 if name != self.args.get("name"):
                     continue
