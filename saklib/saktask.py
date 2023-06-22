@@ -318,7 +318,7 @@ class SakTask:
 
 def tasks_to_df(
     objs: Iterable[SakTask], namespace: Optional[str] = None
-) -> pd.DataFrame:
+) -> "pd.DataFrame":
     ret = []
     for obj in tqdm(objs, desc="Create DF", file=STDOUT):
         row: Dict[str, Any] = {}
@@ -468,7 +468,7 @@ class SakTasksNamespace:
 
     def get_task_df(
         self, hash_str: str, internal_param: Optional[SakTaskInternalParam] = None
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame":
         obj = self.get_task(hash_str=hash_str, internal_param=internal_param)
         if obj is None:
             return pd.DataFrame()
@@ -530,7 +530,7 @@ class SakTasksNamespace:
         self,
         query: Optional[db.sql.elements.BooleanClauseList] = None,
         limit: Optional[int] = None,
-    ) -> pd.DataFrame:
+    ) -> "pd.DataFrame":
         objs = list(self.get_tasks(query=query, limit=limit))
         print(len(objs))
         return tasks_to_df(objs, namespace=self.name)

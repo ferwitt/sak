@@ -13,10 +13,12 @@ import sys
 from pathlib import Path
 from typing import Any, Callable, List, Tuple
 
+import lazy_import  # type: ignore
+
+lazy_import.lazy_module("bokeh")
+lazy_import.lazy_module("panel")
+
 import bokeh
-import bokeh.document
-import bokeh.embed
-import bokeh.server.server
 import panel as pn
 import tornado
 import tornado.gen
@@ -67,7 +69,7 @@ def set_extensions() -> None:
     pass
 
 
-def modify_doc(doc: bokeh.document.document.Document) -> None:
+def modify_doc(doc: "bokeh.document.document.Document") -> None:
     webapp_file = Path(__file__).resolve().parent / "webapp.py"
     webapp = load_file(webapp_file)
 
