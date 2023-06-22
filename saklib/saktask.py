@@ -18,6 +18,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Iterable, List, Optional
 
+# Import heavy modules.
 import lazy_import  # type: ignore
 import sqlalchemy as db
 from filelock import FileLock
@@ -33,7 +34,6 @@ from saklib.saktask_io import STDERR, STDOUT, VERBOSE
 from saklib.saktask_model import SAK_TASK_DB, TABLES, Base, SakTaskDb, SakTaskStatus
 
 lazy_import.lazy_module("pandas")
-
 
 import pandas as pd  # type: ignore
 
