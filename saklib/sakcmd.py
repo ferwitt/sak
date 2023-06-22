@@ -14,6 +14,7 @@ from argparse import ArgumentParser, Namespace, RawTextHelpFormatter
 from collections.abc import Iterable
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
+from types import ModuleType
 from typing import Any, Callable, Dict, List, Optional, Union
 
 try:
@@ -301,6 +302,10 @@ class SakCmdWrapper:
 
         if self._wrapped_content:
             d = self._wrapped_content
+
+            if isinstance(d, ModuleType):
+                if hasattr(d, "EXPOSE"):
+                    return [SakCmdWrapper(wrapped_content=d.EXPOSE, name=d.__name__)]
 
             if isinstance(d, dict):
                 subcmds = []
