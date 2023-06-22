@@ -375,7 +375,7 @@ class SakTasksNamespace:
             }
             _parameters.update(dict(fields))
 
-            self.param_table_class = type(self.param_name, (Base,), _parameters)
+            self.param_table_class = type(self.param_name + "DB", (Base,), _parameters)
 
             TABLES[self.param_table] = self.param_table_class
         else:
