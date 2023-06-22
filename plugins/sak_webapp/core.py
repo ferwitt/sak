@@ -44,11 +44,9 @@ class WebAppCtx:
         callback: Callable[[Any], None],
     ) -> None:
         for iname, ipath, _, icallback in self.panel_register_cbs:
-            if (
-                iname == name
-                and ipath == path
-                and icallback.__name__ == callback.__name__
-            ):
+            icb_name = icallback if isinstance(icallback, str) else icallback.__name__
+            cb_name = callback if isinstance(callback, str) else callback.__name__
+            if iname == name and ipath == path and icb_name == cb_name:
                 return
         self.panel_register_cbs.append((name, path, file_path, callback))
 
