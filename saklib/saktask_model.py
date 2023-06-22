@@ -10,6 +10,7 @@ __email__ = "ferawitt@gmail.com"
 import enum
 from typing import Any, Dict
 
+# Import heavy modules.
 import lazy_import  # type: ignore
 
 lazy_import.lazy_module("sqlalchemy")

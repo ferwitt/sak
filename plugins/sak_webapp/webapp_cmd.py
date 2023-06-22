@@ -17,12 +17,6 @@ from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import lazy_import  # type: ignore
-
-lazy_import.lazy_module("bokeh")
-lazy_import.lazy_module("panel")
-lazy_import.lazy_module("param")
-
 import bokeh
 import panel as pn
 import param  # type: ignore
@@ -208,7 +202,7 @@ class SakWebCmdArg:
 
 class CallbackObject:
     def __init__(
-        self, doc: "bokeh.document.document.Document", root_cmd: SakCmd, args: List[str]
+        self, doc: bokeh.document.document.Document, root_cmd: SakCmd, args: List[str]
     ) -> None:
 
         web_ret: Dict[str, Any] = {}
@@ -337,13 +331,13 @@ class CallbackObject:
 
         self.thread: Optional[StopableThread] = None
 
-    def stdout_view(self) -> "pn.pane.Str":
+    def stdout_view(self) -> pn.pane.Str:
         return self.stdout
 
-    def stderr_view(self) -> "pn.pane.Str":
+    def stderr_view(self) -> pn.pane.Str:
         return self.stderr
 
-    def help_view(self) -> "pn.Column":
+    def help_view(self) -> pn.Column:
 
         mk_content = f"""
         # {self.cmd.name.capitalize()}
@@ -359,7 +353,7 @@ class CallbackObject:
         ret = pn.Column(pn.pane.Markdown(mk_content, width=800))
         return ret
 
-    def parameters_view(self) -> "pn.Column":
+    def parameters_view(self) -> pn.Column:
 
         ret = pn.Column()
 
@@ -371,15 +365,15 @@ class CallbackObject:
 
         return ret
 
-    def view(self) -> "pn.Column":
+    def view(self) -> pn.Column:
         return self.output
 
     @tornado.gen.coroutine
     def update_doc(
         self,
-        new_output: "pn.pane.PaneBase",
-        stdout_str: "pn.pane.Str",
-        stderr_str: "pn.pane.Str",
+        new_output: pn.pane.PaneBase,
+        stdout_str: pn.pane.Str,
+        stderr_str: pn.pane.Str,
     ) -> None:
         # TODO(witt): This coroutine is the one that will actually update the content
         # source.stream(dict(x=[x], y=[y]))
