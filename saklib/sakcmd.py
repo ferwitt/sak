@@ -339,13 +339,14 @@ class SakCmdWrapper:
                     # if hasattr(v, "_sak_dec_chain"): #TODO(witt): What is the impact of this change?
                     if hasattr(v, "__name__"):
                         k = v.__name__
-                    try:
-                        k = v.name
-                    except Exception as e:
-                        print(
-                            "WARNING! I am trying to access the name attribute but failed.",
-                            str(e),
-                        )
+                    else:
+                        try:
+                            k = v.name
+                        except Exception as e:
+                            print(
+                                f"WARNING! I am trying to access the name attribute of '{v}' but failed.",
+                                str(e),
+                            )
                     subcmds.append(SakCmdWrapper(wrapped_content=v, name=k))
                 if subcmds:
                     return subcmds
