@@ -577,7 +577,7 @@ class SakTaskStorage:
 
             if last_sync_commit_file.exists():
                 with open(last_sync_commit_file) as f:
-                    last_commit = f.read()
+                    last_commit = f.read().strip()
 
             db_file = self.path.resolve() / "db.sqlite"
             if not db_file.exists() and last_sync_commit_file.exists():
