@@ -22,7 +22,8 @@ from typing import Any, Callable, Dict, Generator, Iterable, List, Optional
 import lazy_import  # type: ignore
 import sqlalchemy as db
 from filelock import FileLock
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Integer, String, event
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import mapped_column, scoped_session, sessionmaker
 from tqdm import tqdm  # type: ignore
 
@@ -536,6 +537,13 @@ class SakTasksNamespace:
         return tasks_to_df(objs, namespace=self.name)
 
 
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_con, con_record):  # type: ignore
+    cursor = dbapi_con.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.close()
+
+
 class SakTaskStorage:
     def __init__(self, path: Path):
         self.path = Path(path)
@@ -654,6 +662,7 @@ class SakTaskStorage:
         db_url = f"sqlite:///{self.path.resolve()}/db.sqlite"
 
         self._engine = db.create_engine(db_url, echo=False)
+
         self._session_factory = sessionmaker(bind=self._engine)
         self._scoped_session_obj = scoped_session(self._session_factory)
 
