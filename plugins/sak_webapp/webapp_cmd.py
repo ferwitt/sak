@@ -26,7 +26,6 @@ import tornado.gen
 from saklib.sak import plm, root_cmd
 from saklib.sakcmd import SakArg, SakCmd, SakCompleterArg, sak_arg_parser
 from saklib.sakio import (
-    get_stderr_buffer_for_thread,
     get_stdout_buffer_for_thread,
     unregister_stderr_thread_id,
     unregister_stdout_thread_id,
@@ -322,7 +321,6 @@ class CallbackObject:
         )
         self.abort_button = pn.widgets.Button(name="Abort", button_type="primary")
         self.stdout = pn.pane.Str("", sizing_mode="stretch_both")
-        self.stderr = pn.pane.Str("", sizing_mode="stretch_both")
 
         # self.layout = pn.Row( self.output, sizing_mode="stretch_width")
 
@@ -333,9 +331,6 @@ class CallbackObject:
 
     def stdout_view(self) -> pn.pane.Str:
         return self.stdout
-
-    def stderr_view(self) -> pn.pane.Str:
-        return self.stderr
 
     def help_view(self) -> pn.Column:
 
@@ -373,27 +368,16 @@ class CallbackObject:
         self,
         new_output: pn.pane.PaneBase,
         stdout_str: pn.pane.Str,
-        stderr_str: pn.pane.Str,
     ) -> None:
         # TODO(witt): This coroutine is the one that will actually update the content
-        # source.stream(dict(x=[x], y=[y]))
         self.output.clear()
         self.output.append(new_output)
-        # print(stdout_str)
         self.stdout.object = stdout_str
-        self.stderr.object = stderr_str
 
     @tornado.gen.coroutine
     def update_stdout(self, stdout_str: str) -> None:
         # TODO(witt): This coroutine is the one that will actually update the content
-        # print(stdout_str)
         self.stdout.object = stdout_str
-
-    @tornado.gen.coroutine
-    def update_stderr(self, stderr_str: str) -> None:
-        # TODO(witt): This coroutine is the one that will actually update the content
-        # print(stderr_str)
-        self.stderr.object = stderr_str
 
     def abort_callback(self, event: Any) -> None:
         print("Raise exception!!!")
@@ -416,19 +400,17 @@ class CallbackObject:
         loading = pn.indicators.LoadingSpinner(value=True, width=100, height=100)
         self.doc.add_next_tick_callback(
             partial(
-                self.update_doc, new_output=loading, stdout_str=None, stderr_str=None
+                self.update_doc, new_output=loading, stdout_str=None
             )  # type: ignore
         )
 
         # TODO(witt): This is a work around. Try to remove.
         # Make sure will start from a clean buffer.
         unregister_stdout_thread_id()
-        unregister_stderr_thread_id()
 
         try:
             # Start a thread to update the stdout every 1s
             do_update_stdout = True
-            do_update_stderr = True
 
             def simple_update_stdout() -> None:
                 UPDATE_PERIOD = 2
@@ -452,33 +434,8 @@ class CallbackObject:
                     if do_update_stdout:
                         time.sleep(UPDATE_PERIOD)
 
-            def simple_update_stderr() -> None:
-                UPDATE_PERIOD = 1
-                # MAX_SIZE = -1
-                MAX_SIZE = 10 * 1024
-                while do_update_stderr:
-                    if self.thread is None:
-                        raise Exception("Thread was not set")
-
-                    stderr_strio = get_stderr_buffer_for_thread(self.thread.ident)
-                    stderr_str = ""
-
-                    if stderr_strio is not None:
-                        stderr_str = stderr_strio.getvalue()[-MAX_SIZE:]
-
-                    if self.stderr.object != stderr_str:
-                        # loading = pn.pane.GIF('https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif')
-                        self.doc.add_next_tick_callback(
-                            partial(self.update_stderr, stderr_str=stderr_str)  # type: ignore
-                        )
-                    if do_update_stderr:
-                        time.sleep(UPDATE_PERIOD)
-
             update_stdout_thread = threading.Thread(target=simple_update_stdout)
             update_stdout_thread.start()
-
-            update_stderr_thread = threading.Thread(target=simple_update_stderr)
-            update_stderr_thread.start()
 
             # This is running in another thread.
             # Run callback code.
@@ -486,7 +443,6 @@ class CallbackObject:
 
             # Stop the update thread
             do_update_stdout = False
-            do_update_stderr = False
 
             # Will not joing to allow a bigger sleep :)
             # update_stdout_thread.join()
@@ -498,11 +454,6 @@ class CallbackObject:
             if stdout_strio is not None:
                 stdout_str = stdout_strio.getvalue()
 
-            stderr_strio = get_stderr_buffer_for_thread()
-            stderr_str = ""
-            if stderr_strio is not None:
-                stderr_str = stderr_strio.getvalue()
-
             if (new_output is not None) and hasattr(new_output, "panel"):
                 new_output = new_output.panel()
 
@@ -511,7 +462,6 @@ class CallbackObject:
                     self.update_doc,
                     new_output=new_output,
                     stdout_str=stdout_str + "\nDONE!",
-                    stderr_str=stderr_str + "\nDONE!",
                 )  # type: ignore
             )
 
@@ -551,6 +501,8 @@ def do_commands(doc, tmpl, **kwargs):  # type: ignore
 
     curr_cmd = root_cmd()
 
+    main = pn.Column()
+
     _args = [x for x in kwargs.get("cmd", "").split("/") if x]
 
     # Handle Sak commands.
@@ -577,36 +529,40 @@ def do_commands(doc, tmpl, **kwargs):  # type: ignore
     controller = pn.Column(
         pn.pane.Markdown(subcmds_md, sizing_mode="stretch_width"),
         content.parameters_view(),
-        sizing_mode="stretch_both",
+        width=200,
+        # sizing_mode="stretch_both",
     )
 
     # TODO: Append breakcrumbs before
     content_pane = pn.Tabs(
         ("output", content.view()),
         ("stdout", content.stdout_view()),
-        ("stderr", content.stderr_view()),
         sizing_mode="stretch_both",
     )
 
-    tmpl.sidebar.append(controller)
-    tmpl.main.append(content_pane)
+    side = pn.Column()
+    side.append(controller)
+
+    main.append(content_pane)
 
     # Callback that will be called when the About button is clicked
     about = content.help_view()
-    tmpl.modal.append(about)
 
     def about_callback(event: param.parameterized.Event) -> None:
         tmpl.open_modal()
 
     btn = pn.widgets.Button(name="About", width=150)
     btn.on_click(about_callback)
-    tmpl.sidebar.append(btn)
 
-    return tmpl
+    side.append(btn)
+
+    return {"main": main, "side": side, "modal": about}
 
 
 def register_commands() -> None:
     # Register web endpoints.
     webapp = plm.get_plugin("webapp")
     if webapp is not None:
-        webapp.panel_register("commands", "/", Path(__file__).resolve(), do_commands)
+        webapp.panel_register(
+            "commands", "/", Path(__file__).resolve(), "do_commands", None
+        )
