@@ -19,7 +19,7 @@ import tornado.gen
 from webapp_cmd import register_commands
 
 from saklib.sak import plm
-from saklib.sakio import register_threaded_stderr_tee, register_threaded_stdout_tee
+from saklib.sakio import register_threaded_stdout_and_stderr_tee
 from saklib.sakplugin import load_file
 
 
@@ -36,6 +36,7 @@ def modify_doc(doc: "bokeh.document.document.Document") -> None:
 def bk_worker(bokeh_port: int) -> None:
 
     pn.extension()
+    pn.extension("tabulator")
 
     server = bokeh.server.server.Server(
         {"/": modify_doc},
@@ -49,8 +50,9 @@ def bk_worker(bokeh_port: int) -> None:
 
 def start(port: int = 2020) -> None:
     # Prepare stdout and sterr capture.
-    register_threaded_stdout_tee()
-    register_threaded_stderr_tee()
+    redirect_only = False
+    register_threaded_stdout_and_stderr_tee(redirect_only=redirect_only)
+    # register_threaded_stderr_tee()
 
     # Force loading plugins.
     register_commands()

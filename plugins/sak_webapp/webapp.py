@@ -8,13 +8,24 @@ __license__ = "MIT"
 __maintainer__ = "Fernando Witt"
 __email__ = "ferawitt@gmail.com"
 
+import threading
+import time
+from functools import partial
 from pathlib import Path
+from typing import Any, Callable, Dict, Optional, Union
 
 import bokeh
 import panel as pn
 import param  # type: ignore
+import tornado
+import tornado.gen
 
 from saklib.sak import ctx
+from saklib.sakio import (
+    get_stdout_buffer_for_thread,
+    unregister_stderr_thread_id,
+    unregister_stdout_thread_id,
+)
 from saklib.sakplugin import load_file
 
 has_pandas = False
@@ -28,6 +39,175 @@ except Exception as e:
 
 SCRIPT_PATH = Path(__file__).resolve()
 RESOURCES_PATH = SCRIPT_PATH.parent / "web"
+
+
+class WebAppCbObj:
+    def __init__(
+        self,
+        doc: bokeh.document.document.Document,
+        cb: Callable[[], Union[pn.pane.PaneBase, Dict[str, pn.pane.PaneBase]]],
+    ) -> None:
+        self.doc = doc
+        self.cb = cb
+
+        self.stdout = pn.pane.Str("", sizing_mode="stretch_both")
+
+        self.thread: Optional[threading.Thread] = None
+
+        self.main_output = pn.Column(sizing_mode="stretch_both")
+        self.side_output = pn.Column(sizing_mode="stretch_both")
+        self.modal_output = pn.Column(sizing_mode="stretch_both")
+
+    def main_view(self) -> pn.Column:
+        return self.main_output
+
+    def side_view(self) -> pn.Column:
+        return self.side_output
+
+    def modal_view(self) -> pn.Column:
+        return self.modal_output
+
+    @tornado.gen.coroutine
+    def update_doc(
+        self,
+        new_main_output: Optional[pn.pane.PaneBase] = None,
+        new_side_output: Optional[pn.pane.PaneBase] = None,
+        new_modal_output: Optional[pn.pane.PaneBase] = None,
+    ) -> None:
+        # TODO(witt): This coroutine is the one that will actually update the content
+        if new_main_output is not None:
+            self.main_output.clear()
+            self.main_output.append(new_main_output)
+
+        if new_side_output is not None:
+            self.side_output.clear()
+            self.side_output.append(new_side_output)
+
+        if new_modal_output is not None:
+            self.modal_output.clear()
+            self.modal_output.append(new_modal_output)
+
+    @tornado.gen.coroutine
+    def update_stdout(self, stdout_str: str) -> None:
+        # TODO(witt): This coroutine is the one that will actually update the content
+        # print(stdout_str)
+        self.stdout.object = stdout_str
+
+    def start_callback(self) -> None:
+        # Start thread in another callback.
+        self.thread = threading.Thread(target=self.callback)
+        self.thread.start()
+
+    def callback(self, **vargs: Any) -> None:
+        # TODO: Get from my resources here
+        loading_spinner = pn.indicators.LoadingSpinner(
+            value=True, width=100, height=100
+        )
+        loading = pn.Row(
+            loading_spinner,
+            pn.Column(pn.pane.Str("stdout:"), self.stdout),
+        )
+
+        self.doc.add_next_tick_callback(
+            partial(
+                self.update_doc,
+                new_main_output=loading,
+                new_side_output=None,
+                new_modal_output=None,
+            )  # type: ignore
+        )
+
+        # TODO(witt): This is a work around. Try to remove.
+        # Make sure will start from a clean buffer.
+        unregister_stdout_thread_id()
+
+        new_output: Dict[str, Any] = {}
+        error_main: Optional[pn.pane.PaneBase] = None
+
+        try:
+            # Start a thread to update the stdout every 1s
+            do_update_stdout = True
+
+            def simple_update_stdout() -> None:
+                UPDATE_PERIOD = 2
+                # MAX_SIZE = -1
+                MAX_SIZE = 10 * 1024
+                while do_update_stdout:
+                    if self.thread is None:
+                        raise Exception("Thread was not set")
+
+                    stdout_strio = get_stdout_buffer_for_thread(self.thread.ident)
+                    stdout_str = ""
+
+                    if stdout_strio is not None:
+                        stdout_str = stdout_strio.getvalue()[-MAX_SIZE:]
+
+                    if self.stdout.object != stdout_str:
+                        self.doc.add_next_tick_callback(
+                            partial(self.update_stdout, stdout_str=stdout_str)  # type: ignore
+                        )
+                    if do_update_stdout:
+                        time.sleep(UPDATE_PERIOD)
+
+            update_stdout_thread = threading.Thread(target=simple_update_stdout)
+            update_stdout_thread.start()
+
+            # This is running in another thread.
+            # Run callback code.
+            _new_output = self.cb()
+            if isinstance(_new_output, dict):
+                new_output = _new_output
+            else:
+                new_output = {"main": _new_output}
+
+            # Stop the update thread
+            do_update_stdout = False
+
+            # Will not joing to allow a bigger sleep :)
+            # update_stdout_thread.join()
+        except Exception as e:
+            _error_main = pn.Column()
+            _error_message = f"ERROR: {str(e)}"
+            _error_main.append(
+                pn.pane.Alert(
+                    _error_message.format(alert_type="danger"), alert_type="danger"
+                )
+            )
+
+            import traceback
+            from io import StringIO
+
+            trace = StringIO()
+            traceback.print_exc(file=trace)
+            print(trace.getvalue())
+            trace_str = f"```python\n{trace.getvalue()}\n```"
+            _error_main.append(pn.pane.Markdown(trace_str, sizing_mode="stretch_width"))
+
+            error_main = pn.Column(
+                _error_main,
+                pn.Column(pn.pane.Str("stdout:"), self.stdout),
+            )
+
+        finally:
+            # Schedule document update into tornado
+            stdout_strio = get_stdout_buffer_for_thread()
+            if stdout_strio is not None:
+                stdout_strio.getvalue()
+
+            self.doc.add_next_tick_callback(
+                partial(
+                    self.update_doc,
+                    new_main_output=error_main or new_output.get("main"),
+                    new_side_output=new_output.get("side"),
+                    new_modal_output=new_output.get("modal"),
+                )  # type: ignore
+            )
+
+            # Clean the thread buffers.
+            unregister_stdout_thread_id()
+            unregister_stderr_thread_id()
+
+        # TODO(witt): Should I do some thread cleaning?
 
 
 class SakDoc(param.Parameterized):  # type: ignore
@@ -68,7 +248,7 @@ class SakDoc(param.Parameterized):  # type: ignore
         if "webapp" in ctx.plugin_data:
             wac = ctx.plugin_data["webapp"]
             urls = {}
-            for name, path, _, _ in wac.panel_register_cbs:
+            for name, path, _, _, _ in wac.panel_register_cbs:
                 if name not in urls:
                     urls[name] = path
 
@@ -90,7 +270,7 @@ class SakDoc(param.Parameterized):  # type: ignore
         if "webapp" in ctx.plugin_data:
             wac = ctx.plugin_data["webapp"]
 
-            for name, path, file_path, callback in wac.panel_register_cbs:
+            for name, path, file_path, callback, tmplmod in wac.panel_register_cbs:
                 cb_name = callback if isinstance(callback, str) else callback.__name__
                 cb = load_file(file_path)[cb_name]
 
@@ -108,9 +288,23 @@ class SakDoc(param.Parameterized):  # type: ignore
                 tmpl.header.append(pn.pane.HTML(plugins_url))
                 tmpl.sidebar.append(controller)
 
-                tmpl = cb(self.doc, tmpl, **self.args)
+                if tmplmod is not None:
+                    tmpl = load_file(file_path)[tmplmod](tmpl)
+
+                def internal_callback() -> Union[
+                    Dict[str, pn.pane.PaneBase], pn.pane.PaneBase
+                ]:
+                    return cb(self.doc, tmpl=tmpl, **self.args)  # type: ignore
+
+                content = WebAppCbObj(self.doc, internal_callback)
+
+                tmpl.main.append(content.main_view())
+                tmpl.sidebar.append(content.side_view())
+                tmpl.modal.append(content.modal_view())
 
                 ret = tmpl.server_doc(self.doc)
+
+                content.start_callback()
 
                 return ret
 
