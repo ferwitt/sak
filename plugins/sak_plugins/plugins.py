@@ -13,7 +13,7 @@ def show() -> str:
     if ctx.has_plugin_manager is None:
         raise Exception("No plugin manager specifief")
     for plugin in ctx.has_plugin_manager.has_plugins:
-        ret += "name: %s\n\tpath: %s\n" % (plugin.name, plugin.plugin_path)
+        ret += "name: %s\n\tpath: %s\n" % (plugin._name, plugin.plugin_path)
     return ret
 
 
@@ -79,11 +79,11 @@ def update_all(disable_repo_update: bool = False) -> None:
     print(80 * "-" + "\n")
     print("Update plugins")
     for plugin in ctx.has_plugin_manager.getPluginList():
-        if plugin.name == "plugins":
+        if plugin._name == "plugins":
             continue
 
         print(80 * "-" + "\n")
-        print("Updating %s\n" % plugin.name)
+        print("Updating %s\n" % plugin._name)
         plugin.update(disable_repo_update=disable_repo_update)
 
 

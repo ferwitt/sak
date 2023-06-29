@@ -161,6 +161,9 @@ class SakArg(SakDecorator):
                     parser=vargs["parser"],
                     parsed_args=vargs["parsed_args"],
                 )
+                assert (
+                    completercb is not None
+                ), "Completer Calback is supposed to be not None"
                 return completercb(arg)
 
             aux.completer = completercbWrapper  # type: ignore
@@ -250,7 +253,7 @@ class SakCmdWrapper:
         d = self._wrapped_content
 
         if isinstance(d, SakPlugin):
-            return d.name
+            return d._name
 
         if (
             (d is not None)
@@ -552,7 +555,7 @@ class SakCmdWrapper:
                 return (d["__doc__"] or "").strip()
 
         if isinstance(d, SakPlugin):
-            plugin_helpmsg = d.helpmsg
+            plugin_helpmsg = d._helpmsg
             if plugin_helpmsg:
                 return plugin_helpmsg
 
