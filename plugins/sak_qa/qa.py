@@ -30,19 +30,19 @@ def mypy() -> None:
 
     plugins_paths = []
     for plugin in plm.getPluginList():
-        if plugin.plugin_path is None:
+        if plugin._plugin_path is None:
             continue
 
-        mypy_modules = plugin.get_config().get("MYPY_MODULES", None)
+        mypy_modules = plugin._get_config().get("MYPY_MODULES", None)
         if mypy_modules is not None and mypy_modules:
             for mypy_module in mypy_modules:
-                plugins_paths += [str(plugin.plugin_path / mypy_module)]
+                plugins_paths += [str(plugin._plugin_path / mypy_module)]
         else:
-            plugins_paths += [str(plugin.plugin_path)]
+            plugins_paths += [str(plugin._plugin_path)]
 
     exclude_paths = []
     for plugin in plm.getPluginList():
-        mypy_exclude = plugin.get_config().get("MYPY_EXCLUDE", None)
+        mypy_exclude = plugin._get_config().get("MYPY_EXCLUDE", None)
         if mypy_exclude is not None and mypy_exclude:
             for mypy_exclude in mypy_exclude:
                 exclude_paths += [mypy_exclude]
@@ -105,9 +105,9 @@ def flake8() -> None:
     paths = []
     paths += [str(SAK_GLOBAL / "saklib")]
     for plugin in plm.getPluginList():
-        if plugin.plugin_path is None:
+        if plugin._plugin_path is None:
             continue
-        paths += [str(plugin.plugin_path)]
+        paths += [str(plugin._plugin_path)]
 
     cmd = ["flake8", "--config=" + str(SAK_GLOBAL / ".flake8")]
     cmd += paths
@@ -128,9 +128,9 @@ def black(check: bool = False) -> None:
     paths = []
     paths += [str(SAK_GLOBAL / "saklib")]
     for plugin in plm.getPluginList():
-        if plugin.plugin_path is None:
+        if plugin._plugin_path is None:
             continue
-        paths += [str(plugin.plugin_path)]
+        paths += [str(plugin._plugin_path)]
 
     for path in paths:
         cmd = ["black"]
@@ -165,9 +165,9 @@ def test(coverage: bool = False, pdb: bool = False) -> None:
 
     test_files += [str(x) for x in (SAK_GLOBAL / "saklib").rglob("*_test.py")]
     for plugin in plm.getPluginList():
-        if plugin.plugin_path is None:
+        if plugin._plugin_path is None:
             continue
-        test_files += [str(x) for x in Path(plugin.plugin_path).rglob("*_test.py")]
+        test_files += [str(x) for x in Path(plugin._plugin_path).rglob("*_test.py")]
 
     cmd += test_files
 
@@ -247,9 +247,9 @@ def isort(check: bool = False) -> None:
     paths = []
     paths += [str(SAK_GLOBAL / "saklib")]
     for plugin in plm.getPluginList():
-        if plugin.plugin_path is None:
+        if plugin._plugin_path is None:
             continue
-        paths += [str(plugin.plugin_path)]
+        paths += [str(plugin._plugin_path)]
 
     for path in paths:
         cmd = ["isort"]
@@ -275,9 +275,9 @@ def autoflake() -> None:
     paths = []
     paths += [str(SAK_GLOBAL / "saklib")]
     for plugin in plm.getPluginList():
-        if plugin.plugin_path is None:
+        if plugin._plugin_path is None:
             continue
-        paths += [str(plugin.plugin_path)]
+        paths += [str(plugin._plugin_path)]
 
     for path in paths:
         cmd = [

@@ -22,6 +22,7 @@ from typing import Any, Callable, Dict, Generator, Iterable, List, Optional
 import lazy_import  # type: ignore
 import sqlalchemy as db
 from filelock import FileLock
+from pygit2 import GitError  # type: ignore
 from sqlalchemy import ForeignKey, Integer, String, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import mapped_column, scoped_session, sessionmaker
@@ -682,8 +683,11 @@ def set_storage(
     path: Path,
     name: str = "global",
 ) -> None:
-    STORAGE[name] = SakTaskStorage(path)
-    path.mkdir(parents=True, exist_ok=True)
+    try:
+        STORAGE[name] = SakTaskStorage(path)
+        path.mkdir(parents=True, exist_ok=True)
+    except GitError as e:
+        print(e)
 
 
 def register_namespace(nm_obj: "SakTasksNamespace") -> None:

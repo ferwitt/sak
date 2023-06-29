@@ -145,9 +145,9 @@ class SakPlugin:
     def __init__(
         self, context: SakContext, name: str, path: Optional[Path] = None
     ) -> None:
-        self.has_context = context
+        self._has_context = context
 
-        self.name = name
+        self._name = name
         self._has_plugin_path = Path(path) if path is not None else None
 
         self._loaded = False
@@ -167,7 +167,7 @@ class SakPlugin:
         if self._config_file is not None and self._config_file.exists():
             self._config = load_file(self._config_file)
 
-    def get_config(self) -> Dict[str, Any]:
+    def _get_config(self) -> Dict[str, Any]:
         return self._config
 
     def _load_exposes(self) -> None:
@@ -243,7 +243,7 @@ class SakPlugin:
         return super(SakPlugin, self).__getattribute__(name)
 
     @property
-    def plugin_path(self) -> Optional[Path]:
+    def _plugin_path(self) -> Optional[Path]:
         """Plugin path.
 
         :returns: The plugin path.
@@ -257,16 +257,16 @@ class SakPlugin:
 
         :param disable_repo_update: Whether should disable the plugin repository pull.
         """
-        path = self.plugin_path
+        path = self._plugin_path
 
         if path is None:
-            print(f"The plugin {self.name} has not a real path")
+            print(f"The plugin {self._name} has not a real path")
             return
 
         if path is not None:
             if not disable_repo_update:
                 if (path / ".git").exists():
-                    print("Updating repository for %s" % self.name)
+                    print("Updating repository for %s" % self._name)
                     run_cmd(
                         ["git", "remote", "update"],
                         check=True,
@@ -284,7 +284,7 @@ class SakPlugin:
                     )
 
             if (path / "requirements.txt").exists():
-                print("Updating pip dependencies for %s" % self.name)
+                print("Updating pip dependencies for %s" % self._name)
                 run_cmd(
                     ["pip", "install", "--upgrade", "-r", "requirements.txt"],
                     check=True,
@@ -297,7 +297,7 @@ class SakPlugin:
         return v.strip()
 
     @property
-    def helpmsg(self) -> str:
+    def _helpmsg(self) -> str:
         """
         Show help message.
 
@@ -317,7 +317,7 @@ class SakPluginManager(object):
 
     def get_plugin(self, name: str) -> Optional[SakPlugin]:
         for p in self.has_plugins:
-            if p.name == name:
+            if p._name == name:
                 return p
         return None
 
