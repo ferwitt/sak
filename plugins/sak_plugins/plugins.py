@@ -13,7 +13,7 @@ def show() -> str:
     if ctx.has_plugin_manager is None:
         raise Exception("No plugin manager specifief")
     for plugin in ctx.has_plugin_manager.has_plugins:
-        ret += "name: %s\n\tpath: %s\n" % (plugin._name, plugin.plugin_path)
+        ret += "name: %s\n\tpath: %s\n" % (plugin._name, plugin._plugin_path)
     return ret
 
 
