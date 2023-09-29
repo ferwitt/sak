@@ -216,7 +216,7 @@ class SakTask:
     def __repr__(self) -> str:
         return f"<{type(self).__name__} key={self.key.get_hash()}>"
 
-    def __call__(self, parameter: Dict[str, Any]) -> None:
+    def __call__(self, **kwargs: Any) -> None:
         raise Exception("You should implement this method in the specialize class")
 
     def _get_path(self) -> Path:
@@ -255,12 +255,14 @@ class SakTask:
     def get_additional_data(self) -> Dict[str, Any]:
         return {}
 
-    def has_to_rerun(self) -> bool:
+    def has_to_rerun(self, **kwargs: Any) -> bool:
         return False
 
     def run(self, **kwargs: Any) -> None:
         # TODO(witt): Verify wrong pending status.
-        if (self.get_status() != SakTaskStatus.PENDING) and (not self.has_to_rerun()):
+        if (self.get_status() != SakTaskStatus.PENDING) and (
+            not self.has_to_rerun(**kwargs)
+        ):
             return
 
         self.ga_obj.set_data(
@@ -281,7 +283,7 @@ class SakTask:
         error_message = io.StringIO("")
 
         try:
-            self(kwargs)
+            self(**kwargs)
         except Exception as e:
             has_error = True
             exception = e
